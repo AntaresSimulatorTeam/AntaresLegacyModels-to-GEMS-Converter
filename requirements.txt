@@ -1,0 +1,79 @@
+#
+# Resolved from requirements.in (Python 3.11 compatible)
+# Excludes pypsa and its dependencies (linopy, geopandas, etc.) - not used by input_converter
+#
+absl-py==2.3.1
+    # via ortools
+annotated-types==0.7.0
+    # via pydantic
+antares-craft==0.3.0
+    # via -r requirements.in
+antares-study-version==1.0.15
+    # via antares-craft
+antares-timeseries-generation==0.1.7
+    # via antares-craft
+antlr4-python3-runtime==4.13.1
+    # via -r requirements.in
+anytree==2.12.1
+    # via -r requirements.in
+certifi==2025.1.31
+    # via requests
+charset-normalizer==3.4.1
+    # via requests
+click==8.1.8
+    # via antares-study-version
+immutabledict==4.2.1
+    # via ortools
+numpy==1.26.4
+    # via
+    #   -r requirements.in
+    #   antares-craft
+    #   antares-timeseries-generation
+    #   ortools
+    #   pandas
+    #   scipy
+ortools==9.9.3963
+    # via -r requirements.in
+packaging==25.0
+pandas==2.2.3
+    # via
+    #   -r requirements.in
+    #   antares-craft
+    #   antares-study-version
+    #   antares-timeseries-generation
+    #   ortools
+protobuf==6.32.0
+    # via ortools
+psutil==7.0.0
+    # via antares-craft
+pydantic==2.11.7
+    # via
+    #   -r requirements.in
+    #   antares-craft
+pydantic-core==2.33.2
+    # via pydantic
+python-dateutil==2.9.0.post0
+    # via pandas
+pytz==2025.2
+    # via pandas
+pyyaml==6.0.2
+    # via -r requirements.in
+requests==2.32.3
+    # via antares-craft
+scipy>=1.10
+    # via -r requirements.in
+six==1.17.0
+    # via
+    #   anytree
+    #   python-dateutil
+typing-extensions==4.13.2
+    # via
+    #   pydantic
+    #   pydantic-core
+    #   typing-inspection
+typing-inspection==0.4.1
+    # via pydantic
+tzdata==2025.2
+    # via pandas
+urllib3==2.4.0
+    # via requests
