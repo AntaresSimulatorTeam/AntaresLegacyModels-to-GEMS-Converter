@@ -17,13 +17,9 @@ antares-study-version==1.0.15
 antares-timeseries-generation==0.1.7
     # via antares-craft
 antlr4-python3-runtime==4.13.1
-    # via
-    #   -r requirements.in
-    #   gemspy
+    # via gemspy
 anytree==2.12.1
-    # via
-    #   -r requirements.in
-    #   gemspy
+    # via gemspy
 bottleneck==1.6.0
     # via linopy
 certifi==2025.1.31
@@ -142,9 +138,7 @@ numpy==1.26.4
     #   shapely
     #   xarray
 ortools==9.9.3963
-    # via
-    #   -r requirements.in
-    #   gemspy
+    # via gemspy
 packaging==25.0
     # via
     #   dask
@@ -235,7 +229,6 @@ rsa==4.9.1
     # via google-auth
 scipy==1.17.0
     # via
-    #   -r requirements.in
     #   gemspy
     #   linopy
     #   pypsa
