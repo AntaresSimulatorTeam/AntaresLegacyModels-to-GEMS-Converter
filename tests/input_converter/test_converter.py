@@ -17,11 +17,11 @@ import pandas as pd
 import pytest
 from antares.craft.model.study import Study
 
-from gems.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
-from gems.input_converter.src.converter import AntaresStudyConverter
-from gems.input_converter.src.logger import Logger
-from gems.input_converter.src.parsing import Operation, parse_conversion_template
-from gems.input_converter.src.utils import (
+from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.parsing import Operation, parse_conversion_template
+from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
     read_yaml_file,
@@ -59,8 +59,8 @@ DATAFRAME_PREPRO_BC_CONFIG = (
     create_dataframe_from_constant(lines=8760, columns=4),  # series
 )
 LIB_PATHS = [
-    "src/gems/libs/antares_historic/antares_historic.yml",
-    "src/gems/libs/reference_models/andromede_v1_models.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 MODEL_LIST_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
 

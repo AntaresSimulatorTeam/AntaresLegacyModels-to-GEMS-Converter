@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from antares.craft import STStorageProperties
 
-from gems.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.logger import Logger
 from tests.antares_historic.utils import (
     convert_study,
     createSTSTestAntaresStudy,

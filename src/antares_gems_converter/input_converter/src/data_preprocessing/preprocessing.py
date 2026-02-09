@@ -6,14 +6,14 @@ from antares.craft.model.binding_constraint import BindingConstraint, Constraint
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study
 
-from gems.input_converter.src.config import (
+from antares_gems_converter.input_converter.src.config import (
     MATRIX_TYPES_TO_GET_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
     TIMESERIES_NAME_TO_METHOD,
 )
-from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
-from gems.input_converter.src.parsing import ConversionValue
-from gems.input_converter.src.utils import check_dataframe_validity, save_to_file
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.parsing import ConversionValue
+from antares_gems_converter.input_converter.src.utils import check_dataframe_validity, save_to_file
 
 ALLOWED_TYPES: list = [
     "binding_constraint",

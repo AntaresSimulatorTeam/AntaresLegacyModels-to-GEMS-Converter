@@ -17,6 +17,7 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
+            pyproject.toml
             requirements.txt
             requirements-dev.txt
 
@@ -44,7 +45,7 @@ jobs:
 
       - name: Test
         run: |
-          pytest --cov=gems --cov=antares_runner --cov-report=xml
+          pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4

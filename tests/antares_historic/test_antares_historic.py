@@ -4,8 +4,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from gems.input_converter.src.converter import AntaresStudyConverter
-from gems.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.logger import Logger
 from gems.model.parsing import InputLibrary, parse_yaml_library
 from gems.model.resolve_library import resolve_library
 from gems.simulation import TimeBlock, build_problem
@@ -20,8 +20,8 @@ from gems.study.resolve_components import (
 )
 
 LIB_PATHS = [
-    "src/gems/libs/antares_historic/antares_historic.yml",
-    "src/gems/libs/reference_models/andromede_v1_models.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 
 
@@ -168,7 +168,7 @@ def input_library(
     data_dir: Path,
 ) -> InputLibrary:
     library = (
-        data_dir / "src" / "gems" / "libs" / "antares_historic" / "antares_historic.yml"
+        data_dir / "src" / "antares_gems_converter" / "libs" / "antares_historic" / "antares_historic.yml"
     )
     with library.open() as lib:
         return parse_yaml_library(lib)

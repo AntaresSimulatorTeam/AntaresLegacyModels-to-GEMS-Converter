@@ -19,7 +19,7 @@ import yaml
 from pandas import DataFrame
 from pydantic import BaseModel
 
-from gems.input_converter.src.parsing import ConversionTemplate
+from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
 
 
 def resolve_path(path: Path) -> Path:

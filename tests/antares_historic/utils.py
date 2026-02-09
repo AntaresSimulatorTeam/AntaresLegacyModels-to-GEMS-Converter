@@ -8,9 +8,9 @@ import pandas as pd
 from antares.craft import *
 
 from antares_runner.antares_runner import AntaresHybridStudyBenchmarker
-from gems.input_converter.src.converter import AntaresStudyConverter
-from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
-from gems.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.logger import Logger
 
 ANTARES_VERSION_CREATED_STUDIES = "9.2"
 ANTARES_LEGACY_MODELS_PATH = [

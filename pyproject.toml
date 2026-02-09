@@ -9,6 +9,7 @@ description = "Convert Antares Legacy studies to GEMS format"
 license = {text = "MPL-2.0"}
 requires-python = ">=3.10"
 dependencies = [
+    "gemspy",
     "numpy",
     "ortools>=9.9",
     "scipy>=1.10",

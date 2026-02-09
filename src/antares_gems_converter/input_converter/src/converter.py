@@ -19,7 +19,7 @@ from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllow
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study, read_study_local
 
-from gems.input_converter.src.config import (
+from antares_gems_converter.input_converter.src.config import (
     LINK_TYPES,
     MATRIX_TYPES,
     MATRIX_TYPES_TO_SET_METHOD,
@@ -29,18 +29,18 @@ from gems.input_converter.src.config import (
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
-from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
-from gems.input_converter.src.data_preprocessing.preprocessing import (
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.data_preprocessing.preprocessing import (
     ModelConversionPreprocessor,
 )
-from gems.input_converter.src.data_preprocessing.thermal import ThermalDataPreprocessing
-from gems.input_converter.src.parsing import (
+from antares_gems_converter.input_converter.src.data_preprocessing.thermal import ThermalDataPreprocessing
+from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectProperties,
     VirtualObjectsRepository,
     parse_conversion_template,
 )
-from gems.input_converter.src.utils import dump_to_yaml, read_yaml_file, resolve_path
+from antares_gems_converter.input_converter.src.utils import dump_to_yaml, read_yaml_file, resolve_path
 from gems.study.parsing import (
     InputAreaConnections,
     InputComponent,

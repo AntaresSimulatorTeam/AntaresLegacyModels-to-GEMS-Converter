@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from gems.input_converter.src.converter import AntaresStudyConverter
-from gems.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.logger import Logger
 
 
 class TestAntaresStudyConverterReal:

@@ -18,12 +18,12 @@ from antares.craft.model.area import Area
 from antares.craft.model.study import Study
 from antares.craft.model.thermal import ThermalCluster
 
-from gems.input_converter.src.converter import AntaresStudyConverter
-from gems.input_converter.src.data_preprocessing.thermal import (
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.data_preprocessing.thermal import (
     Direction,
     ThermalDataPreprocessing,
 )
-from gems.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.logger import Logger
 from gems.study.parsing import InputComponentParameter
 from tests.input_converter.conftest import create_dataframe_from_constant
 
@@ -32,8 +32,8 @@ DATAFRAME_PREPRO_THERMAL_CONFIG = (
     create_dataframe_from_constant(lines=8760, columns=1, value=6),  # series
 )
 LIB_PATHS = [
-    "src/gems/libs/antares_historic/antares_historic.yml",
-    "src/gems/libs/reference_models/andromede_v1_models.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 LIB_PATHS_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
 
