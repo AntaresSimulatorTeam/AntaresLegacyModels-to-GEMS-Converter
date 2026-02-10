@@ -1,0 +1,6 @@
+numpy
+PyYAML~=6.0.1
+pydantic
+antares_craft>=0.3
+pandas
+gemspy
