@@ -67,13 +67,6 @@ library:
         - id: capacity_indirect
           time-dependent: true
           scenario-dependent: true
-        - id: hurdle_cost_direct
-          time-dependent: true
-          scenario-dependent: false
-        - id: hurdle_cost_indirect
-          time-dependent: true
-          scenario-dependent: false
-
       variables:
         - id: flow_direct
           lower-bound: 0
@@ -84,6 +77,8 @@ library:
           upper-bound: capacity_indirect
           variable-type: continuous
         - id: flow
+          lower-bound: -capacity_indirect
+          upper-bound: capacity_direct
           variable-type: continuous
       ports:
         - id: out_port
@@ -97,9 +92,6 @@ library:
         - port: in_port
           field: flow
           definition: -flow
-      objective-contributions:
-        - id: objective
-          expression: sum(hurdle_cost_direct * flow_direct + hurdle_cost_indirect * flow_indirect)
       constraints:
         - id: flow_direct_indirect
           expression: flow = flow_direct - flow_indirect
@@ -230,6 +222,15 @@ library:
         - id: initial_level
           time-dependent: false
           scenario-dependent: true
+        - id: cost_level
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_variation_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_variation_withdrawal
+          time-dependent: true
+          scenario-dependent: true
       variables:
         - id: p_injection
           lower-bound: 0
@@ -255,3 +256,11 @@ library:
           expression: level[0] = initial_level * reservoir_capacity
         - id: level_equation
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal + inflows
+      objective-contributions:
+        - id: objective
+          expression: sum(level * cost_level + (p_injection[t] - p_injection[t+1]) * cost_variation_injection + (p_withdrawal[t] - p_withdrawal[t+1]) * cost_variation_withdrawal)
+      extra-outputs:
+        - id: withdrawal 
+          expression: p_withdrawal
+        - id: injection 
+          expression: p_injection

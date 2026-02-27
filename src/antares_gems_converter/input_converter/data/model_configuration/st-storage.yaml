@@ -15,11 +15,252 @@ template:
   name: st_storage
   generator-version-compatibility: X.Y #TODO: find this information
   model: antares-historic.short-term-storage
+  scenario-group: scenario_battery
   template-parameters:
     - name: area
       cluster-type: st_storage
       description: "Area identifier for the component"
-      # exclude:
+      exclude:
+      - id: at
+        object-properties:
+          type: area
+          area: at
+      - id: be
+        object-properties:
+          type: area
+          area: be
+      - id: ch
+        object-properties:
+          type: area
+          area: ch
+      - id: cz
+        object-properties:
+          type: area
+          area: cz
+      - id: de
+        object-properties:
+          type: area
+          area: de
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dke
+        object-properties:
+          type: area
+          area: dke
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: dkw
+        object-properties:
+          type: area
+          area: dkw
+      - id: es
+        object-properties:
+          type: area
+          area: es
+      - id: ie
+        object-properties:
+          type: area
+          area: ie
+      - id: itca
+        object-properties:
+          type: area
+          area: itca
+      - id: itcn
+        object-properties:
+          type: area
+          area: itcn
+      - id: itcs
+        object-properties:
+          type: area
+          area: itcs
+      - id: itn
+        object-properties:
+          type: area
+          area: itn
+      - id: its
+        object-properties:
+          type: area
+          area: its
+      - id: itsar
+        object-properties:
+          type: area
+          area: itsar
+      - id: itsic
+        object-properties:
+          type: area
+          area: itsic
+      - id: lu
+        object-properties:
+          type: area
+          area: lu
+      - id: nl
+        object-properties:
+          type: area
+          area: nl
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: nos
+        object-properties:
+          type: area
+          area: nos
+      - id: pl
+        object-properties:
+          type: area
+          area: pl
+      - id: pt
+        object-properties:
+          type: area
+          area: pt
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se3
+        object-properties:
+          type: area
+          area: se3
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
+      - id: ukgb
+        object-properties:
+          type: area
+          area: ukgb
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
+      - id: ve_eu
+        object-properties:
+          type: area
+          area: ve_eu
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_vhr_storage
+        object-properties:
+          type: area
+          area: ve_vhr_storage
+      - id: w_hydro_open_at
+        object-properties:
+          type: area
+          area: w_hydro_open_at
+      - id: w_hydro_open_cz
+        object-properties:
+          type: area
+          area: w_hydro_open_cz
+      - id: w_hydro_open_de
+        object-properties:
+          type: area
+          area: w_hydro_open_de
+      - id: w_hydro_open_es
+        object-properties:
+          type: area
+          area: w_hydro_open_es
+      - id: w_hydro_open_itcs
+        object-properties:
+          type: area
+          area: w_hydro_open_itcs
+      - id: w_hydro_open_itn
+        object-properties:
+          type: area
+          area: w_hydro_open_itn
+      - id: w_hydro_open_itsic
+        object-properties:
+          type: area
+          area: w_hydro_open_itsic
+      - id: w_hydro_open_nom
+        object-properties:
+          type: area
+          area: w_hydro_open_nom
+      - id: w_hydro_open_non
+        object-properties:
+          type: area
+          area: w_hydro_open_non
+      - id: w_hydro_open_nos
+        object-properties:
+          type: area
+          area: w_hydro_open_nos
+      - id: w_hydro_open_pl
+        object-properties:
+          type: area
+          area: w_hydro_open_pl
+      - id: w_hydro_open_pt
+        object-properties:
+          type: area
+          area: w_hydro_open_pt
+      - id: x_closed_pump
+        object-properties:
+          type: area
+          area: x_closed_pump
+      - id: x_closed_turb
+        object-properties:
+          type: area
+          area: x_closed_turb
+      - id: x_open_pump
+        object-properties:
+          type: area
+          area: x_open_pump
+      - id: x_open_turb
+        object-properties:
+          type: area
+          area: x_open_turb
+      - id: y_nuc_modulation
+        object-properties:
+          type: area
+          area: y_nuc_modulation
+      - id: z_batteries
+        object-properties:
+          type: area
+          area: z_batteries
+      - id: z_batteries_pcomp
+        object-properties:
+          type: area
+          area: z_batteries_pcomp
+      - id: z_effacement
+        object-properties:
+          type: area
+          area: z_effacement
+      - id: z_p2g_asservi
+        object-properties:
+          type: area
+          area: z_p2g_asservi
+      - id: z_p2g_base
+        object-properties:
+          type: area
+          area: z_p2g_base
+      - id: z_report
+        object-properties:
+          type: area
+          area: z_report
+      - id: zz_flowbased
+        object-properties:
+          type: area
+          area: zz_flowbased
 
   component:
     id: ${area}_${st_storage}
@@ -123,7 +364,33 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: initial_level
-
+      - id: cost_level
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_level
+      - id: cost_variation_injection
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_variation_injection
+      - id: cost_variation_withdrawal
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_variation_withdrawal
   # For full modeler mode
   connections:
     - component1: ${area}_${st_storage}

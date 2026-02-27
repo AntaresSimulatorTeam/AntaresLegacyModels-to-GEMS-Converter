@@ -19,7 +19,7 @@ from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllow
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study, read_study_local
 
-from antares_gems_converter.input_converter.src.config import (
+from gems.input_converter.src.config import (
     LINK_TYPES,
     MATRIX_TYPES,
     MATRIX_TYPES_TO_SET_METHOD,
@@ -29,18 +29,18 @@ from antares_gems_converter.input_converter.src.config import (
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
-from antares_gems_converter.input_converter.src.data_preprocessing.preprocessing import (
+from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from gems.input_converter.src.data_preprocessing.preprocessing import (
     ModelConversionPreprocessor,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.thermal import ThermalDataPreprocessing
-from antares_gems_converter.input_converter.src.parsing import (
+from gems.input_converter.src.data_preprocessing.thermal import ThermalDataPreprocessing
+from gems.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectProperties,
     VirtualObjectsRepository,
     parse_conversion_template,
 )
-from antares_gems_converter.input_converter.src.utils import dump_to_yaml, read_yaml_file, resolve_path
+from gems.input_converter.src.utils import dump_to_yaml, read_yaml_file, resolve_path
 from gems.study.parsing import (
     InputAreaConnections,
     InputComponent,
@@ -316,6 +316,10 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
                 )
+            except KeyError:
+                self.logger.warning(
+                    f"Item {legacy_component} not found in study; skipping deletion"
+                )
             except NotImplementedError:
                 self.logger.warning(
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
@@ -454,7 +458,7 @@ class AntaresStudyConverter:
                     return components, connections, area_connections
                 for area in self.areas.values():
                     if area.id not in virtual_objects.areas:
-                        resolved_template = conversion_template.resolve_template(
+                        area_resolved_template = conversion_template.resolve_template(
                             model_area_pattern, area.id
                         )
                         cluster_type = next(
@@ -469,11 +473,14 @@ class AntaresStudyConverter:
                                 area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
                             )():
                                 # We have already resolved areas, now need to resolve cluster ids
-                                resolved_template = resolved_template.resolve_template(
-                                    f"${{{cluster_type}}}", cluster_id
+                                # Resolve from the area-resolved template, not from the previous cluster-resolved template
+                                cluster_resolved_template = (
+                                    area_resolved_template.resolve_template(
+                                        f"${{{cluster_type}}}", cluster_id
+                                    )
                                 )
                                 self._iterate_through_model(
-                                    resolved_template,
+                                    cluster_resolved_template,
                                     components,
                                     connections,
                                     area_connections,
@@ -485,10 +492,10 @@ class AntaresStudyConverter:
                                 model_preprocessor.check_timeseries_validity(
                                     param.value
                                 )
-                                for param in resolved_template.component.parameters
+                                for param in area_resolved_template.component.parameters
                             ):
                                 self._iterate_through_model(
-                                    resolved_template,
+                                    area_resolved_template,
                                     components,
                                     connections,
                                     area_connections,
@@ -496,7 +503,7 @@ class AntaresStudyConverter:
                                 )
                         else:
                             self._iterate_through_model(
-                                resolved_template,
+                                area_resolved_template,
                                 components,
                                 connections,
                                 area_connections,
