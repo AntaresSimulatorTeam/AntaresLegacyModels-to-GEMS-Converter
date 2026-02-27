@@ -173,7 +173,7 @@ class AntaresStudyConverter:
                                         value=thermal.properties.efficiency,
                                     ),
                                     InputComponentParameter(
-                                        id="p_max_unit",
+                                        id="nominal_capacity",
                                         time_dependent=False,
                                         scenario_dependent=False,
                                         value=thermal.properties.nominal_capacity,

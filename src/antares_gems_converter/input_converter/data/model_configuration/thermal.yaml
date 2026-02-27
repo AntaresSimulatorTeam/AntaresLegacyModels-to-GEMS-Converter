@@ -100,6 +100,15 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: min_down_time
+      - id: nominal_capacity
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: nominal_capacity
       # Should disappear from model with min / max / ceil operators
       # - id: nb_units_min
       #   scenario-dependent: true
