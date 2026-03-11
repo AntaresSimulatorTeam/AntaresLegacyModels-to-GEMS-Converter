@@ -3,6 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable
 
+
 import numpy as np
 import pandas as pd
 from antares.craft.model.thermal import ThermalCluster
@@ -74,25 +75,22 @@ class ThermalDataPreprocessing:
         indices = np.arange(len(nb_units_max))
         max_valid_index = len(nb_units_max) - 1  # 8759
 
-        previous_indices: np.ndarray = (indices - 1) % period + (
-            indices // period
-        ) * period
-
         previous_indices = np.where(
-            indices == 0, 0, np.minimum(previous_indices, max_valid_index)
+        indices % period == 0,
+            np.minimum(indices + period - 1, max_valid_index),
+            indices - 1
         )
-        variation = pd.DataFrame()
+        previous_indices = np.where(
+            indices == 0,
+            min(period - 1, max_valid_index),
+            previous_indices
+        )        
         if direction == Direction.BACKWARD:
-            variation = nb_units_max.reset_index(drop=True) - nb_units_max.iloc[
-                previous_indices
-            ].reset_index(drop=True)
-        elif direction == Direction.FORWARD:
-            variation = nb_units_max.iloc[previous_indices].reset_index(
-                drop=True
-            ) - nb_units_max.reset_index(drop=True)
+            variation_array = nb_units_max.values - nb_units_max.values[previous_indices]
 
-        # Usage of vectorized operation instead of applymap
-        # It is the equivalent of max(0, variation(x))
+        elif direction == Direction.FORWARD:
+            variation_array = nb_units_max.values[previous_indices]-nb_units_max.values
+        variation = pd.DataFrame(variation_array)  
         variation = variation.clip(lower=0)
         return variation.rename(
             columns={variation.columns[0]: f"nb_units_max_variation_{direction.value}"}
