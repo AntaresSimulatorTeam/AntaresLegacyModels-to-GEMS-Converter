@@ -40,29 +40,31 @@ class ThermalDataPreprocessing:
         modulation_data: pd.Series = self.thermal.get_prepro_modulation_matrix().iloc[
             :, 3
         ]
-        series_data: pd.DataFrame = self.thermal.get_series_matrix()
+        series_data: pd.DataFrame = self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
         unit_count: int = self.thermal.properties.unit_count
         nominal_capacity: float = self.thermal.properties.nominal_capacity
         scaled_modulation: pd.Series = modulation_data * nominal_capacity * unit_count
         #  min(min_gen_modulation * unit_count * nominal_capacity, p_max_cluster)
-        min_values: pd.Series = pd.concat([scaled_modulation, series_data], axis=1).min(
-            axis=1
-        )
-        return min_values.to_frame(name="p_min_cluster")
+        min_values: pd.DataFrame = series_data.clip(upper=scaled_modulation, axis=0)        
+        return min_values
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
-        return self.thermal.get_series_matrix()
+        series_data = self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
+        p_max_unit = self.thermal.properties.nominal_capacity*(1-self.thermal.properties.spinning/100)
+        p_min_unit = min(self.thermal.properties.min_stable_power,p_max_unit)
+        minimum_availibility = p_min_unit * np.ceil(series_data / p_max_unit)
+        return series_data.clip(lower=minimum_availibility)
 
     def _compute_nb_units_min(self) -> pd.DataFrame:
         p_min_cluster: pd.DataFrame = self._compute_p_min_cluster()
-        nominal_capacity: float = self.thermal.properties.nominal_capacity
+        nominal_capacity: float = self.thermal.properties.nominal_capacity*(1-self.thermal.properties.spinning/100)
         return pd.DataFrame(
             np.ceil(p_min_cluster / nominal_capacity),
         )
 
     def _compute_nb_units_max(self) -> pd.DataFrame:
-        series_data: pd.DataFrame = self.thermal.get_series_matrix()
-        nominal_capacity: float = self.thermal.properties.nominal_capacity
+        series_data: pd.DataFrame = self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
+        nominal_capacity: float = self.thermal.properties.nominal_capacity*(1-self.thermal.properties.spinning/100)
         return pd.DataFrame(
             np.ceil(series_data / nominal_capacity),
         )
