@@ -30,7 +30,7 @@ def convert_study(
     log_path = ""
     logger: logging.Logger = Logger(__name__, log_path)
     study_path = study_dir / study_name
-    converter_output_folder = study_dir.parent / "antares-studies-converted/"
+    converter_output_folder = study_dir #/ "antares-studies-converted/"
     params = {
         "study_input": study_path,
         "logger": logger,

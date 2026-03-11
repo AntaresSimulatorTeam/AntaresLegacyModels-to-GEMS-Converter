@@ -18,6 +18,7 @@ import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study, read_study_local
+from antares.craft import ThermalClusterGroup
 
 from antares_gems_converter.input_converter.src.config import (
     LINK_TYPES,
@@ -90,7 +91,7 @@ class AntaresStudyConverter:
             if isinstance(study_input, Study)
             else study_input.stem
         )
-        self.output_folder = output_folder / study_input_path
+        self.output_folder = output_folder / f"{study_input_path}_converted"
 
         if self.mode == ConversionMode.HYBRID:
             # In hybrid mode, the output is the input study from which we replace converted components by Gems ones, hence we copy the original study
@@ -138,7 +139,8 @@ class AntaresStudyConverter:
                 )
                 thermals = area.get_thermals()
                 for thermal in thermals.values():
-                    if thermal.id not in resolved_virtual_objects.thermals:
+                    if thermal.id not in resolved_virtual_objects.thermals and thermal.properties.group == ThermalClusterGroup.NUCLEAR.value and area.id in ["fr", "y_nuc_modulation"] and thermal.properties.enabled:
+                        print(f"Converting {thermal.id}")
                         tdp = ThermalDataPreprocessing(thermal, self.output_folder)
                         components.append(
                             InputComponent(
