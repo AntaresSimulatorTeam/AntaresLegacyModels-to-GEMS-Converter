@@ -49,7 +49,11 @@ class ThermalDataPreprocessing:
         return min_values
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
-        return self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
+        series_data = self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
+        p_max_unit = self.thermal.properties.nominal_capacity*(1-self.thermal.properties.spinning/100)
+        p_min_unit = min(self.thermal.properties.min_stable_power,p_max_unit)
+        minimum_availibility = p_min_unit * np.ceil(series_data / p_max_unit)
+        return series_data.clip(lower=minimum_availibility)
 
     def _compute_nb_units_min(self) -> pd.DataFrame:
         p_min_cluster: pd.DataFrame = self._compute_p_min_cluster()

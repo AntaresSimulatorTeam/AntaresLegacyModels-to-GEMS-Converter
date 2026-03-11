@@ -164,7 +164,7 @@ class AntaresStudyConverter:
                                         id="p_min_unit",
                                         time_dependent=False,
                                         scenario_dependent=False,
-                                        value=thermal.properties.min_stable_power,
+                                        value=min(thermal.properties.min_stable_power,thermal.properties.nominal_capacity*(1-thermal.properties.spinning/100)),
                                     ),
                                     InputComponentParameter(
                                         id="efficiency",
