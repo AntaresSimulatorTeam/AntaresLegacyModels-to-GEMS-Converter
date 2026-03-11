@@ -84,10 +84,9 @@ class ThermalDataPreprocessing:
             indices == 0,
             min(period - 1, max_valid_index),
             previous_indices
-        )        
+        )
         if direction == Direction.BACKWARD:
             variation_array = nb_units_max.values - nb_units_max.values[previous_indices]
-
         elif direction == Direction.FORWARD:
             variation_array = nb_units_max.values[previous_indices]-nb_units_max.values
         variation = pd.DataFrame(variation_array)  
