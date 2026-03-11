@@ -45,8 +45,8 @@ class ThermalDataPreprocessing:
         nominal_capacity: float = self.thermal.properties.nominal_capacity
         scaled_modulation: pd.Series = modulation_data * nominal_capacity * unit_count
         #  min(min_gen_modulation * unit_count * nominal_capacity, p_max_cluster)
-        min_values: pd.Series = series_data.clip(upper=scaled_modulation, axis=0)        
-        return min_values.to_frame(name="p_min_cluster")
+        min_values: pd.DataFrame = series_data.clip(upper=scaled_modulation, axis=0)        
+        return min_values
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
         return self.thermal.get_series_matrix()*(1-self.thermal.properties.spinning/100)
