@@ -84,18 +84,11 @@ class ThermalDataPreprocessing:
             min(period - 1, max_valid_index),
             previous_indices
         )
-        variation = pd.DataFrame()
         if direction == Direction.BACKWARD:
-            variation = nb_units_max.reset_index(drop=True) - nb_units_max.iloc[
-                previous_indices
-            ].reset_index(drop=True)
+            variation_array = nb_units_max.values - nb_units_max.values[previous_indices]
         elif direction == Direction.FORWARD:
-            variation = nb_units_max.iloc[previous_indices].reset_index(
-                drop=True
-            ) - nb_units_max.reset_index(drop=True)
-
-        # Usage of vectorized operation instead of applymap
-        # It is the equivalent of max(0, variation(x))
+            variation_array = nb_units_max.values[previous_indices]-nb_units_max.values
+        variation = pd.DataFrame(variation_array)  
         variation = variation.clip(lower=0)
         return variation.rename(
             columns={variation.columns[0]: f"nb_units_max_variation_{direction.value}"}
