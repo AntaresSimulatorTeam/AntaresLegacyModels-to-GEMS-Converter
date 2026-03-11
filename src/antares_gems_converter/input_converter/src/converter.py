@@ -176,7 +176,7 @@ class AntaresStudyConverter:
                                         id="p_max_unit",
                                         time_dependent=False,
                                         scenario_dependent=False,
-                                        value=thermal.properties.nominal_capacity,
+                                        value=thermal.properties.nominal_capacity*(1-thermal.properties.spinning/100),
                                     ),
                                     InputComponentParameter(
                                         id="generation_cost",
