@@ -74,12 +74,15 @@ class ThermalDataPreprocessing:
         indices = np.arange(len(nb_units_max))
         max_valid_index = len(nb_units_max) - 1  # 8759
 
-        previous_indices: np.ndarray = (indices - 1) % period + (
-            indices // period
-        ) * period
-
         previous_indices = np.where(
-            indices == 0, 0, np.minimum(previous_indices, max_valid_index)
+        indices % period == 0,
+            np.minimum(indices + period - 1, max_valid_index),
+            indices - 1
+        )
+        previous_indices = np.where(
+            indices == 0,
+            min(period - 1, max_valid_index),
+            previous_indices
         )
         variation = pd.DataFrame()
         if direction == Direction.BACKWARD:
