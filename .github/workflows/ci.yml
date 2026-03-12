@@ -38,7 +38,7 @@ jobs:
           options: --check --diff
       - name: Set Antares version
         run: |
-          ANTARES_VERSION=$(python -c "exec(open('tests/antares_historic/antares_version.py').read()); print(ANTARES_SIMULATOR_VERSION)")
+          ANTARES_VERSION=$(python -c "import json; print(json.load(open('main/dependencies.json'))['antares_simulator_version'])")
           echo "ANTARES_VERSION=${ANTARES_VERSION}" >> $GITHUB_ENV
 
       - name: Download Antares release
