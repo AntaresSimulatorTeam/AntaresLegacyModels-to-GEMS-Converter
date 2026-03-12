@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install -r requirements.txt -r requirements-dev.txt
-          
+
       - name: Check formatting
         uses: psf/black@stable
         with:
@@ -36,7 +36,7 @@ jobs:
 
       - name: Check typing
         run: |
-          python -m mypy
+          python -m mypy .
 
       - name: Download Antares v9.3.5 release
         run: |
