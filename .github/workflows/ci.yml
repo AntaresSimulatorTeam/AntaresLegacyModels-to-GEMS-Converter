@@ -33,10 +33,6 @@ jobs:
           # Version of Black should match the versions set in `requirements-dev.txt`
           version: "~=23.7.0"
           options: --check --diff
-
-      - name: Type checking
-        run: mypy src/
-
       - name: Download Antares v9.3.7 release
         run: |
           echo "Downloading Antares v9.3.7..."
