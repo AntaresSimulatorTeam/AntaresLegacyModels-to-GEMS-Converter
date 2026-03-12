@@ -27,7 +27,7 @@ from antares.craft.model.thermal import (
 )
 
 _dependencies = json.loads(
-    (Path(__file__).resolve().parents[2] / "main" / "dependencies.json").read_text()
+    (Path(__file__).resolve().parents[2] / "dependencies.json").read_text()
 )
 ANTARES_SIMULATOR_VERSION = _dependencies["antares_simulator_version"]
 
