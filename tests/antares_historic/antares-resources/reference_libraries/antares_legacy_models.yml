@@ -159,15 +159,12 @@ library:
           variable-type: integer
         - id: nb_starting
           lower-bound: 0
-          upper-bound: unit_count
           variable-type: integer
         - id: nb_stopping
           lower-bound: 0
-          upper-bound: unit_count
           variable-type: integer
         - id: nb_failing
           lower-bound: 0
-          upper-bound: unit_count
           variable-type: integer
       ports:
         - id: balance_port
