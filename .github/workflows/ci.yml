@@ -36,7 +36,7 @@ jobs:
 
       - name: Check typing
         run: |
-          python -m mypy .
+          python -m mypy 
 
       - name: Download Antares v9.3.5 release
         run: |
