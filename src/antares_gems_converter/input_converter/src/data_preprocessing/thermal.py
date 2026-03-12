@@ -76,20 +76,22 @@ class ThermalDataPreprocessing:
         max_valid_index = len(nb_units_max) - 1  # 8759
 
         previous_indices = np.where(
-        indices % period == 0,
+            indices % period == 0,
             np.minimum(indices + period - 1, max_valid_index),
-            indices - 1
+            indices - 1,
         )
         previous_indices = np.where(
-            indices == 0,
-            min(period - 1, max_valid_index),
-            previous_indices
+            indices == 0, min(period - 1, max_valid_index), previous_indices
         )
         if direction == Direction.BACKWARD:
-            variation_array = nb_units_max.values - nb_units_max.values[previous_indices]
+            variation_array = (
+                nb_units_max.values - nb_units_max.values[previous_indices]
+            )
         elif direction == Direction.FORWARD:
-            variation_array = nb_units_max.values[previous_indices]-nb_units_max.values
-        variation = pd.DataFrame(variation_array)  
+            variation_array = (
+                nb_units_max.values[previous_indices] - nb_units_max.values
+            )
+        variation = pd.DataFrame(variation_array)
         variation = variation.clip(lower=0)
         return variation.rename(
             columns={variation.columns[0]: f"nb_units_max_variation_{direction.value}"}
