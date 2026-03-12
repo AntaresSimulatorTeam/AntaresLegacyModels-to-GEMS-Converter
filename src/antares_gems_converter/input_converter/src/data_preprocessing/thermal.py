@@ -3,6 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable
 
+
 import numpy as np
 import pandas as pd
 from antares.craft.model.thermal import ThermalCluster

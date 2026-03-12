@@ -109,7 +109,6 @@ def createThermalTestAntaresStudy(
         ),
     )
     cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
-
     cluster3 = area.create_thermal_cluster("prod3", marg_cluster_properties)
     cluster3.set_series(marg_cluster_data_frame)
     addHybridBehavior(parent_dir_path / study_name)
@@ -236,3 +235,8 @@ def createSTSTestAntaresStudy(
 
     cluster3 = area.create_st_storage("sts", sts_properties)
     addHybridBehavior(parent_dir_path / study_name)
+
+def random_availability_ratio() -> np.ndarray:
+    np.random.seed(1000)  # for reproducibility
+    raw = np.random.random((8760, 1))
+    return 0.2 + 0.8 * raw
