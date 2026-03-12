@@ -36,21 +36,26 @@ jobs:
           # Version of Black should match the versions set in `requirements-dev.txt`
           version: "~=23.7.0"
           options: --check --diff
-      - name: Download Antares v9.3.7 release
+      - name: Set Antares version
         run: |
-          echo "Downloading Antares v9.3.7..."
-          curl -L -f -o antares-9.3.7-Ubuntu-22.04.tar.gz \
-            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v9.3.7/antares-9.3.7-Ubuntu-22.04.tar.gz
-          if [ ! -f "antares-9.3.7-Ubuntu-22.04.tar.gz" ]; then
+          ANTARES_VERSION=$(python -c "exec(open('tests/antares_historic/antares_version.py').read()); print(ANTARES_SIMULATOR_VERSION)")
+          echo "ANTARES_VERSION=${ANTARES_VERSION}" >> $GITHUB_ENV
+
+      - name: Download Antares release
+        run: |
+          echo "Downloading Antares v${ANTARES_VERSION}..."
+          curl -L -f -o antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz \
+            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${ANTARES_VERSION}/antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
+          if [ ! -f "antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz" ]; then
             echo "Error: Download failed"
             exit 1
           fi
-          echo "Download successful. File size: $(ls -lh antares-9.3.7-Ubuntu-22.04.tar.gz | awk '{print $5}')"
+          echo "Download successful. File size: $(ls -lh antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz | awk '{print $5}')"
 
       - name: Extract Antares binaries
         run: |
           echo "Extracting archive..."
-          tar -xzf antares-9.3.7-Ubuntu-22.04.tar.gz
+          tar -xzf antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
 
       - name: Test
         run: |
@@ -65,6 +70,6 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          rm -f antares-9.3.7-Ubuntu-22.04.tar.gz
-          rm -rf antares-9.3.7-Ubuntu-22.04
+          rm -f antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
+          rm -rf antares-${ANTARES_VERSION}-Ubuntu-22.04
           echo "Cleanup completed"

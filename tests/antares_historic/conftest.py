@@ -25,8 +25,10 @@ from antares.craft.model.thermal import (
     ThermalCostGeneration,
 )
 
-ANTARES_VERSION_POSIX = "antares-9.3.7-Ubuntu-22.04"
-ANTARES_VERSION_WINDOWS = "rte-antares-9.3.7-installer-64bits"
+from tests.antares_historic.antares_version import ANTARES_SIMULATOR_VERSION
+
+ANTARES_VERSION_POSIX = f"antares-{ANTARES_SIMULATOR_VERSION}-Ubuntu-22.04"
+ANTARES_VERSION_WINDOWS = f"rte-antares-{ANTARES_SIMULATOR_VERSION}-installer-64bits"
 
 current_dir = Path(__file__).resolve().parents[2]
 
