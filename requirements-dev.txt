@@ -38,6 +38,8 @@ bottleneck==1.6.0
     # via
     #   -r requirements.txt
     #   linopy
+black==23.7.0
+    # via -r requirements-dev.in
 certifi==2025.1.31
     # via
     #   -r requirements.txt
@@ -182,6 +184,8 @@ matplotlib==3.10.8
     #   -r requirements.txt
     #   pypsa
     #   seaborn
+mypy==1.7.1
+    # via -r requirements-dev.in
 narwhals==2.16.0
     # via
     #   -r requirements.txt
