@@ -134,12 +134,6 @@ library:
         - id: fixed_cost
         - id: d_min_up
         - id: d_min_down
-        - id: nb_units_min # Equals to ceil(p_min_cluster/p_max_unit), to be done in preprocessing
-          scenario-dependent: true
-          time-dependent: true
-        - id: nb_units_max # Equals to ceil(p_max_cluster/p_max_unit), to be done in preprocessing
-          scenario-dependent: true
-          time-dependent: true
         - id: nb_units_max_variation_forward
           scenario-dependent: true
           time-dependent: true
@@ -154,8 +148,8 @@ library:
           upper-bound: p_max_cluster
           variable-type: continuous
         - id: nb_units_on
-          lower-bound: nb_units_min
-          upper-bound: nb_units_max
+          lower-bound: ceil(p_min_cluster/p_max_unit)
+          upper-bound: ceil(p_max_cluster/p_max_unit)
           variable-type: integer
         - id: nb_starting
           lower-bound: 0
@@ -187,7 +181,7 @@ library:
         - id: min_up_duration
           expression: sum(t-d_min_up + 1 .. t, nb_starting - nb_failing) <= nb_units_on
         - id: min_down_duration
-          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= nb_units_max[t-d_min_down] - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
+          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= ceil(p_max_cluster[t-d_min_down]/p_max_unit) - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
       objective-contributions:
         - id: objective
           expression: sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on)
