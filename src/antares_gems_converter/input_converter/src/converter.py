@@ -481,7 +481,6 @@ class AntaresStudyConverter:
                                 area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
                             )():
                                 # We have already resolved areas, now need to resolve cluster ids
-                                # Resolve from the area-resolved template, not from the previous cluster-resolved template
                                 cluster_resolved_template = (
                                     area_resolved_template.resolve_template(
                                         f"${{{cluster_type}}}", cluster_id
