@@ -20,7 +20,10 @@ from antares.craft.model.study import Study
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.logger import Logger
-from antares_gems_converter.input_converter.src.parsing import Operation, parse_conversion_template
+from antares_gems_converter.input_converter.src.parsing import (
+    Operation,
+    parse_conversion_template,
+)
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
