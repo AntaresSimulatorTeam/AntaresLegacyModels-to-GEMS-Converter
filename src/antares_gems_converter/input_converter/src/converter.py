@@ -323,6 +323,10 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
                 )
+            except KeyError:
+                self.logger.warning(
+                    f"Item {legacy_component} not found in study; skipping deletion"
+                )
             except NotImplementedError:
                 self.logger.warning(
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
@@ -461,7 +465,7 @@ class AntaresStudyConverter:
                     return components, connections, area_connections
                 for area in self.areas.values():
                     if area.id not in virtual_objects.areas:
-                        resolved_template = conversion_template.resolve_template(
+                        area_resolved_template = conversion_template.resolve_template(
                             model_area_pattern, area.id
                         )
                         cluster_type = next(
@@ -476,11 +480,13 @@ class AntaresStudyConverter:
                                 area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
                             )():
                                 # We have already resolved areas, now need to resolve cluster ids
-                                resolved_template = resolved_template.resolve_template(
-                                    f"${{{cluster_type}}}", cluster_id
+                                cluster_resolved_template = (
+                                    area_resolved_template.resolve_template(
+                                        f"${{{cluster_type}}}", cluster_id
+                                    )
                                 )
                                 self._iterate_through_model(
-                                    resolved_template,
+                                    cluster_resolved_template,
                                     components,
                                     connections,
                                     area_connections,
@@ -492,10 +498,10 @@ class AntaresStudyConverter:
                                 model_preprocessor.check_timeseries_validity(
                                     param.value
                                 )
-                                for param in resolved_template.component.parameters
+                                for param in area_resolved_template.component.parameters
                             ):
                                 self._iterate_through_model(
-                                    resolved_template,
+                                    area_resolved_template,
                                     components,
                                     connections,
                                     area_connections,
@@ -503,7 +509,7 @@ class AntaresStudyConverter:
                                 )
                         else:
                             self._iterate_through_model(
-                                resolved_template,
+                                area_resolved_template,
                                 components,
                                 connections,
                                 area_connections,
