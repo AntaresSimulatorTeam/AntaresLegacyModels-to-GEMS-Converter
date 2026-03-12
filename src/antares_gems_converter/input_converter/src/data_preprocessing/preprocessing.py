@@ -155,9 +155,9 @@ class ModelConversionPreprocessor:
             time_series: pd.Series = time_series.iloc[:, obj.column]  # type: ignore
 
             if getattr(obj, "operation") and obj.operation is not None:
-                parameter_value: Union[pd.Series, pd.DataFrame, float] = (
-                    obj.operation.execute(time_series, self.preprocessed_values)
-                )
+                parameter_value: Union[
+                    pd.Series, pd.DataFrame, float
+                ] = obj.operation.execute(time_series, self.preprocessed_values)
                 if isinstance(parameter_value, float):
                     self.preprocessed_values[self.param_id] = parameter_value
                     return parameter_value

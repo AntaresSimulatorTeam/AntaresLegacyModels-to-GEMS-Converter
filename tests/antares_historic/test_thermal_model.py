@@ -74,9 +74,7 @@ def thermal_test_procedure(
     exec_folder: Path,
     cluster_data_frame: Optional[pd.DataFrame] = None,
 ) -> None:
-
     if type(cluster_data_frame) == NoneType:
-
         cluster_data_frame = pd.DataFrame(
             data=marg_cluster_properties.unit_count
             * marg_cluster_properties.nominal_capacity
