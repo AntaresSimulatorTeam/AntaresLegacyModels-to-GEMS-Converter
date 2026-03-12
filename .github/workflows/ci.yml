@@ -27,6 +27,12 @@ jobs:
           pip install -e .
           pip install -r requirements-dev.txt
 
+      - name: Check formatting
+        uses: psf/black@stable
+        with:
+          # Version of Black should match the versions set in `requirements-dev.txt`
+          version: "~=23.7.0"
+          options: --check --diff
       - name: Download Antares v9.3.7 release
         run: |
           echo "Downloading Antares v9.3.7..."
