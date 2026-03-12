@@ -13,11 +13,14 @@ library:
   id: antares-historic
   description: Antares historic model library
 
+
   port-types:
     - id: flow
-      description: A port which transfers power flow
+      description: A port that transfers power flow.
       fields:
         - id: flow
+      area-connection:
+        - injection-field: flow
 
   models:
     - id: area
@@ -27,8 +30,10 @@ library:
       variables:
         - id: spillage
           lower-bound: 0
+          variable-type: continuous
         - id: unsupplied_energy
           lower-bound: 0
+          variable-type: continuous
       ports:
         - id: balance_port
           type: flow
@@ -36,8 +41,8 @@ library:
         - id: balance
           expression: sum_connections(balance_port.flow) = spillage - unsupplied_energy
       objective-contributions:
-        - id: obj
-          expression: expec(sum(spillage_cost * spillage + ens_cost * unsupplied_energy))
+        - id: objective
+          expression: sum(spillage_cost * spillage + ens_cost * unsupplied_energy)
 
     - id: load
       parameters:
@@ -51,6 +56,8 @@ library:
         - port: balance_port
           field: flow
           definition: -load
+
+
 
     - id: link
       parameters:
@@ -66,14 +73,18 @@ library:
         - id: hurdle_cost_indirect
           time-dependent: true
           scenario-dependent: false
+
       variables:
         - id: flow_direct
           lower-bound: 0
           upper-bound: capacity_direct
+          variable-type: continuous
         - id: flow_indirect
           lower-bound: 0
           upper-bound: capacity_indirect
+          variable-type: continuous
         - id: flow
+          variable-type: continuous
       ports:
         - id: out_port
           type: flow
@@ -88,7 +99,7 @@ library:
           definition: -flow
       objective-contributions:
         - id: objective
-          expression: expec(sum(hurdle_cost_direct * flow_direct + hurdle_cost_indirect * flow_indirect))
+          expression: sum(hurdle_cost_direct * flow_direct + hurdle_cost_indirect * flow_indirect)
       constraints:
         - id: flow_direct_indirect
           expression: flow = flow_direct - flow_indirect
@@ -135,23 +146,26 @@ library:
         - id: nb_units_max_variation_backward
           scenario-dependent: true
           time-dependent: true
+        - id: unit_count
+        - id: efficiency
       variables:
         - id: generation
           lower-bound: p_min_cluster
           upper-bound: p_max_cluster
+          variable-type: continuous
         - id: nb_units_on
           lower-bound: nb_units_min
           upper-bound: nb_units_max
           variable-type: integer
         - id: nb_starting
           lower-bound: 0
-          upper-bound: nb_units_max
           variable-type: integer
         - id: nb_stopping
           lower-bound: 0
           variable-type: integer
         - id: nb_failing
           lower-bound: 0
+          variable-type: integer
       ports:
         - id: balance_port
           type: flow
@@ -175,8 +189,8 @@ library:
         - id: min_down_duration
           expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= nb_units_max[t-d_min_down] - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
       objective-contributions:
-        - id: obj
-          expression: expec(sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on))
+        - id: objective
+          expression: sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on)
 
     - id: short-term-storage
       parameters:
@@ -201,10 +215,10 @@ library:
         - id: upper_rule_curve
           time-dependent: true
           scenario-dependent: true
-        - id: p_max_injection_modulation  # Read in p_max_injection
+        - id: p_max_injection_modulation
           time-dependent: true
           scenario-dependent: true
-        - id: p_max_withdrawal_modulation # Read in p_max_withdrawal
+        - id: p_max_withdrawal_modulation
           time-dependent: true
           scenario-dependent: true
         - id: inflows
@@ -212,17 +226,20 @@ library:
           scenario-dependent: true
         - id: initial_level
           time-dependent: false
-          scenario-dependent: false
+          scenario-dependent: true
       variables:
         - id: p_injection
           lower-bound: 0
-          upper-bound: p_max_injection_modulation * injection_nominal_capacity # p_max_injection_modulation is a timeseries with adimensional values between 0 and 1
+          upper-bound: p_max_injection_modulation * injection_nominal_capacity
+          variable-type: continuous
         - id: p_withdrawal
           lower-bound: 0
-          upper-bound: p_max_withdrawal_modulation * withdrawal_nominal_capacity # p_max_withdrawal_modulation is a timeseries with adimensional values between 0 and 1
+          upper-bound: p_max_withdrawal_modulation * withdrawal_nominal_capacity
+          variable-type: continuous
         - id: level
           lower-bound: lower_rule_curve * reservoir_capacity
           upper-bound: upper_rule_curve * reservoir_capacity
+          variable-type: continuous
       ports:
         - id: injection_port
           type: flow
@@ -233,5 +250,5 @@ library:
       constraints:
         - id: initial_level_constraint
           expression: level[0] = initial_level * reservoir_capacity
-        - id: Level equation
+        - id: level_equation
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal + inflows
