@@ -168,7 +168,12 @@ def input_library(
     data_dir: Path,
 ) -> InputLibrary:
     library = (
-        data_dir / "src" / "antares_gems_converter" / "libs" / "antares_historic" / "antares_historic.yml"
+        data_dir
+        / "src"
+        / "antares_gems_converter"
+        / "libs"
+        / "antares_historic"
+        / "antares_historic.yml"
     )
     with library.open() as lib:
         return parse_yaml_library(lib)

@@ -29,18 +29,26 @@ from antares_gems_converter.input_converter.src.config import (
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
+    ConversionMode,
+)
 from antares_gems_converter.input_converter.src.data_preprocessing.preprocessing import (
     ModelConversionPreprocessor,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.thermal import ThermalDataPreprocessing
+from antares_gems_converter.input_converter.src.data_preprocessing.thermal import (
+    ThermalDataPreprocessing,
+)
 from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectProperties,
     VirtualObjectsRepository,
     parse_conversion_template,
 )
-from antares_gems_converter.input_converter.src.utils import dump_to_yaml, read_yaml_file, resolve_path
+from antares_gems_converter.input_converter.src.utils import (
+    dump_to_yaml,
+    read_yaml_file,
+    resolve_path,
+)
 from gems.study.parsing import (
     InputAreaConnections,
     InputComponent,
