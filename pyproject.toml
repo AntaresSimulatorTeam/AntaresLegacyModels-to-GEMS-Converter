@@ -34,5 +34,9 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 
+[tool.mypy]
+files = ["src"]
+ignore_missing_imports = true
+
 [tool.coverage.run]
 source = ["src"]
