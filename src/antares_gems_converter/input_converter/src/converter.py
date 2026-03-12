@@ -290,8 +290,7 @@ class AntaresStudyConverter:
                     elif legacy_component.type == "binding_constraint":
                         id = legacy_component.binding_constraint_id
                     else:
-                        # Should not happen
-                        pass
+                        continue
                     getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
                         getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
                             id

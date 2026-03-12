@@ -1,4 +1,6 @@
 -r requirements.txt
 pytest~=7.0.0
 pytest-cov
+mypy
+types-PyYAML
 black~=23.7.0

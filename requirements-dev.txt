@@ -182,6 +182,10 @@ matplotlib==3.10.8
     #   -r requirements.txt
     #   pypsa
     #   seaborn
+mypy==1.19.1
+    # via -r requirements-dev.in
+mypy-extensions==1.1.0
+    # via mypy
 narwhals==2.16.0
     # via
     #   -r requirements.txt
@@ -400,6 +404,8 @@ tqdm==4.67.3
     # via
     #   -r requirements.txt
     #   linopy
+types-pyyaml==6.0.12.20250915
+    # via -r requirements-dev.in
 typing-extensions==4.13.2
     # via
     #   -r requirements.txt

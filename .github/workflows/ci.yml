@@ -27,6 +27,9 @@ jobs:
           pip install -e .
           pip install -r requirements-dev.txt
 
+      - name: Type checking
+        run: mypy src/
+
       - name: Check formatting
         uses: psf/black@stable
         with:
