@@ -24,6 +24,35 @@ pip install -r requirements.txt
 ```
 
 
+## Usage
+
+First, fill in a configuration file (INI format):
+
+```ini
+[study]
+study_path    = /path/to/your/antares-study
+output_folder = /path/to/output
+lib_paths     = /path/to/antares_legacy_models.yml
+mode          = FULL
+```
+
+For **HYBRID** mode, also add:
+
+```ini
+[hybrid]
+model_list = thermal, battery
+```
+
+Then run the converter:
+
+```bash
+python -m antares_gems_converter.input_converter.src.main \
+    --conf path/to/config.ini \
+    --logging path/to/output.log
+```
+
+The `--conf` and `--logging` arguments are optional — they default to `data/config.ini` and `data/logging.log` respectively.
+
 ## Related projects
 
 | Project | Description |
