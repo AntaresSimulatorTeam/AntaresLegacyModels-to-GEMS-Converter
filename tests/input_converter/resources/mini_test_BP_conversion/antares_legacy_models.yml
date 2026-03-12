@@ -174,7 +174,7 @@ library:
         - id: min_up_duration
           expression: sum(t-d_min_up + 1 .. t, nb_starting - nb_failing) <= nb_units_on
         - id: min_down_duration
-          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= ceil(p_max_cluster[t-d_min_down]/p_max_unit) - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
+          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= (ceil(p_max_cluster/p_max_unit))[t-d_min_down] - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
       objective-contributions:
         - id: objective
           expression: sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on)
