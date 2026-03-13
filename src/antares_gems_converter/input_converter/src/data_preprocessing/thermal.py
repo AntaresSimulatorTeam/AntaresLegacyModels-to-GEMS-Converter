@@ -1,19 +1,12 @@
 import os
-from enum import Enum
 from pathlib import Path
 from typing import Callable
 
 
-import numpy as np
 import pandas as pd
 from antares.craft.model.thermal import ThermalCluster
 
 from gems.study.parsing import InputComponentParameter
-
-
-class Direction(Enum):
-    FORWARD = "forward"
-    BACKWARD = "backward"
 
 
 class ThermalDataPreprocessing:
@@ -27,12 +20,6 @@ class ThermalDataPreprocessing:
         self._prepro_parameter_functions: dict[str, Callable[[int], pd.DataFrame]] = {
             "p_min_cluster": lambda _: self._compute_p_min_cluster(),
             "p_max_cluster": lambda _: self._compute_p_max_cluster(),
-            "nb_units_max_variation_forward": lambda period: self._compute_nb_units_max_variation(
-                Direction.FORWARD, period
-            ),
-            "nb_units_max_variation_backward": lambda period: self._compute_nb_units_max_variation(
-                Direction.BACKWARD, period
-            ),
         }
 
     def _compute_p_min_cluster(self) -> pd.DataFrame:
@@ -51,42 +38,6 @@ class ThermalDataPreprocessing:
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
         return self.thermal.get_series_matrix()
-
-    def _compute_nb_units_max(self) -> pd.DataFrame:
-        series_data: pd.DataFrame = self.thermal.get_series_matrix()
-        nominal_capacity: float = self.thermal.properties.nominal_capacity
-        return pd.DataFrame(
-            np.ceil(series_data / nominal_capacity),
-        )
-
-    def _compute_nb_units_max_variation(
-        self, direction: Direction, period: int = DEFAULT_PERIOD
-    ) -> pd.DataFrame:
-        nb_units_max = self._compute_nb_units_max()
-        indices = np.arange(len(nb_units_max))
-        max_valid_index = len(nb_units_max) - 1  # 8759
-
-        previous_indices = np.where(
-            indices % period == 0,
-            np.minimum(indices + period - 1, max_valid_index),
-            indices - 1,
-        )
-        previous_indices = np.where(
-            indices == 0, min(period - 1, max_valid_index), previous_indices
-        )
-        if direction == Direction.BACKWARD:
-            variation_array = (
-                nb_units_max.values - nb_units_max.values[previous_indices]
-            )
-        elif direction == Direction.FORWARD:
-            variation_array = (
-                nb_units_max.values[previous_indices] - nb_units_max.values
-            )
-        variation = pd.DataFrame(variation_array)
-        variation = variation.clip(lower=0)
-        return variation.rename(
-            columns={variation.columns[0]: f"nb_units_max_variation_{direction.value}"}
-        )
 
     def _build_csv_path_and_name(self, param_id: str) -> tuple[Path, str]:
         name = f"{self.thermal.area_id}_{self.thermal.id}_{param_id}"

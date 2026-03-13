@@ -124,12 +124,6 @@ library:
         - id: fixed_cost
         - id: d_min_up
         - id: d_min_down
-        - id: nb_units_max_variation_forward
-          scenario-dependent: true
-          time-dependent: true
-        - id: nb_units_max_variation_backward
-          scenario-dependent: true
-          time-dependent: true
         - id: unit_count
         - id: efficiency
       variables:
@@ -170,11 +164,11 @@ library:
         - id: nb_failing_lower_than_stopping
           expression: nb_failing <= nb_stopping
         - id: nb_failing_lower_than_max_variation
-          expression: nb_failing <= nb_units_max_variation_forward
+          expression: nb_failing <= maximum(0, ceil(p_max_cluster/p_max_unit)[t-1] - ceil(p_max_cluster/p_max_unit))
         - id: min_up_duration
           expression: sum(t-d_min_up + 1 .. t, nb_starting - nb_failing) <= nb_units_on
         - id: min_down_duration
-          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= (ceil(p_max_cluster/p_max_unit))[t-d_min_down] - nb_units_on + sum(t-d_min_down + 1 .. t, nb_units_max_variation_backward)
+          expression: sum(t-d_min_down + 1 .. t, nb_stopping) <= (ceil(p_max_cluster/p_max_unit))[t-d_min_down] - nb_units_on + sum(t-d_min_down + 1 .. t, maximum(0, ceil(p_max_cluster/p_max_unit) - ceil(p_max_cluster/p_max_unit)[t-1]))
       objective-contributions:
         - id: objective
           expression: sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on)

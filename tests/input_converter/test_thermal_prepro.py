@@ -20,7 +20,6 @@ from antares.craft.model.thermal import ThermalCluster
 
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.data_preprocessing.thermal import (
-    Direction,
     ThermalDataPreprocessing,
 )
 from antares_gems_converter.input_converter.src.logger import Logger
@@ -124,50 +123,3 @@ class TestThermalPreprocessing:
             filepath, component_parameter, "p_min_cluster", expected_values
         )
 
-    def nb_units_max_variation(
-        self,
-        local_study_w_thermal: Study,
-        direction: Direction,
-    ):
-        """
-        Tests nb_units_max_variation_forward and nb_units_max_variation_backward processing.
-        """
-
-        tdp: ThermalDataPreprocessing = self._init_tdp(local_study_w_thermal)
-
-        expected_path = (
-            tdp.study_path
-            / "input"
-            / "data-series"
-            / f"fr_gaz_nb_units_max_variation_{direction.value}.txt"
-        )
-        variation_component = tdp.generate_component_parameter(
-            f"nb_units_max_variation_{direction.value}"
-        )
-
-        series_path, _ = tdp._build_csv_path_and_name(
-            f"nb_units_max_variation_{direction.value}"
-        )
-        current_df = pd.read_csv(series_path, header=None)
-
-        nb_units_max_output = tdp._compute_nb_units_max().reset_index(drop=True)
-
-        nb_max = nb_units_max_output.iloc[:, 0]
-        assert current_df[0][0] == max(0, nb_max[167] - nb_max[0])
-        assert current_df[0][3] == max(0, nb_max[2] - nb_max[3])
-        assert current_df[0][168] == max(0, nb_max[335] - nb_max[168])
-
-        assert str(series_path) == str(expected_path)
-
-    @pytest.mark.parametrize(
-        "direction, local_study_w_thermal",
-        [
-            (Direction.FORWARD, DATAFRAME_PREPRO_THERMAL_CONFIG),
-            (Direction.BACKWARD, DATAFRAME_PREPRO_THERMAL_CONFIG),
-        ],
-        indirect=["local_study_w_thermal"],
-    )
-    def test_nb_units_max_variation(
-        self, local_study_w_thermal: Study, direction: Direction
-    ):
-        self.nb_units_max_variation(local_study_w_thermal, direction)
