@@ -9,6 +9,7 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -25,8 +26,13 @@ from antares.craft.model.thermal import (
     ThermalCostGeneration,
 )
 
-ANTARES_VERSION_POSIX = "antares-9.3.7-Ubuntu-22.04"
-ANTARES_VERSION_WINDOWS = "rte-antares-9.3.7-installer-64bits"
+_dependencies = json.loads(
+    (Path(__file__).resolve().parents[2] / "dependencies.json").read_text()
+)
+ANTARES_SIMULATOR_VERSION = _dependencies["antares_simulator_version"]
+
+ANTARES_VERSION_POSIX = f"antares-{ANTARES_SIMULATOR_VERSION}-Ubuntu-22.04"
+ANTARES_VERSION_WINDOWS = f"rte-antares-{ANTARES_SIMULATOR_VERSION}-installer-64bits"
 
 current_dir = Path(__file__).resolve().parents[2]
 
