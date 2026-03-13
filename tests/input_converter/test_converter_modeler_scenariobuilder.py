@@ -19,7 +19,9 @@ class TestAntaresStudyConverterReal:
 
     @pytest.fixture
     def library_file(self):
-        return Path("src/antares_gems_converter/libs/antares_historic/antares_historic.yml")
+        return Path(
+            "src/antares_gems_converter/libs/antares_historic/antares_historic.yml"
+        )
 
     @pytest.fixture
     def output_folder(self, tmp_path):
