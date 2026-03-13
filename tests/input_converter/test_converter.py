@@ -462,13 +462,6 @@ class TestConverter:
                         value=1.0,
                     ),
                     InputComponentParameter(
-                        id="unit_capacity",
-                        time_dependent=False,
-                        scenario_dependent=False,
-                        scenario_group=None,
-                        value=2.0,
-                    ),
-                    InputComponentParameter(
                         id="p_min_unit",
                         time_dependent=False,
                         scenario_dependent=False,

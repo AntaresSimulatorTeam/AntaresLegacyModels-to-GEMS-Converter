@@ -69,10 +69,6 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1.0
-        - id: unit_capacity
-          scenario-dependent: false
-          time-dependent: false
-          value: 5000.0
         - id: p_min_unit
           scenario-dependent: false
           time-dependent: false

@@ -143,15 +143,14 @@ library:
           scenario-dependent: true
           time-dependent: true
         - id: unit_count
-        - id: unit_capacity
         - id: efficiency
       variables:
         - id: generation
-          lower-bound: min(p_max_cluster, minimum_generation_modulation * unit_count * unit_capacity)
+          lower-bound: min(p_max_cluster, minimum_generation_modulation * unit_count * p_max_unit)
           upper-bound: p_max_cluster
           variable-type: continuous
         - id: nb_units_on
-          lower-bound: ceil(min(p_max_cluster, minimum_generation_modulation * unit_count * unit_capacity)/p_max_unit)
+          lower-bound: ceil(min(p_max_cluster, minimum_generation_modulation * unit_count * p_max_unit)/p_max_unit)
           upper-bound: ceil(p_max_cluster/p_max_unit)
           variable-type: continuous
         - id: nb_starting

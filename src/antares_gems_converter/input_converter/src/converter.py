@@ -154,8 +154,6 @@ class AntaresStudyConverter:
                                 model=f"{lib_id}.thermal",
                                 parameters=[
                                     tdp.generate_component_parameter("minimum_generation_modulation"),
-                                    tdp.generate_component_parameter("nb_units_min"),
-                                    tdp.generate_component_parameter("nb_units_max"),
                                     tdp.generate_component_parameter(
                                         "nb_units_max_variation_forward", self.period
                                     ),
@@ -167,12 +165,6 @@ class AntaresStudyConverter:
                                         time_dependent=False,
                                         scenario_dependent=False,
                                         value=thermal.properties.unit_count,
-                                    ),
-                                    InputComponentParameter(
-                                        id="unit_capacity",
-                                        time_dependent=False,
-                                        scenario_dependent=False,
-                                        value=thermal.properties.nominal_capacity,
                                     ),
                                     InputComponentParameter(
                                         id="p_min_unit",
