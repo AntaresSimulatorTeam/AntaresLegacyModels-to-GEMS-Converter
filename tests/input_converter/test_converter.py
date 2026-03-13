@@ -441,20 +441,6 @@ class TestConverter:
                         value="fr_gaz_p_min_cluster",
                     ),
                     InputComponentParameter(
-                        id="nb_units_min",
-                        time_dependent=True,
-                        scenario_dependent=True,
-                        scenario_group=None,
-                        value="fr_gaz_nb_units_min",
-                    ),
-                    InputComponentParameter(
-                        id="nb_units_max",
-                        time_dependent=True,
-                        scenario_dependent=True,
-                        scenario_group=None,
-                        value="fr_gaz_nb_units_max",
-                    ),
-                    InputComponentParameter(
                         id="nb_units_max_variation_forward",
                         time_dependent=True,
                         scenario_dependent=True,

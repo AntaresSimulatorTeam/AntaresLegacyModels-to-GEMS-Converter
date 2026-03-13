@@ -27,8 +27,6 @@ class ThermalDataPreprocessing:
         self._prepro_parameter_functions: dict[str, Callable[[int], pd.DataFrame]] = {
             "p_min_cluster": lambda _: self._compute_p_min_cluster(),
             "p_max_cluster": lambda _: self._compute_p_max_cluster(),
-            "nb_units_min": lambda _: self._compute_nb_units_min(),
-            "nb_units_max": lambda _: self._compute_nb_units_max(),
             "nb_units_max_variation_forward": lambda period: self._compute_nb_units_max_variation(
                 Direction.FORWARD, period
             ),
@@ -53,13 +51,6 @@ class ThermalDataPreprocessing:
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
         return self.thermal.get_series_matrix()
-
-    def _compute_nb_units_min(self) -> pd.DataFrame:
-        p_min_cluster: pd.DataFrame = self._compute_p_min_cluster()
-        nominal_capacity: float = self.thermal.properties.nominal_capacity
-        return pd.DataFrame(
-            np.ceil(p_min_cluster / nominal_capacity),
-        )
 
     def _compute_nb_units_max(self) -> pd.DataFrame:
         series_data: pd.DataFrame = self.thermal.get_series_matrix()

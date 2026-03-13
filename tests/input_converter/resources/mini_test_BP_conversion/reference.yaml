@@ -57,14 +57,6 @@ system:
           scenario-dependent: true
           time-dependent: true
           value: fr_fr_nuclear_epr_p_min_cluster
-        - id: nb_units_min
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_min
-        - id: nb_units_max
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_max
         - id: nb_units_max_variation_forward
           scenario-dependent: true
           time-dependent: true
