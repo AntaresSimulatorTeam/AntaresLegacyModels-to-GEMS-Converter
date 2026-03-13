@@ -153,7 +153,7 @@ class AntaresStudyConverter:
                                 id=f"{thermal.area_id}_{thermal.id}",
                                 model=f"{lib_id}.thermal",
                                 parameters=[
-                                    tdp.generate_component_parameter("p_min_cluster"),
+                                    tdp.generate_component_parameter("minimum_generation_modulation"),
                                     tdp.generate_component_parameter(
                                         "nb_units_max_variation_forward", self.period
                                     ),

@@ -75,6 +75,7 @@ def createThermalTestAntaresStudy(
     load_time_serie_file: Path,
     marg_cluster_properties: ThermalClusterProperties,
     marg_cluster_data_frame: pd.DataFrame,
+    modulation_data_frame: Optional[pd.DataFrame] = None
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -111,6 +112,8 @@ def createThermalTestAntaresStudy(
     cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
     cluster3 = area.create_thermal_cluster("prod3", marg_cluster_properties)
     cluster3.set_series(marg_cluster_data_frame)
+    if modulation_data_frame is not None:
+        cluster3.set_prepro_modulation(modulation_data_frame)
     addHybridBehavior(parent_dir_path / study_name)
 
 
@@ -237,7 +240,7 @@ def createSTSTestAntaresStudy(
     addHybridBehavior(parent_dir_path / study_name)
 
 
-def random_availability_ratio() -> np.ndarray:
-    np.random.seed(1000)  # for reproducibility
+def random_availability_ratio(seed:int = 1000) -> np.ndarray:
+    np.random.seed(seed)  # for reproducibility
     raw = np.random.random((8760, 1))
     return 0.2 + 0.8 * raw

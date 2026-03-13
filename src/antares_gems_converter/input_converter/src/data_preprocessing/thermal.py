@@ -25,7 +25,7 @@ class ThermalDataPreprocessing:
         self.suffix = suffix
         self.output_series_dir = self.study_path / "input" / "data-series"
         self._prepro_parameter_functions: dict[str, Callable[[int], pd.DataFrame]] = {
-            "p_min_cluster": lambda _: self._compute_p_min_cluster(),
+            "minimum_generation_modulation": lambda _: self.thermal.get_prepro_modulation_matrix().iloc[:, 3],
             "p_max_cluster": lambda _: self._compute_p_max_cluster(),
             "nb_units_max_variation_forward": lambda period: self._compute_nb_units_max_variation(
                 Direction.FORWARD, period
@@ -34,20 +34,6 @@ class ThermalDataPreprocessing:
                 Direction.BACKWARD, period
             ),
         }
-
-    def _compute_p_min_cluster(self) -> pd.DataFrame:
-        modulation_data: pd.Series = self.thermal.get_prepro_modulation_matrix().iloc[
-            :, 3
-        ]
-        series_data: pd.DataFrame = self.thermal.get_series_matrix()
-        unit_count: int = self.thermal.properties.unit_count
-        nominal_capacity: float = self.thermal.properties.nominal_capacity
-        scaled_modulation: pd.Series = modulation_data * nominal_capacity * unit_count
-        #  min(min_gen_modulation * unit_count * nominal_capacity, p_max_cluster)
-        min_values: pd.Series = pd.concat([scaled_modulation, series_data], axis=1).min(
-            axis=1
-        )
-        return min_values.to_frame(name="p_min_cluster")
 
     def _compute_p_max_cluster(self) -> pd.DataFrame:
         return self.thermal.get_series_matrix()

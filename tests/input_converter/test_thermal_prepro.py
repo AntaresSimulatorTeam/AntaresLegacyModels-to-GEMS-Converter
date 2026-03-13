@@ -109,19 +109,19 @@ class TestThermalPreprocessing:
         [DATAFRAME_PREPRO_THERMAL_CONFIG],
         indirect=True,
     )
-    def test_p_min_cluster(self, local_study_w_thermal):
-        """Tests the p_min_cluster parameter processing."""
+    def test_minimum_generation_modulation(self, local_study_w_thermal):
+        """Tests the minimum_generation_modulation parameter processing."""
         tdp: ThermalDataPreprocessing = self._init_tdp(local_study_w_thermal)
 
         expected_values = create_dataframe_from_constant(
-            lines=8760, columns=1, value=6.0
+            lines=8760, columns=1, value=3
         )  # min(min_gen_modulation * unit_count * nominal_capacity, p_max_cluster)
         expected_values = expected_values.squeeze()
         expected_values.name = None
-        component_parameter = tdp.generate_component_parameter("p_min_cluster")
-        filepath, _ = tdp._build_csv_path_and_name("p_min_cluster")
+        component_parameter = tdp.generate_component_parameter("minimum_generation_modulation")
+        filepath, _ = tdp._build_csv_path_and_name("minimum_generation_modulation")
         self._validate_component_parameter(
-            filepath, component_parameter, "p_min_cluster", expected_values
+            filepath, component_parameter, "minimum_generation_modulation", expected_values
         )
 
     def nb_units_max_variation(

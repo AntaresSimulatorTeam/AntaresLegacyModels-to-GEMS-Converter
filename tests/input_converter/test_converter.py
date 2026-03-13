@@ -434,11 +434,11 @@ class TestConverter:
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
-                        id="p_min_cluster",
+                        id="minimum_generation_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="fr_gaz_p_min_cluster",
+                        value="fr_gaz_minimum_generation_modulation",
                     ),
                     InputComponentParameter(
                         id="nb_units_max_variation_forward",

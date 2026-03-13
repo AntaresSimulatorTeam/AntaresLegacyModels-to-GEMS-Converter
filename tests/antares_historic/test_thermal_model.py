@@ -62,6 +62,7 @@ LOAD_TIME_SERIE_FILES = [
 # Testing Timeseries parameters
 ## series (availability) : [OK : test_availability_series]
 ## modulations : [TODO]
+## min_gen_modulation : [OK : test_min_gen_modulation]
 ## co2_cost_matrix : [TODO]
 ## fuel_cost_matrix : [TODO]
 
@@ -73,6 +74,7 @@ def thermal_test_procedure(
     load_time_serie_file: Path,
     exec_folder: Path,
     cluster_data_frame: Optional[pd.DataFrame] = None,
+    modulation_data_frame: Optional[pd.DataFrame] = None,
 ) -> None:
     if type(cluster_data_frame) == NoneType:
         cluster_data_frame = pd.DataFrame(
@@ -87,6 +89,7 @@ def thermal_test_procedure(
         load_time_serie_file,
         marg_cluster_properties,
         cluster_data_frame,
+        modulation_data_frame=modulation_data_frame
     )
     original_study_path, converted_study_path = convert_study(
         study_path, study_name, ["thermal"]
@@ -763,4 +766,31 @@ def test_availability_series(
             LOAD_FILES_DIR / load_time_serie_file,
             antares_exec_folder,
             cluster_data_frame=df,
+        )
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_min_gen_modulation(
+    cluster_list_general_test: list[ThermalClusterProperties],
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    for marg_cluster_properties in cluster_list_general_test:
+        availability = np.concatenate([random_availability_ratio(seed=1000),random_availability_ratio(seed=2000)],axis=1)
+        df = pd.DataFrame(
+            data=marg_cluster_properties.unit_count
+            * marg_cluster_properties.nominal_capacity
+            * availability
+        )
+        study_name = f"e2e_general_test_{str(int(100*time()))}"
+        modulation = np.ones((8760, 4), dtype=np.float64)
+        modulation[:, 3] = random_availability_ratio(seed=3000)[:,0]
+        thermal_test_procedure(
+            study_name,
+            auto_generated_studies_path,
+            marg_cluster_properties,
+            LOAD_FILES_DIR / load_time_serie_file,
+            antares_exec_folder,
+            cluster_data_frame=df,
+            modulation_data_frame=pd.DataFrame(modulation)
         )
