@@ -122,4 +122,3 @@ class TestThermalPreprocessing:
         self._validate_component_parameter(
             filepath, component_parameter, "p_min_cluster", expected_values
         )
-
