@@ -23,11 +23,15 @@ template:
   component:
     id: ${area}_${thermal}
     parameters:
-      # should disappear from model
-      # - id: p_min_cluster
+      # - id: minimum_generation_modulation
       #   time-dependent: true
       #   scenario-dependent: true
       #   value:
+      #     object-properties:
+      #       type: thermal
+      #       area: ${area}
+      #       cluster: ${thermal}
+      #       field: prepro_modulation_matrix[:,3]
       - id: p_max_cluster
         scenario-dependent: true
         time-dependent: true

@@ -53,10 +53,10 @@ system:
     - id: fr_fr_nuclear_epr
       model: antares-historic.thermal
       parameters:
-        - id: p_min_cluster
+        - id: minimum_generation_modulation
           scenario-dependent: true
           time-dependent: true
-          value: fr_fr_nuclear_epr_p_min_cluster
+          value: fr_fr_nuclear_epr_minimum_generation_modulation
         - id: nb_units_max_variation_forward
           scenario-dependent: true
           time-dependent: true
@@ -69,6 +69,10 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1.0
+        - id: unit_capacity
+          scenario-dependent: false
+          time-dependent: false
+          value: 5000.0
         - id: p_min_unit
           scenario-dependent: false
           time-dependent: false
