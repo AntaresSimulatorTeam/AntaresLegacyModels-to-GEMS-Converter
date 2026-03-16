@@ -44,14 +44,14 @@ system:
           time-dependent: true
           value: marginal_cost_fr_z_batteries
     - id: load_fr
-      model: antares-historic.load
+      model: antares_legacy_models.load
       parameters:
         - id: load
           scenario-dependent: true
           time-dependent: true
           value: load_fr
     - id: fr_fr_nuclear_epr
-      model: antares-historic.thermal
+      model: antares_legacy_models.thermal
       parameters:
         - id: p_min_cluster
           scenario-dependent: true
@@ -98,7 +98,7 @@ system:
           time-dependent: true
           value: fr_fr_nuclear_epr_p_max_cluster
     - id: fr
-      model: antares-historic.area
+      model: antares_legacy_models.area
       parameters:
         - id: ens_cost
           scenario-dependent: false

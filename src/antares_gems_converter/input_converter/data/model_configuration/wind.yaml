@@ -14,7 +14,7 @@
 template:
   name: wind
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.renewable
+  model: antares_legacy_models.renewable
   scenario-group: wind_group
   template-parameters:
     - name: area

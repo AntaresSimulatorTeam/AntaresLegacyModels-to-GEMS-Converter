@@ -14,7 +14,7 @@
 template:
   name: link
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.link
+  model: antares_legacy_models.link
   template-parameters:
     - name: link
       # exclude:

@@ -14,7 +14,7 @@
 template:
   name: load
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.load
+  model: antares_legacy_models.load
   template-parameters:
     - name: area
       description: "Area identifier for the load component"

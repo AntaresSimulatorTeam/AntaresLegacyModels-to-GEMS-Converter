@@ -31,7 +31,7 @@ DATAFRAME_PREPRO_THERMAL_CONFIG = (
     create_dataframe_from_constant(lines=8760, columns=1, value=6),  # series
 )
 LIB_PATHS = [
-    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml",
     "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 LIB_PATHS_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
