@@ -62,7 +62,7 @@ DATAFRAME_PREPRO_BC_CONFIG = (
     create_dataframe_from_constant(lines=8760, columns=4),  # series
 )
 LIB_PATHS = [
-    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml",
     "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 MODEL_LIST_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
@@ -114,7 +114,7 @@ class TestConverter:
             components=[
                 InputComponent(
                     id="fr",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -135,7 +135,7 @@ class TestConverter:
                 ),
                 InputComponent(
                     id="it",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -165,7 +165,7 @@ class TestConverter:
         expected_area_components = [
             InputComponent(
                 id="fr",
-                model="antares-historic.area",
+                model="antares_legacy_models.area",
                 parameters=[
                     InputComponentParameter(
                         id="ens_cost",
@@ -185,7 +185,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="it",
-                model="antares-historic.area",
+                model="antares_legacy_models.area",
                 parameters=[
                     InputComponentParameter(
                         id="ens_cost",
@@ -224,7 +224,7 @@ class TestConverter:
             components=[
                 InputComponent(
                     id="it",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -245,7 +245,7 @@ class TestConverter:
                 ),
                 InputComponent(
                     id="fr",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -430,7 +430,7 @@ class TestConverter:
         expected_thermals_components = [
             InputComponent(
                 id="fr_gaz",
-                model="antares-historic.thermal",
+                model="antares_legacy_models.thermal",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
@@ -626,7 +626,7 @@ class TestConverter:
 
         expected_solar_components = InputComponent(
             id="solar_fr",
-            model="antares-historic.renewable",
+            model="antares_legacy_models.renewable",
             scenario_group=None,
             parameters=[
                 InputComponentParameter(
@@ -683,7 +683,7 @@ class TestConverter:
         )
         expected_load_components = InputComponent(
             id="load_fr",
-            model="antares-historic.load",
+            model="antares_legacy_models.load",
             scenario_group=None,
             parameters=[
                 InputComponentParameter(
@@ -731,7 +731,7 @@ class TestConverter:
         )
         expected_wind_components = InputComponent(
             id="wind_fr",
-            model="antares-historic.renewable",
+            model="antares_legacy_models.renewable",
             scenario_group="wind_group",
             parameters=[
                 InputComponentParameter(
@@ -833,7 +833,7 @@ class TestConverter:
         expected_link_component = [
             InputComponent(
                 id="fr_/_it",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
@@ -868,7 +868,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="at_/_fr",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
@@ -903,7 +903,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="at_/_it",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(

@@ -20,7 +20,7 @@ class TestAntaresStudyConverterReal:
     @pytest.fixture
     def library_file(self):
         return Path(
-            "src/antares_gems_converter/libs/antares_historic/antares_historic.yml"
+            "src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml"
         )
 
     @pytest.fixture

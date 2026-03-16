@@ -57,7 +57,7 @@ from gems.study.parsing import (
     InputSystem,
 )
 
-ANTARES_HISTORIC_LIB_ID = "antares-historic"
+ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"

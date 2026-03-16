@@ -25,7 +25,7 @@ from antares.craft.model.thermal import ThermalClusterProperties
 
 @pytest.fixture
 def lib_id() -> str:
-    return "antares-historic"
+    return "antares_legacy_models"
 
 
 @pytest.fixture
