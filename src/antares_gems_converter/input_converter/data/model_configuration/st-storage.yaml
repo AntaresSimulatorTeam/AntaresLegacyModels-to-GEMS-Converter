@@ -14,7 +14,7 @@
 template:
   name: st_storage
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.short-term-storage
+  model: antares_legacy_models.short-term-storage
   template-parameters:
     - name: area
       cluster-type: st_storage

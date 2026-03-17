@@ -14,7 +14,7 @@
 template:
   name: thermal
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.thermal
+  model: antares_legacy_models.thermal
   template-parameters:
     - name: area
       cluster-type: thermal

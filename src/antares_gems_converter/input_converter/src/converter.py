@@ -57,7 +57,7 @@ from gems.study.parsing import (
     InputSystem,
 )
 
-ANTARES_HISTORIC_LIB_ID = "antares-historic"
+ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"
@@ -154,12 +154,6 @@ class AntaresStudyConverter:
                                 model=f"{lib_id}.thermal",
                                 parameters=[
                                     tdp.generate_component_parameter("minimum_generation_modulation"),
-                                    tdp.generate_component_parameter(
-                                        "nb_units_max_variation_forward", self.period
-                                    ),
-                                    tdp.generate_component_parameter(
-                                        "nb_units_max_variation_backward", self.period
-                                    ),
                                     InputComponentParameter(
                                         id="unit_count",
                                         time_dependent=False,

@@ -16,7 +16,7 @@ from antares_gems_converter.input_converter.src.logger import Logger
 
 ANTARES_VERSION_CREATED_STUDIES = "9.2"
 ANTARES_LEGACY_MODELS_PATH = [
-    Path("src/antares_gems_converter/libs/antares_historic/antares_historic.yml")
+    Path("src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml")
 ]
 ACCURATE_TEMPLATE_PATH = Path(
     "tests/antares_historic/antares-resources/hybrid_mode_addon/uc_accurate"
