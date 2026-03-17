@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "Downloading Antares v${ANTARES_VERSION}..."
           curl -L -f -o antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz \
-            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${ANTARES_VERSION}/antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
+            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v10.0.0-rc2/antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
           if [ ! -f "antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz" ]; then
             echo "Error: Download failed"
             exit 1
