@@ -137,14 +137,15 @@ library:
         - id: d_min_up
         - id: d_min_down
         - id: unit_count
+        - id: spinning # in percentage, taken into account in p_max_cluster and p_max_unit (except when computing minimum generation)
       variables:
         - id: generation
-          lower-bound: min(p_max_cluster, minimum_generation_modulation * unit_count * p_max_unit)
-          upper-bound: p_max_cluster
+          lower-bound: min(p_max_cluster*(1-spinning/100), minimum_generation_modulation * unit_count * p_max_unit)
+          upper-bound: p_max_cluster*(1-spinning/100)
           variable-type: continuous
         - id: nb_units_on
-          lower-bound: ceil(min(p_max_cluster, minimum_generation_modulation * unit_count * p_max_unit)/p_max_unit)
-          upper-bound: ceil(p_max_cluster/p_max_unit)
+          lower-bound: ceil(min(p_max_cluster*(1-spinning/100), minimum_generation_modulation * unit_count * p_max_unit)/p_max_unit*(1-spinning/100))
+          upper-bound: ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)) # could be simplified in ceil(p_max_cluster/p_max_unit) as done in min_up_duration and min_down_duration 
           variable-type: continuous
         - id: nb_starting
           lower-bound: 0
@@ -164,7 +165,7 @@ library:
           definition: generation
       constraints:
         - id: max_generation
-          expression: generation <= nb_units_on * p_max_unit
+          expression: generation <= nb_units_on * p_max_unit*(1-spinning/100)
         - id: min_generation
           expression: generation >= nb_units_on * p_min_unit
         - id: on_units_dynamics

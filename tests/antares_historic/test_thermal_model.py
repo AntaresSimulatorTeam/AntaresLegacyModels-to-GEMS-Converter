@@ -768,6 +768,7 @@ def test_availability_series(
             cluster_data_frame=df,
         )
 
+
 @pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
 def test_min_gen_modulation(
     cluster_list_general_test: list[ThermalClusterProperties],
@@ -801,6 +802,7 @@ def test_min_gen_modulation(
             modulation_data_frame=pd.DataFrame(modulation),
         )
 
+
 @pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
 def test_spinning(
     load_time_serie_file: str,
@@ -812,7 +814,7 @@ def test_spinning(
         nominal_capacity=50,
         marginal_cost=15,
         market_bid_cost=15,
-        spinning=0.825,
+        spinning=5,
         group=ThermalClusterGroup.NUCLEAR,
     )
 
@@ -821,14 +823,17 @@ def test_spinning(
     cluster_data_frame_base = pd.DataFrame(
         data=marg_cluster_properties.unit_count
         * marg_cluster_properties.nominal_capacity
-        * np.ones((8760, 1))
+        * random_availability_ratio(seed=1000)
     )
+    modulation = np.ones((8760, 4), dtype=np.float64)
+    modulation[:, 3] = random_availability_ratio(seed=2000)[:, 0]
     createThermalTestAntaresStudy(
         study_name_base,
         auto_generated_studies_path,
         LOAD_FILES_DIR / load_time_serie_file,
         marg_cluster_properties,
         cluster_data_frame_base,
+        modulation_data_frame=pd.DataFrame(modulation),
     )
     orig_path_base, conv_path_base = convert_study(
         auto_generated_studies_path, study_name_base, ["thermal"]
@@ -841,10 +846,10 @@ def test_spinning(
         # Test +/-20% marginal cost
         marg_cluster = ThermalClusterProperties(
             nominal_capacity=marg_cluster_properties.nominal_capacity,
-            marginal_cost=15,
-            market_bid_cost=15,
-            spinning=0.95*perturbation,
-            group=ThermalClusterGroup.NUCLEAR,
+            marginal_cost=marg_cluster_properties.marginal_cost,
+            market_bid_cost=marg_cluster_properties.market_bid_cost,
+            spinning=marg_cluster_properties.spinning * perturbation,
+            group=marg_cluster_properties.group,
         )
         study_name = f"e2e_spinning_{str(int(100*time()))}"
 
@@ -854,6 +859,7 @@ def test_spinning(
             LOAD_FILES_DIR / load_time_serie_file,
             marg_cluster,
             cluster_data_frame_base,
+            modulation_data_frame=pd.DataFrame(modulation),
         )
         orig_path_perturbated = auto_generated_studies_path / study_name
         rel_gap = first_optim_relgap(

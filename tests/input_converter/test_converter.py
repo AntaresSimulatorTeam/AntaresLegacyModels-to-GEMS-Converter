@@ -503,6 +503,13 @@ class TestConverter:
                         scenario_group=None,
                         value=1.0,
                     ),
+                    InputComponentParameter(
+                        id="spinning",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0,
+                    ),
                 ],
             )
         ]
