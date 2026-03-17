@@ -819,17 +819,12 @@ def test_availability_with_min_stable_power(
             group=ThermalClusterGroup.NUCLEAR,
         )
         study_name = f"e2e_minstable_{str(int(100*time()))}"
-        cluster_data_frame = pd.DataFrame(
-            data=marg_cluster.unit_count
-            * marg_cluster.nominal_capacity
-            * np.ones((8760, 1))
-        )
         createThermalTestAntaresStudy(
             study_name,
             auto_generated_studies_path,
             LOAD_FILES_DIR / load_time_serie_file,
             marg_cluster,
-            cluster_data_frame,
+            cluster_data_frame_base,
         )
         orig_path_perturbated = auto_generated_studies_path / study_name
         rel_gap = first_optim_relgap(
