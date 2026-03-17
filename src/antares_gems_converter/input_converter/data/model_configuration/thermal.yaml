@@ -23,15 +23,16 @@ template:
   component:
     id: ${area}_${thermal}
     parameters:
-      # - id: minimum_generation_modulation
-      #   time-dependent: true
-      #   scenario-dependent: true
-      #   value:
-      #     object-properties:
-      #       type: thermal
-      #       area: ${area}
-      #       cluster: ${thermal}
-      #       field: prepro_modulation_matrix[:,3]
+      - id: minimum_generation_modulation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: prepro_modulation_matrix 
+          column: 3
       - id: p_max_cluster
         scenario-dependent: true
         time-dependent: true
@@ -104,19 +105,15 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: min_down_time
-      # Should disappear from model with min / max / ceil operators
-      # - id: nb_units_min
-      #   scenario-dependent: true
-      #   time-dependent: true
-      # - id: nb_units_max
-      #   scenario-dependent: true
-      #   time-dependent: true
-      # - id: nb_units_max_variation_forward
-      #   scenario-dependent: true
-      #   time-dependent: true
-      # - id: nb_units_max_variation_backward
-      #   scenario-dependent: true
-      #   time-dependent: true
+      - id: unit_count
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: unit_count
 
   # For full modeler mode
   connections:

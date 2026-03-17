@@ -49,6 +49,7 @@ TIMESERIES_NAME_TO_METHOD = {
     "thermal_series": "get_series_matrix",
     "thermal_co2": "get_co2_cost_matrix",
     "thermal_fuel": "get_fuel_cost_matrix",
+    "prepro_modulation_matrix": "get_prepro_modulation_matrix",
     "renewable_series": "get_timeseries",
     "pmax_injection": "get_pmax_injection",
     "pmax_withdrawal": "get_pmax_withdrawal",
