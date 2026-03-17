@@ -167,12 +167,6 @@ class AntaresStudyConverter:
                                         value=thermal.properties.min_stable_power,
                                     ),
                                     InputComponentParameter(
-                                        id="efficiency",
-                                        time_dependent=False,
-                                        scenario_dependent=False,
-                                        value=thermal.properties.efficiency,
-                                    ),
-                                    InputComponentParameter(
                                         id="p_max_unit",
                                         time_dependent=False,
                                         scenario_dependent=False,

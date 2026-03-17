@@ -137,7 +137,6 @@ library:
         - id: d_min_up
         - id: d_min_down
         - id: unit_count
-        - id: efficiency
       variables:
         - id: generation
           lower-bound: min(p_max_cluster, minimum_generation_modulation * unit_count * p_max_unit)

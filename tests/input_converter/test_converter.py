@@ -455,13 +455,6 @@ class TestConverter:
                         value=0.0,
                     ),
                     InputComponentParameter(
-                        id="efficiency",
-                        time_dependent=False,
-                        scenario_dependent=False,
-                        scenario_group=None,
-                        value=100.0,
-                    ),
-                    InputComponentParameter(
                         id="p_max_unit",
                         time_dependent=False,
                         scenario_dependent=False,

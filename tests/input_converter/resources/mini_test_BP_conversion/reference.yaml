@@ -65,10 +65,6 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1130.25
-        - id: efficiency
-          scenario-dependent: false
-          time-dependent: false
-          value: 100.0
         - id: p_max_unit
           scenario-dependent: false
           time-dependent: false
