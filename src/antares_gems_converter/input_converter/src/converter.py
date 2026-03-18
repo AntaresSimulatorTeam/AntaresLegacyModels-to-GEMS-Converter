@@ -119,8 +119,8 @@ class AntaresStudyConverter:
             study_input.path = self.output_folder
             self.study = study_input
         else:
-            # TODO: Check whether this dinstinction is needed
-            if mode == ConversionMode.HYBRID:
+            # TODO: Check whether this distinction is needed
+            if self.mode == ConversionMode.HYBRID:
                 self.study = read_study_local(resolve_path(self.output_folder))
             else:
                 self.study = read_study_local(resolve_path(study_input))
@@ -132,9 +132,9 @@ class AntaresStudyConverter:
         self,
         lib_id: str,
         virtual_objects: VirtualObjectsRepository,
-        components: list,
-        connections: list,
-        area_connections: list,
+        components: list[InputComponent],
+        connections: list[InputPortConnections],
+        area_connections: list[InputAreaConnections],
         scenario_group: Optional[str] = None,
     ) -> tuple[list[InputComponent], list[InputPortConnections]]:
         self.logger.info("Converting thermals to component list...")
@@ -271,46 +271,49 @@ class AntaresStudyConverter:
                 )
         return components
 
+    def _delete_study_level_object(self, legacy_component: ObjectProperties) -> None:
+        if legacy_component.type == "area":
+            object_id = legacy_component.area
+        elif legacy_component.type == "link":
+            object_id = legacy_component.link
+        elif legacy_component.type == "binding_constraint":
+            object_id = legacy_component.binding_constraint_id
+        else:
+            return
+        getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
+            getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[object_id]
+        )
+
+    def _delete_cluster_object(self, legacy_component: ObjectProperties) -> None:
+        area = self.areas[legacy_component.area]
+        getattr(area, TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD[legacy_component.type])(
+            getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[legacy_component.type])()[
+                legacy_component.cluster
+            ]
+        )
+
+    def _delete_matrix_object(self, legacy_component: ObjectProperties) -> None:
+        # To "delete" legacy wind, solar or load object, we simply set an empty timeseries
+        getattr(
+            self.areas[legacy_component.area],
+            MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
+        )(pd.DataFrame())
+
     def _delete_legacy_objects(self) -> None:
         for legacy_component in self.legacy_objects:
             try:
                 if legacy_component.type in STUDY_LEVEL_DELETION:
-                    if legacy_component.type == "area":
-                        id = legacy_component.area
-                    elif legacy_component.type == "link":
-                        id = legacy_component.link
-                    elif legacy_component.type == "binding_constraint":
-                        id = legacy_component.binding_constraint_id
-                    else:
-                        continue
-                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
-                        getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
-                            id
-                        ]
-                    )
+                    self._delete_study_level_object(legacy_component)
                 elif (
                     legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
                     and legacy_component.area is not None
                 ):
-                    getattr(
-                        self.areas[legacy_component.area],
-                        TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD[legacy_component.type],
-                    )(
-                        getattr(
-                            self.areas[legacy_component.area],
-                            TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[legacy_component.type],
-                        )()[legacy_component.cluster]
-                    )
+                    self._delete_cluster_object(legacy_component)
                 elif (
                     legacy_component.type in MATRIX_TYPES_TO_SET_METHOD
                     and legacy_component.area is not None
                 ):
-                    # To "delete" legacy wind, solar or load object, we simply set an empty timeseries
-                    getattr(
-                        self.areas[legacy_component.area],
-                        MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
-                    )(pd.DataFrame())
-
+                    self._delete_matrix_object(legacy_component)
             except ReferencedObjectDeletionNotAllowed:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
@@ -326,20 +329,27 @@ class AntaresStudyConverter:
 
         self.legacy_objects = []
 
+    def _resolve_component_id(self, component_template: str) -> str:
+        """Resolve a component identifier, handling dot-notation for link attributes."""
+        if "." in component_template:
+            parts = component_template.split(".")
+            return getattr(self.study.get_links()[parts[0]], parts[1]).replace(" ", "_")
+        return component_template.replace(" ", "_")
+
     def _iterate_through_model(
         self,
         resolved_conversion_template: ConversionTemplate,
-        components: list,
-        connections: list,
-        area_connections: list,
-        mp: ModelConversionPreprocessor,
+        components: list[InputComponent],
+        connections: list[InputPortConnections],
+        area_connections: list[InputAreaConnections],
+        model_preprocessor: ModelConversionPreprocessor,
     ) -> None:
         parameters = [
             InputComponentParameter(
                 id=param.id,
                 time_dependent=bool(param.time_dependent),
                 scenario_dependent=bool(param.scenario_dependent),
-                value=mp.convert_param_value(param.id, param.value),
+                value=model_preprocessor.convert_param_value(param.id, param.value),
             )
             for param in resolved_conversion_template.component.parameters
         ]
@@ -358,70 +368,140 @@ class AntaresStudyConverter:
         )
 
         if self.mode == ConversionMode.HYBRID:
-            for area_connection in resolved_conversion_template.area_connections:
-                # TODO: Improve logic
-                if "." in area_connection.component:
-                    component_parts = area_connection.component.split(".")
-                    component_value = getattr(
-                        self.study.get_links()[component_parts[0]], component_parts[1]
-                    )
-                else:
-                    component_value = area_connection.component
-                component_value = component_value.replace(" ", "_")
-                if "." in area_connection.area:
-                    area_parts = area_connection.area.split(".")
-                    area_value = getattr(
-                        self.study.get_links()[area_parts[0]], area_parts[1]
-                    )
-                else:
-                    area_value = area_connection.area
-                area_value = area_value.replace(" ", "_")
+            for ac in resolved_conversion_template.area_connections:
                 area_connections.append(
                     InputAreaConnections(
-                        component=component_value,
-                        port=area_connection.port,
-                        area=area_value,
+                        component=self._resolve_component_id(ac.component),
+                        port=ac.port,
+                        area=self._resolve_component_id(ac.area),
                     )
                 )
-            # TODO : Simplify usage, use directly legacy_objectis_to_delete
             for item in resolved_conversion_template.legacy_objects_to_delete:
                 self.legacy_objects.append(item.object_properties)
         else:
-            for connection in resolved_conversion_template.connections:
-                # TODO: Factorize logic with previous connections
-                treated_components = []
-                for component in [connection.component1, connection.component2]:
-                    if "." in component:
-                        component_parts = component.split(".")
-                        component_value = getattr(
-                            self.study.get_links()[component_parts[0]],
-                            component_parts[1],
-                        )
-                    else:
-                        component_value = component
-                    treated_components.append(component_value.replace(" ", "_"))
-
+            for conn in resolved_conversion_template.connections:
                 connections.append(
                     InputPortConnections(
-                        component1=treated_components[0],
-                        port1=connection.port1,
-                        component2=treated_components[1],
-                        port2=connection.port2,
+                        component1=self._resolve_component_id(conn.component1),
+                        port1=conn.port1,
+                        component2=self._resolve_component_id(conn.component2),
+                        port2=conn.port2,
                     )
                 )
+
+    def _process_link_model(
+        self,
+        conversion_template: ConversionTemplate,
+        virtual_objects: VirtualObjectsRepository,
+        components: list[InputComponent],
+        connections: list[InputPortConnections],
+        area_connections: list[InputAreaConnections],
+        model_preprocessor: ModelConversionPreprocessor,
+    ) -> None:
+        model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
+        for link in self.study.get_links().values():
+            if not self.is_virtual_link(link, virtual_objects):
+                resolved_template = conversion_template.resolve_template(
+                    model_area_pattern, link.id
+                )
+                self._iterate_through_model(
+                    resolved_template,
+                    components,
+                    connections,
+                    area_connections,
+                    model_preprocessor,
+                )
+
+    def _process_area_clusters(
+        self,
+        area,
+        area_resolved_template: ConversionTemplate,
+        cluster_type: str,
+        components: list[InputComponent],
+        connections: list[InputPortConnections],
+        area_connections: list[InputAreaConnections],
+        model_preprocessor: ModelConversionPreprocessor,
+    ) -> None:
+        for cluster_id in getattr(
+            area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
+        )():
+            cluster_resolved_template = area_resolved_template.resolve_template(
+                f"${{{cluster_type}}}", cluster_id
+            )
+            self._iterate_through_model(
+                cluster_resolved_template,
+                components,
+                connections,
+                area_connections,
+                model_preprocessor,
+            )
+
+    def _process_area_model(
+        self,
+        conversion_template: ConversionTemplate,
+        virtual_objects: VirtualObjectsRepository,
+        components: list[InputComponent],
+        connections: list[InputPortConnections],
+        area_connections: list[InputAreaConnections],
+        model_preprocessor: ModelConversionPreprocessor,
+    ) -> None:
+        model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
+        cluster_type = next(
+            (
+                template.cluster_type
+                for template in conversion_template.template_parameters
+            ),
+            None,
+        )
+        for area in self.areas.values():
+            if area.id not in virtual_objects.areas:
+                area_resolved_template = conversion_template.resolve_template(
+                    model_area_pattern, area.id
+                )
+                if cluster_type:
+                    self._process_area_clusters(
+                        area,
+                        area_resolved_template,
+                        cluster_type,
+                        components,
+                        connections,
+                        area_connections,
+                        model_preprocessor,
+                    )
+                elif conversion_template.name in MATRIX_TYPES:
+                    if all(
+                        model_preprocessor.check_timeseries_validity(param.value)
+                        for param in area_resolved_template.component.parameters
+                    ):
+                        self._iterate_through_model(
+                            area_resolved_template,
+                            components,
+                            connections,
+                            area_connections,
+                            model_preprocessor,
+                        )
+                else:
+                    self._iterate_through_model(
+                        area_resolved_template,
+                        components,
+                        connections,
+                        area_connections,
+                        model_preprocessor,
+                    )
 
     def _convert_model_to_component_list(
         self,
         conversion_template: ConversionTemplate,
-        virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
+        virtual_objects: Optional[VirtualObjectsRepository] = None,
     ) -> tuple[
         list[InputComponent], list[InputPortConnections], list[InputAreaConnections]
     ]:
+        if virtual_objects is None:
+            virtual_objects = VirtualObjectsRepository()
+
         components: list[InputComponent] = []
         connections: list[InputPortConnections] = []
         area_connections: list[InputAreaConnections] = []
-
-        model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
 
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
@@ -429,84 +509,32 @@ class AntaresStudyConverter:
 
         try:
             if conversion_template.name in LINK_TYPES:
-                for link in self.study.get_links().values():
-                    if not self.is_virtual_link(link, virtual_objects):
-                        resolved_template = conversion_template.resolve_template(
-                            model_area_pattern, link.id
-                        )
-                        self._iterate_through_model(
-                            resolved_template,
-                            components,
-                            connections,
-                            area_connections,
-                            model_preprocessor,
-                        )
+                self._process_link_model(
+                    conversion_template,
+                    virtual_objects,
+                    components,
+                    connections,
+                    area_connections,
+                    model_preprocessor,
+                )
+            elif conversion_template.name == "thermal":
+                self._convert_thermal_to_component_list(
+                    self.get_model_name_among_libs("thermal"),
+                    virtual_objects,
+                    components,
+                    connections,
+                    area_connections,
+                    scenario_group=getattr(conversion_template, "scenario_group", None),
+                )
             else:
-                if conversion_template.name == "thermal":
-                    # Legacy conversion for thermal cluster
-                    self._convert_thermal_to_component_list(
-                        self.get_model_name_among_libs("thermal"),
-                        virtual_objects,
-                        components,
-                        connections,
-                        area_connections,
-                        scenario_group=getattr(
-                            conversion_template, "scenario_group", None
-                        ),
-                    )
-                    return components, connections, area_connections
-                for area in self.areas.values():
-                    if area.id not in virtual_objects.areas:
-                        area_resolved_template = conversion_template.resolve_template(
-                            model_area_pattern, area.id
-                        )
-                        cluster_type = next(
-                            (
-                                template.cluster_type
-                                for template in conversion_template.template_parameters
-                            ),
-                            None,
-                        )
-                        if cluster_type:
-                            for cluster_id in getattr(
-                                area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
-                            )():
-                                # We have already resolved areas, now need to resolve cluster ids
-                                cluster_resolved_template = (
-                                    area_resolved_template.resolve_template(
-                                        f"${{{cluster_type}}}", cluster_id
-                                    )
-                                )
-                                self._iterate_through_model(
-                                    cluster_resolved_template,
-                                    components,
-                                    connections,
-                                    area_connections,
-                                    model_preprocessor,
-                                )
-
-                        elif conversion_template.name in MATRIX_TYPES:
-                            if all(
-                                model_preprocessor.check_timeseries_validity(
-                                    param.value
-                                )
-                                for param in area_resolved_template.component.parameters
-                            ):
-                                self._iterate_through_model(
-                                    area_resolved_template,
-                                    components,
-                                    connections,
-                                    area_connections,
-                                    model_preprocessor,
-                                )
-                        else:
-                            self._iterate_through_model(
-                                area_resolved_template,
-                                components,
-                                connections,
-                                area_connections,
-                                model_preprocessor,
-                            )
+                self._process_area_model(
+                    conversion_template,
+                    virtual_objects,
+                    components,
+                    connections,
+                    area_connections,
+                    model_preprocessor,
+                )
         except (KeyError, FileNotFoundError) as e:
             self.logger.error(
                 f"Error while converting model to component list: {e}. "
