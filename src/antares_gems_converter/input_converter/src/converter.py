@@ -519,15 +519,23 @@ class AntaresStudyConverter:
                                 if cluster_type == "st_storage":
                                     # Zero out variation costs when penalization is disabled
                                     storage = area.get_st_storages()[cluster_id]
-                                    if not storage.properties.penalize_variation_injection:
-                                        cluster_resolved_template = self._override_param_with_zero(
-                                            cluster_resolved_template,
-                                            "cost_variation_injection",
+                                    if (
+                                        not storage.properties.penalize_variation_injection
+                                    ):
+                                        cluster_resolved_template = (
+                                            self._override_param_with_zero(
+                                                cluster_resolved_template,
+                                                "cost_variation_injection",
+                                            )
                                         )
-                                    if not storage.properties.penalize_variation_withdrawal:
-                                        cluster_resolved_template = self._override_param_with_zero(
-                                            cluster_resolved_template,
-                                            "cost_variation_withdrawal",
+                                    if (
+                                        not storage.properties.penalize_variation_withdrawal
+                                    ):
+                                        cluster_resolved_template = (
+                                            self._override_param_with_zero(
+                                                cluster_resolved_template,
+                                                "cost_variation_withdrawal",
+                                            )
                                         )
                                 self._iterate_through_model(
                                     cluster_resolved_template,
