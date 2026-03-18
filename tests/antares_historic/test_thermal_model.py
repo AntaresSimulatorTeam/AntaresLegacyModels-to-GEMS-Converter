@@ -821,7 +821,7 @@ def test_availability_with_min_stable_power(
             fixed_cost=marg_cluster_properties.fixed_cost,
             min_stable_power=marg_cluster_properties.min_stable_power * perturbation,
             group=ThermalClusterGroup.NUCLEAR,
-            unit_count=marg_cluster_properties.unit_count
+            unit_count=marg_cluster_properties.unit_count,
         )
         study_name = f"e2e_minstable_{str(int(100*time()))}"
         createThermalTestAntaresStudy(
