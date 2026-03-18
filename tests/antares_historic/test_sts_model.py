@@ -361,7 +361,6 @@ def sts_test_procedure_timeseries_param(
     load_time_serie_file: str,
     auto_generated_studies_path: Path,
     antares_exec_folder: Path,
-    sts_timeseries_extra: Optional[dict[str, pd.DataFrame]] = None,
 ) -> None:
     """Test that a timeseries parameter is correctly handled by the GEMS model.
 
@@ -370,8 +369,6 @@ def sts_test_procedure_timeseries_param(
     and verifies the gap with the original converted study is significantly larger.
     """
     base_sts_timeseries = {tested_param_key: base_timeseries}
-    if sts_timeseries_extra:
-        base_sts_timeseries.update(sts_timeseries_extra)
 
     study_name_base = f"e2e_{str(int(100*time()))}"
     createSTSTestAntaresStudy(
@@ -391,8 +388,6 @@ def sts_test_procedure_timeseries_param(
 
     perturbed_timeseries = base_timeseries * MODIFICATION_RATIO
     perturbed_sts_timeseries = {tested_param_key: perturbed_timeseries}
-    if sts_timeseries_extra:
-        perturbed_sts_timeseries.update(sts_timeseries_extra)
 
     study_name_perturbed = f"e2e_{str(int(100*time()))}"
     createSTSTestAntaresStudy(
