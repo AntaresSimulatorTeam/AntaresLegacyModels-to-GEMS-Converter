@@ -53,22 +53,18 @@ system:
     - id: fr_fr_nuclear_epr
       model: antares_legacy_models.thermal
       parameters:
-        - id: p_min_cluster
+        - id: minimum_generation_modulation
           scenario-dependent: true
           time-dependent: true
-          value: fr_fr_nuclear_epr_p_min_cluster
-        - id: unit_count
-          scenario-dependent: false
-          time-dependent: false
-          value: 1.0
+          value: minimum_generation_modulation_fr_fr_nuclear_epr
+        - id: p_max_cluster
+          scenario-dependent: true
+          time-dependent: true
+          value: p_max_cluster_fr_fr_nuclear_epr
         - id: p_min_unit
           scenario-dependent: false
           time-dependent: false
           value: 1130.25
-        - id: efficiency
-          scenario-dependent: false
-          time-dependent: false
-          value: 100.0
         - id: p_max_unit
           scenario-dependent: false
           time-dependent: false
@@ -77,14 +73,14 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 6.2
-        - id: fixed_cost
-          scenario-dependent: false
-          time-dependent: false
-          value: 0.0
         - id: startup_cost
           scenario-dependent: false
           time-dependent: false
           value: 46200.0
+        - id: fixed_cost
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
         - id: d_min_up
           scenario-dependent: false
           time-dependent: false
@@ -93,10 +89,10 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 24.0
-        - id: p_max_cluster
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_p_max_cluster
+        - id: unit_count
+          scenario-dependent: false
+          time-dependent: false
+          value: 1.0
     - id: fr
       model: antares_legacy_models.area
       parameters:
