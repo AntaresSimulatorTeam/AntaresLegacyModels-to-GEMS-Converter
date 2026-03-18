@@ -281,56 +281,6 @@ class AntaresStudyConverter:
             scenario_group=resolved_template.scenario_group,
         )
 
-    def _convert_st_storage_to_component_list(
-        self,
-        conversion_template: ConversionTemplate,
-        virtual_objects: VirtualObjectsRepository,
-        components: list,
-        connections: list,
-        area_connections: list,
-    ) -> None:
-        """Convert st-storage clusters to component list with per-cluster special handling.
-
-        Handles:
-        - penalize_variation_injection/withdrawal: zeros out the corresponding cost
-          variation parameter when the flag is False or None.
-        - enabled=False: TODO (currently converted normally)
-        """
-        self.logger.info("Converting st-storages to component list...")
-        model_preprocessor = ModelConversionPreprocessor(
-            self.study, self.mode, self.output_folder
-        )
-        model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
-
-        for area in self.areas.values():
-            if area.id in virtual_objects.areas:
-                continue
-            area_resolved = conversion_template.resolve_template(
-                model_area_pattern, area.id
-            )
-            for storage_id, storage in area.get_st_storages().items():
-                cluster_resolved = area_resolved.resolve_template(
-                    "${st_storage}", storage_id
-                )
-
-                # Zero out variation costs when penalization is disabled
-                if not storage.properties.penalize_variation_injection:
-                    cluster_resolved = self._override_param_with_zero(
-                        cluster_resolved, "cost_variation_injection"
-                    )
-                if not storage.properties.penalize_variation_withdrawal:
-                    cluster_resolved = self._override_param_with_zero(
-                        cluster_resolved, "cost_variation_withdrawal"
-                    )
-
-                self._iterate_through_model(
-                    cluster_resolved,
-                    components,
-                    connections,
-                    area_connections,
-                    model_preprocessor,
-                )
-
     def _convert_area_to_component_list(
         self, lib_id: str, excluded_areas: Optional[list[str]] = None
     ) -> list[InputComponent]:
@@ -544,16 +494,6 @@ class AntaresStudyConverter:
                         ),
                     )
                     return components, connections, area_connections
-                if conversion_template.name == "st_storage":
-                    # Special conversion for st-storage (per-cluster variation penalty handling)
-                    self._convert_st_storage_to_component_list(
-                        conversion_template,
-                        virtual_objects,
-                        components,
-                        connections,
-                        area_connections,
-                    )
-                    return components, connections, area_connections
                 for area in self.areas.values():
                     if area.id not in virtual_objects.areas:
                         area_resolved_template = conversion_template.resolve_template(
@@ -576,6 +516,19 @@ class AntaresStudyConverter:
                                         f"${{{cluster_type}}}", cluster_id
                                     )
                                 )
+                                if cluster_type == "st_storage":
+                                    # Zero out variation costs when penalization is disabled
+                                    storage = area.get_st_storages()[cluster_id]
+                                    if not storage.properties.penalize_variation_injection:
+                                        cluster_resolved_template = self._override_param_with_zero(
+                                            cluster_resolved_template,
+                                            "cost_variation_injection",
+                                        )
+                                    if not storage.properties.penalize_variation_withdrawal:
+                                        cluster_resolved_template = self._override_param_with_zero(
+                                            cluster_resolved_template,
+                                            "cost_variation_withdrawal",
+                                        )
                                 self._iterate_through_model(
                                     cluster_resolved_template,
                                     components,
