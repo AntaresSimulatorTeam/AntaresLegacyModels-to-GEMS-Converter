@@ -39,6 +39,7 @@ from antares_gems_converter.input_converter.src.data_preprocessing.thermal impor
     ThermalDataPreprocessing,
 )
 from antares_gems_converter.input_converter.src.parsing import (
+    ComponentConversionConfig,
     ConversionTemplate,
     ConversionValue,
     ObjectProperties,
@@ -262,10 +263,6 @@ class AntaresStudyConverter:
                 )
             else:
                 new_params.append(param)
-        from antares_gems_converter.input_converter.src.parsing import (
-            ComponentConversionConfig,
-        )
-
         new_component = ComponentConversionConfig(
             id=resolved_template.component.id, parameters=new_params
         )
