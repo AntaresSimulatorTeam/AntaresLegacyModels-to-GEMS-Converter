@@ -214,6 +214,21 @@ library:
         - id: initial_level
           time-dependent: false
           scenario-dependent: true
+        - id: cost_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_level
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_variation_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_variation_withdrawal
+          time-dependent: true
+          scenario-dependent: true
       variables:
         - id: p_injection
           lower-bound: 0
@@ -227,6 +242,18 @@ library:
           lower-bound: lower_rule_curve * reservoir_capacity
           upper-bound: upper_rule_curve * reservoir_capacity
           variable-type: continuous
+        - id: d_injection_up
+          lower-bound: 0
+          variable-type: continuous
+        - id: d_injection_down
+          lower-bound: 0
+          variable-type: continuous
+        - id: d_withdrawal_up
+          lower-bound: 0
+          variable-type: continuous
+        - id: d_withdrawal_down
+          lower-bound: 0
+          variable-type: continuous
       ports:
         - id: injection_port
           type: flow
@@ -239,3 +266,10 @@ library:
           expression: level[0] = initial_level * reservoir_capacity
         - id: level_equation
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal + inflows
+        - id: variation_injection_def
+          expression: d_injection_up - d_injection_down = p_injection - p_injection[t-1]
+        - id: variation_withdrawal_def
+          expression: d_withdrawal_up - d_withdrawal_down = p_withdrawal - p_withdrawal[t-1]
+      objective-contributions:
+        - id: objective
+          expression: sum(cost_injection * p_injection + cost_withdrawal * p_withdrawal + cost_level * level + cost_variation_injection * (d_injection_up + d_injection_down) + cost_variation_withdrawal * (d_withdrawal_up + d_withdrawal_down))

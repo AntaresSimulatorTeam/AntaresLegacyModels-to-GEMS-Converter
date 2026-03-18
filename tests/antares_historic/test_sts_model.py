@@ -2,6 +2,7 @@ import os
 from dataclasses import replace
 from pathlib import Path
 from time import time
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -34,8 +35,8 @@ LOAD_TIME_SERIE_FILES_STS = [
 # Testing Boolean/discrete parameters
 ## initial_level_optim [TODO]
 ## enabled [TODO]
-## penalize_variation_injection [TODO]
-## penalize_variation_withdrawal [TODO]
+## penalize_variation_injection [OK : test_penalize_variation_injection]
+## penalize_variation_withdrawal [OK : test_penalize_variation_withdrawal]
 
 # Testing Float parameters
 ## injection_nominal_capacity [OK : test_injection_nominal_capacity]
@@ -46,16 +47,16 @@ LOAD_TIME_SERIE_FILES_STS = [
 ## initial_level [OK : test_initial_level]
 
 # Testing Timeseries parameters
-## p_max_injection [TODO]
-## p_max_withdrawal [TODO]
-## lower_rule_curve [TODO]
-## upper_rule_curve [TODO]
-## storage_inflows [TODO]
-## cost_injection [TODO]
-## cost_withdrawal [TODO]
-## cost_level [TODO]
-## cost_variation_injection [TODO]
-## cost_variation_withdrawal [TODO]
+## p_max_injection [OK : test_p_max_injection]
+## p_max_withdrawal [OK : test_p_max_withdrawal]
+## lower_rule_curve [OK : test_lower_rule_curve]
+## upper_rule_curve [OK : test_upper_rule_curve]
+## storage_inflows [OK : test_storage_inflows]
+## cost_injection [OK : test_cost_injection]
+## cost_withdrawal [OK : test_cost_withdrawal]
+## cost_level [OK : test_cost_level]
+## cost_variation_injection [OK : test_penalize_variation_injection]
+## cost_variation_withdrawal [OK : test_penalize_variation_withdrawal]
 
 
 def sts_test_procedure(
@@ -343,6 +344,336 @@ def test_initial_level(
     sts_test_procedure_float_param(
         sts_properties,
         "initial_level",
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+## ---- Timeseries parameter test helpers ---- ##
+
+
+def sts_test_procedure_timeseries_param(
+    sts_properties: STStorageProperties,
+    tested_param_key: str,
+    base_timeseries: pd.DataFrame,
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+    sts_timeseries_extra: Optional[dict[str, pd.DataFrame]] = None,
+) -> None:
+    """Test that a timeseries parameter is correctly handled by the GEMS model.
+
+    Creates a base study with the given timeseries, converts it, verifies near-zero
+    relative gap, then creates a perturbed study with MODIFICATION_RATIO * base_timeseries
+    and verifies the gap with the original converted study is significantly larger.
+    """
+    base_sts_timeseries = {tested_param_key: base_timeseries}
+    if sts_timeseries_extra:
+        base_sts_timeseries.update(sts_timeseries_extra)
+
+    study_name_base = f"e2e_{str(int(100*time()))}"
+    createSTSTestAntaresStudy(
+        study_name_base,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        sts_properties,
+        sts_timeseries=base_sts_timeseries,
+    )
+    original_study_path, converted_study_path = convert_study(
+        auto_generated_studies_path, study_name_base, ["short-term-storage"]
+    )
+    rel_gap = first_optim_relgap(
+        antares_exec_folder, original_study_path, converted_study_path, STS_TEST_SOLVER
+    )
+    assert rel_gap < STS_TEST_REL_ACCURACY
+
+    perturbed_timeseries = base_timeseries * MODIFICATION_RATIO
+    perturbed_sts_timeseries = {tested_param_key: perturbed_timeseries}
+    if sts_timeseries_extra:
+        perturbed_sts_timeseries.update(sts_timeseries_extra)
+
+    study_name_perturbed = f"e2e_{str(int(100*time()))}"
+    createSTSTestAntaresStudy(
+        study_name_perturbed,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        sts_properties,
+        sts_timeseries=perturbed_sts_timeseries,
+    )
+    rel_gap_perturbed = first_optim_relgap(
+        antares_exec_folder,
+        auto_generated_studies_path / study_name_perturbed,
+        converted_study_path,
+        STS_TEST_SOLVER,
+    )
+    assert rel_gap_perturbed > 100 * STS_TEST_REL_ACCURACY
+
+
+## ---- Tests for timeseries parameters ---- ##
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_p_max_injection(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Non-trivial modulation: half the injection capacity available
+    base_timeseries = pd.DataFrame(0.5 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "pmax_injection",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_p_max_withdrawal(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    base_timeseries = pd.DataFrame(0.5 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "pmax_withdrawal",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_lower_rule_curve(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Non-zero lower bound: storage must keep at least 10% of capacity
+    base_timeseries = pd.DataFrame(0.1 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "lower_rule_curve",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_upper_rule_curve(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Upper bound capped at 80% of capacity
+    base_timeseries = pd.DataFrame(0.8 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "upper_rule_curve",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_storage_inflows(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Small constant inflow of 5 MWh per hour
+    base_timeseries = pd.DataFrame(5.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "storage_inflows",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+## ---- Tests for cost timeseries parameters ---- ##
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_cost_injection(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Injection cost of 5 €/MWh
+    base_timeseries = pd.DataFrame(5.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "cost_injection",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_cost_withdrawal(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Withdrawal cost of 5 €/MWh
+    base_timeseries = pd.DataFrame(5.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "cost_withdrawal",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_cost_level(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+    )
+    # Level cost of 1 €/MWh stored
+    base_timeseries = pd.DataFrame(1.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "cost_level",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+## ---- Tests for variation penalty parameters ---- ##
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_penalize_variation_injection(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+        penalize_variation_injection=True,
+    )
+    # Variation injection cost of 2 €/MW (penalty for changing injection rate)
+    base_timeseries = pd.DataFrame(2.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "cost_variation_injection",
+        base_timeseries,
+        load_time_serie_file,
+        auto_generated_studies_path,
+        antares_exec_folder,
+    )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_penalize_variation_withdrawal(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    sts_properties = STStorageProperties(
+        group="battery",
+        injection_nominal_capacity=100,
+        withdrawal_nominal_capacity=100,
+        reservoir_capacity=300,
+        efficiency=1,
+        initial_level=0.5,
+        penalize_variation_withdrawal=True,
+    )
+    # Variation withdrawal cost of 2 €/MW
+    base_timeseries = pd.DataFrame(2.0 * np.ones((8760, 1)))
+    sts_test_procedure_timeseries_param(
+        sts_properties,
+        "cost_variation_withdrawal",
+        base_timeseries,
         load_time_serie_file,
         auto_generated_studies_path,
         antares_exec_folder,
