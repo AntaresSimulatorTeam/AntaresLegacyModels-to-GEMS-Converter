@@ -195,12 +195,24 @@ def createLinkTestAntaresStudy(
     addHybridBehavior(parent_dir_path / study_name)
 
 
+STS_TIMESERIES_SETTER_MAP = {
+    "cost_injection": "set_cost_injection",
+    "cost_withdrawal": "set_cost_withdrawal",
+    "cost_level": "set_cost_level",
+    "pmax_injection": "update_pmax_injection",
+    "pmax_withdrawal": "set_pmax_withdrawal",
+    "lower_rule_curve": "set_lower_rule_curve",
+    "upper_rule_curve": "set_upper_rule_curve",
+    "storage_inflows": "set_storage_inflows",
+}
+
+
 def createSTSTestAntaresStudy(
     study_name: str,
     parent_dir_path: Path,
     load_time_serie_file: Path,
     sts_properties: STStorageProperties,
-    # sts_data_frame: pd.DataFrame,
+    sts_timeseries: Optional[dict[str, pd.DataFrame]] = None,
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -237,6 +249,9 @@ def createSTSTestAntaresStudy(
     cluster2.set_series(pd.DataFrame(data=400 * np.ones((8760, 1))))
 
     cluster3 = area.create_st_storage("sts", sts_properties)
+    if sts_timeseries:
+        for key, df in sts_timeseries.items():
+            getattr(cluster3, STS_TIMESERIES_SETTER_MAP[key])(df)
     addHybridBehavior(parent_dir_path / study_name)
 
 
