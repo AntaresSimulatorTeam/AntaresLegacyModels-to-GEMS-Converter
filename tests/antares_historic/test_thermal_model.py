@@ -784,6 +784,7 @@ def test_availability_with_min_stable_power(
         startup_cost=1000,
         min_stable_power=50,
         group=ThermalClusterGroup.NUCLEAR,
+        unit_count=3,
     )
 
     # Run base test
@@ -791,14 +792,17 @@ def test_availability_with_min_stable_power(
     cluster_data_frame_base = pd.DataFrame(
         data=marg_cluster_properties.unit_count
         * marg_cluster_properties.nominal_capacity
-        * random_availability_ratio()
+        * random_availability_ratio(seed=1000)
     )
+    modulation = np.ones((8760, 4), dtype=np.float64)
+    modulation[:, 3] = random_availability_ratio(seed=2000)[:, 0]
     createThermalTestAntaresStudy(
         study_name_base,
         auto_generated_studies_path,
         LOAD_FILES_DIR / load_time_serie_file,
         marg_cluster_properties,
         cluster_data_frame_base,
+        modulation_data_frame=pd.DataFrame(modulation),
     )
     orig_path_base, conv_path_base = convert_study(
         auto_generated_studies_path, study_name_base, ["thermal"]
@@ -817,6 +821,7 @@ def test_availability_with_min_stable_power(
             fixed_cost=marg_cluster_properties.fixed_cost,
             min_stable_power=marg_cluster_properties.min_stable_power * perturbation,
             group=ThermalClusterGroup.NUCLEAR,
+            unit_count=marg_cluster_properties.unit_count
         )
         study_name = f"e2e_minstable_{str(int(100*time()))}"
         createThermalTestAntaresStudy(
@@ -825,6 +830,7 @@ def test_availability_with_min_stable_power(
             LOAD_FILES_DIR / load_time_serie_file,
             marg_cluster,
             cluster_data_frame_base,
+            modulation_data_frame=pd.DataFrame(modulation),
         )
         orig_path_perturbated = auto_generated_studies_path / study_name
         rel_gap = first_optim_relgap(
