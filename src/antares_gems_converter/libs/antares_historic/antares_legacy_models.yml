@@ -215,6 +215,15 @@ library:
         - id: initial_level
           time-dependent: false
           scenario-dependent: true
+        - id: cost_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_level
+          time-dependent: true
+          scenario-dependent: true
       variables:
         - id: p_injection
           lower-bound: 0
@@ -240,3 +249,6 @@ library:
           expression: level[0] = initial_level * reservoir_capacity
         - id: level_equation
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal + inflows
+      objective-contributions:
+        - id: objective
+          expression: sum(cost_injection * p_injection + cost_withdrawal * p_withdrawal + cost_level * level)
