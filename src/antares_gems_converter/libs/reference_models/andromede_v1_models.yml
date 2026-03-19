@@ -34,7 +34,7 @@ library:
           upper-bound: max_load
       objective-contributions:
         - id: obj
-          expression: expec(sum(curtailment * curtailment_price))
+          expression: sum(curtailment * curtailment_price)
       ports:
         - id: balance_port
           type: flow
@@ -125,4 +125,4 @@ library:
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal 
       objective-contributions:
         - id: obj
-          expression: expec(sum(marginal_cost * p_injection))
+          expression: sum(marginal_cost * p_injection)
