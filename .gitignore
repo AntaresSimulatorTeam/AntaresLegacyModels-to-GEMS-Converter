@@ -82,6 +82,16 @@ target/
 profile_default/
 ipython_config.py
 
+#dossiers temporaire pour les sauvegardes de fichiers de travail
+/backups/
+
+#script temporaires
+/scripts/inspect_binding_terms.py
+/scripts/list_binding_constraints.py
+
+#dossier anciens
+/tests/antares_historic/antares-resources/hybrid_mode_addon
+/tests/antares_historic/antares-resources/reference_libraries
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
 #   intended to run in multiple environments; otherwise, check them in:

@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Tuple
 
+from click import command
 import numpy as np
 import pandas as pd
 
@@ -37,6 +38,8 @@ class AntaresHybridRunner:
         if self.solver:
             command.append("--linear-solver")
             command.append(self.solver)
+        command.append("--named-mps-problems")
+
         # Run the command and wait for it to finish
         try:
             start = time.time()

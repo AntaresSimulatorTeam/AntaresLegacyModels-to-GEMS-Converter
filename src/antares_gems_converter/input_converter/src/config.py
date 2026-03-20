@@ -96,6 +96,8 @@ MODEL_NAME_TO_FILE_NAME = {
     "short-term-storage": "st-storage.yaml",
     "thermal": "thermal.yaml",
     "wind": "wind.yaml",
+    "p2g_asservi": "p2g_asservi.yaml",
+    "p2g_base": "p2g_base.yaml",
 }
 
 MATRIX_TYPES = ["load", "solar", "wind"]

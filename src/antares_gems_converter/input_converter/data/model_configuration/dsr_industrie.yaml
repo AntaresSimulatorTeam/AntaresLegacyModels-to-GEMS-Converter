@@ -1,0 +1,318 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+template:
+  name: dsr_industrie
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: andromede-v1-models.dsr_industrie
+  scenario-group: scenario_dsr_industrie #To do : the modeler-scenari
+  template-parameters:
+    - name: area
+      description: "Area identifier for the component"
+      exclude:
+      - id: at
+        object-properties:
+          type: area
+          area: at
+      - id: be
+        object-properties:
+          type: area
+          area: be
+      - id: ch
+        object-properties:
+          type: area
+          area: ch
+      - id: cz
+        object-properties:
+          type: area
+          area: cz
+      - id: de
+        object-properties:
+          type: area
+          area: de
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dke
+        object-properties:
+          type: area
+          area: dke
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: dkw
+        object-properties:
+          type: area
+          area: dkw
+      - id: es
+        object-properties:
+          type: area
+          area: es
+      - id: ie
+        object-properties:
+          type: area
+          area: ie
+      - id: itca
+        object-properties:
+          type: area
+          area: itca
+      - id: itcn
+        object-properties:
+          type: area
+          area: itcn
+      - id: itcs
+        object-properties:
+          type: area
+          area: itcs
+      - id: itn
+        object-properties:
+          type: area
+          area: itn
+      - id: its
+        object-properties:
+          type: area
+          area: its
+      - id: itsar
+        object-properties:
+          type: area
+          area: itsar
+      - id: itsic
+        object-properties:
+          type: area
+          area: itsic
+      - id: lu
+        object-properties:
+          type: area
+          area: lu
+      - id: nl
+        object-properties:
+          type: area
+          area: nl
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: nos
+        object-properties:
+          type: area
+          area: nos
+      - id: pl
+        object-properties:
+          type: area
+          area: pl
+      - id: pt
+        object-properties:
+          type: area
+          area: pt
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se3
+        object-properties:
+          type: area
+          area: se3
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
+      - id: ukgb
+        object-properties:
+          type: area
+          area: ukgb
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
+      - id: ve_eu
+        object-properties:
+          type: area
+          area: ve_eu
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_vhr_storage
+        object-properties:
+          type: area
+          area: ve_vhr_storage
+      - id: w_hydro_open_at
+        object-properties:
+          type: area
+          area: w_hydro_open_at
+      - id: w_hydro_open_cz
+        object-properties:
+          type: area
+          area: w_hydro_open_cz
+      - id: w_hydro_open_de
+        object-properties:
+          type: area
+          area: w_hydro_open_de
+      - id: w_hydro_open_es
+        object-properties:
+          type: area
+          area: w_hydro_open_es
+      - id: w_hydro_open_itcs
+        object-properties:
+          type: area
+          area: w_hydro_open_itcs
+      - id: w_hydro_open_itn
+        object-properties:
+          type: area
+          area: w_hydro_open_itn
+      - id: w_hydro_open_itsic
+        object-properties:
+          type: area
+          area: w_hydro_open_itsic
+      - id: w_hydro_open_nom
+        object-properties:
+          type: area
+          area: w_hydro_open_nom
+      - id: w_hydro_open_non
+        object-properties:
+          type: area
+          area: w_hydro_open_non
+      - id: w_hydro_open_nos
+        object-properties:
+          type: area
+          area: w_hydro_open_nos
+      - id: w_hydro_open_pl
+        object-properties:
+          type: area
+          area: w_hydro_open_pl
+      - id: w_hydro_open_pt
+        object-properties:
+          type: area
+          area: w_hydro_open_pt
+      - id: x_closed_pump
+        object-properties:
+          type: area
+          area: x_closed_pump
+      - id: x_closed_turb
+        object-properties:
+          type: area
+          area: x_closed_turb
+      - id: x_open_pump
+        object-properties:
+          type: area
+          area: x_open_pump
+      - id: x_open_turb
+        object-properties:
+          type: area
+          area: x_open_turb
+      - id: y_nuc_modulation
+        object-properties:
+          type: area
+          area: y_nuc_modulation
+      - id: z_batteries
+        object-properties:
+          type: area
+          area: z_batteries
+      - id: z_batteries_pcomp
+        object-properties:
+          type: area
+          area: z_batteries_pcomp
+      - id: z_effacement
+        object-properties:
+          type: area
+          area: z_effacement
+      - id: z_p2g_asservi
+        object-properties:
+          type: area
+          area: z_p2g_asservi
+      - id: z_p2g_base
+        object-properties:
+          type: area
+          area: z_p2g_base
+      - id: z_report
+        object-properties:
+          type: area
+          area: z_report
+      - id: zz_flowbased
+        object-properties:
+          type: area
+          area: zz_flowbased
+
+  component:
+    id: dsr_industrie_${area}
+    parameters:
+      - id: max_load
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${area}_dsr_industrie
+            field: thermal_series
+      - id: curtailment_price
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${area}_dsr_industrie
+            field: marginal_cost
+      # - id: energy_max_daily
+      #   scenario-dependent: false
+      #   time-dependent: true
+      #   value:
+      #    object-properties:
+      #      type: binding_constraint
+      #      binding-constraint-id: ${area}_dsr_industrie_stock_lt
+      #      field: energy_max_daily_${area}_dsr_industrie
+  
+  # For full modeler mode
+  connections:
+    - component1: dsr_industrie_${area}
+      port1: injection_port
+      component2: ${area}
+      port2: balance_port
+
+  # For hybrid mode
+  area-connections:
+    - component: dsr_industrie_${area}
+      port: balance_port
+      area: ${area}
+
+  #legacy-objects-to-delete:
+  #  - id: dsr_binding_constraints
+  #    object-properties:
+    #     type: binding_constraint
+    #     binding-constraint-id: ${area}_dsr_industrie_stock_lt
+    # - id: legacy_thermal_cluster
+    #   object-properties:
+    #     type: thermal
+    #     area: ${area}
+    #     cluster: ${area}_dsr_industrie
+
+    

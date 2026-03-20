@@ -6,14 +6,14 @@ from antares.craft.model.binding_constraint import BindingConstraint, Constraint
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study
 
-from antares_gems_converter.input_converter.src.config import (
+from gems.input_converter.src.config import (
     MATRIX_TYPES_TO_GET_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
     TIMESERIES_NAME_TO_METHOD,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
-from antares_gems_converter.input_converter.src.parsing import ConversionValue
-from antares_gems_converter.input_converter.src.utils import check_dataframe_validity, save_to_file
+from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from gems.input_converter.src.parsing import ConversionValue
+from gems.input_converter.src.utils import check_dataframe_validity, save_to_file
 
 ALLOWED_TYPES: list = [
     "binding_constraint",
@@ -116,9 +116,19 @@ class ModelConversionPreprocessor:
             raise ValueError(
                 f"Object properties, its field, and binding constraint ID from {obj} must not be None"
             )
-        binding: BindingConstraint = self.study.get_binding_constraints()[
-            obj.object_properties.binding_constraint_id
-        ]
+        binding_id = obj.object_properties.binding_constraint_id
+        try:
+            binding: BindingConstraint = self.study.get_binding_constraints()[
+                binding_id
+            ]
+        except KeyError:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Binding constraint '{binding_id}' not found in study; returning 0.0"
+            )
+            return 0.0
+
         term: ConstraintTerm = binding.get_terms()[obj.object_properties.field]
         if obj.operation:
             return obj.operation.execute(term.weight)

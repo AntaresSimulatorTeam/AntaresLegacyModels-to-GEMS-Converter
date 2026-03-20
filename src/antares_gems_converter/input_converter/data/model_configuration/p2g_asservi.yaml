@@ -1,0 +1,231 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+# Description of the observed elements in BP25_AREF
+# area z_P2G_asservi: UNSP = €4,000,
+# load that is time- and scenario-dependent (pay attention to scenario group)
+# thermal cluster z_p2g_asservi_asservi (no availability variation, no cost variation)
+# linj {area}/z_P2G_asservi: no hurdle costs,
+# time- and scenario-dependent direct capacity (pay attention to scenario group), indirect capacity = 0
+
+
+template:
+  name: p2g_asservi
+  generator-version-compatibility: None 
+  model: andromede-v1-models.shedding_load
+  scenario-group: scenario_p2g #To do : the modeler-scenariobuilder.dat file should be built
+  template-parameters: 
+    - name: area # This means that the converter will do a loop over areas in the Legacy study
+      description: "Area identifier for the P2G_asservi component"
+      exclude: #Zones where this component should not be created
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: ie
+        object-properties:
+          type: area
+          area: ie
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
+      - id: ve_eu
+        object-properties:
+          type: area
+          area: ve_eu
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_vhr_storage
+        object-properties:
+          type: area
+          area: ve_vhr_storage
+      - id: w_hydro_open_at
+        object-properties:
+          type: area
+          area: w_hydro_open_at
+      - id: w_hydro_open_cz
+        object-properties:
+          type: area
+          area: w_hydro_open_cz
+      - id: w_hydro_open_de
+        object-properties:
+          type: area
+          area: w_hydro_open_de
+      - id: w_hydro_open_es
+        object-properties:
+          type: area
+          area: w_hydro_open_es
+      - id: w_hydro_open_itcs
+        object-properties:
+          type: area
+          area: w_hydro_open_itcs
+      - id: w_hydro_open_itn
+        object-properties:
+          type: area
+          area: w_hydro_open_itn
+      - id: w_hydro_open_itsic
+        object-properties:
+          type: area
+          area: w_hydro_open_itsic
+      - id: w_hydro_open_nom
+        object-properties:
+          type: area
+          area: w_hydro_open_nom
+      - id: w_hydro_open_non
+        object-properties:
+          type: area
+          area: w_hydro_open_non
+      - id: w_hydro_open_nos
+        object-properties:
+          type: area
+          area: w_hydro_open_nos
+      - id: w_hydro_open_pl
+        object-properties:
+          type: area
+          area: w_hydro_open_pl
+      - id: w_hydro_open_pt
+        object-properties:
+          type: area
+          area: w_hydro_open_pt
+      - id: x_closed_pump
+        object-properties:
+          type: area
+          area: x_closed_pump
+      - id: x_closed_turb
+        object-properties:
+          type: area
+          area: x_closed_turb
+      - id: x_open_pump
+        object-properties:
+          type: area
+          area: x_open_pump
+      - id: x_open_turb
+        object-properties:
+          type: area
+          area: x_open_turb
+      - id: y_nuc_modulation
+        object-properties:
+          type: area
+          area: y_nuc_modulation
+      - id: z_batteries
+        object-properties:
+          type: area
+          area: z_batteries
+      - id: z_batteries_pcomp
+        object-properties:
+          type: area
+          area: z_batteries_pcomp
+      - id: z_effacement
+        object-properties:
+          type: area
+          area: z_effacement
+      - id: z_p2g_asservi
+        object-properties:
+          type: area
+          area: z_p2g_asservi
+      - id: z_p2g_base
+        object-properties:
+          type: area
+          area: z_p2g_base
+      - id: z_report
+        object-properties:
+          type: area
+          area: z_report
+      - id: zz_flowbased
+        object-properties:
+          type: area
+          area: zz_flowbased
+
+
+  component: #Foreach area not in the exclude list, create a component
+    id: p2g_asservi_${area}
+    parameters:
+      - id: max_load
+        time-dependent: true
+        scenario-dependent: true
+        value:  
+          object-properties:
+            type: link
+            link: ${area} / z_p2g_asservi
+            field: capacity_direct
+      - id: min_load
+        time-dependent: false
+        scenario-dependent: false
+        value: 
+          constant: 0.0
+         
+      - id: marginal_shedding_cost
+        time-dependent: false
+        scenario-dependent: false
+        value: 
+          object-properties:
+            type: thermal
+            area: z_p2g_asservi
+            cluster: z_p2g_asservi_asservi
+            field: marginal_cost
+      
+      - id: load_hurdle_cost #TO DO : this parameter should be added in the model (shedding_load)
+        time-dependent: true
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: link
+            link: ${area} / z_p2g_asservi
+            field: links_parameters
+          column: 0
+            
+  # For full modeler mode
+  connections: #for each area not in the exclude list, create a connection
+    - component1: p2g_asservi_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+
+  # For hybrid mode
+  area-connections: #for each area not in the exclude list, create a connection
+    - component: p2g_asservi_${area}
+      port: balance_port
+      area: ${area}
+
+  legacy-objects-to-delete: #for each area not in the exclude list, delete the legacy objects
+    #- id: virtual_cluster
+    #  object-properties:
+    #    type: thermal
+    #    area: z_p2g_asservi
+    #    cluster: z_p2g_asservi_asservi
+    - id: virtual_nodes
+      object-properties:
+        type: area
+        area: z_p2g_asservi
+    - id: virtual_links
+      object-properties:
+        type: link
+        link: ${area} / z_p2g_asservi

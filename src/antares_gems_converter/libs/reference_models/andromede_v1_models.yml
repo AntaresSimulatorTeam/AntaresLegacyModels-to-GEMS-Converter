@@ -19,6 +19,8 @@ library:
       description: A port which transfers power flow
       fields:
         - id: flow
+      area-connection:
+        - injection-field: flow
   models:
     - id: dsr
       parameters:
@@ -34,7 +36,7 @@ library:
           upper-bound: max_load
       objective-contributions:
         - id: obj
-          expression: expec(sum(curtailment * curtailment_price))
+          expression: sum(curtailment * curtailment_price)
       ports:
         - id: balance_port
           type: flow
@@ -101,8 +103,6 @@ library:
         - id: marginal_cost
           time-dependent: true
           scenario-dependent: false
-
-
       variables:
         - id: p_injection
           lower-bound: 0
@@ -125,4 +125,95 @@ library:
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal 
       objective-contributions:
         - id: obj
-          expression: expec(sum(marginal_cost * p_injection))
+          expression: sum(marginal_cost * p_injection)
+          
+
+    - id: shedding_load
+      parameters:
+        - id: min_load
+          time-dependent: true
+          scenario-dependent: true 
+        - id: max_load
+          time-dependent: true
+          scenario-dependent: true
+        - id: marginal_shedding_cost
+          time-dependent: false
+          scenario-dependent: false
+        - id: load_hurdle_cost
+          time-dependent: true
+          scenario-dependent: false
+      variables:
+        - id: load
+          lower-bound: min_load
+          upper-bound: max_load
+          variable-type: continuous
+        - id: max_load_var
+          lower-bound: max_load
+          upper-bound: max_load
+          variable-type: continuous
+          constraint: max_load_var = max_load
+      objective-contributions:
+        - id: objective
+          #expression: sum((marginal_shedding_cost+load_hurdle_cost))
+          #expression: sum((max_load-load)*(marginal_shedding_cost+load_hurdle_cost))
+          expression: sum(max_load_var*marginal_shedding_cost+max_load_var*load_hurdle_cost-load*marginal_shedding_cost-load*load_hurdle_cost)
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -load
+      extra-outputs:
+        - id: objective_contributions_developpee
+          expression: sum(max_load*marginal_shedding_cost+max_load*load_hurdle_cost-load*marginal_shedding_cost-load*load_hurdle_cost)
+        - id: objective_contributions_originale
+          expression: sum((max_load-load)*(marginal_shedding_cost+load_hurdle_cost))
+        - id: cost
+          expression: marginal_shedding_cost+load_hurdle_cost
+        - id: conso_effacee
+          expression: max_load-load
+        - id: max_load_var_check
+          expression: max_load_var
+
+    - id: dsr_industrie
+      parameters:
+        - id: max_load
+          time-dependent: true
+          scenario-dependent: true
+        - id: curtailment_price
+          time-dependent: false
+          scenario-dependent: false
+        - id: energy_max_daily
+          time-dependent: true
+          scenario-dependent: false
+      variables:
+        - id: curtailment
+          lower-bound: 0
+          upper-bound: max_load
+      objective-contributions:
+        - id: obj
+          expression: sum(curtailment * curtailment_price)
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -max_load + curtailment
+      constraints:
+        - id: energy_max_day1
+          expression: (sum(t .. t+23, curtailment))[0] <= (sum(t .. t+23, energy_max_daily))[0]
+        - id: energy_max_day2
+          expression: (sum(t+24 .. t+47, curtailment))[0] <= (sum(t+24 .. t+47, energy_max_daily))[0]
+        - id: energy_max_day3
+          expression: (sum(t+48 .. t+71, curtailment))[0] <= (sum(t+48 .. t+71, energy_max_daily))[0]
+        - id: energy_max_day4
+          expression: (sum(t+72 .. t+95, curtailment))[0] <= (sum(t+72 .. t+95, energy_max_daily))[0]
+        - id: energy_max_day5
+          expression: (sum(t+96 .. t+119, curtailment))[0] <= (sum(t+96 .. t+119, energy_max_daily))[0]
+        - id: energy_max_day6
+          expression: (sum(t+120 .. t+143, curtailment))[0] <= (sum(t+120 .. t+143, energy_max_daily))[0]
+        - id: energy_max_day7
+          expression: (sum(t+144 .. t+167, curtailment))[0] <= (sum(t+144 .. t+167, energy_max_daily))[0]
+      # extra-outputs:
