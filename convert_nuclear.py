@@ -21,7 +21,7 @@ THERMAL_TEST_REL_ACCURACY = 5 * 1e-5
 antares_exec_folder = "D:/AppliRTE/antares-9.3.5-win64/bin"
 # antares_exec_folder = "D:/AppliRTE/rte-antares-9.3.6-installer-64bits/bin"
 
-study_path = Path("C:/Users/gerbauxjul/Documents/6-Etudes_Antares/2-heuristiques/perf_hybride_nuc")
+study_path = Path("C:/Users/gerbauxjul/Documents/6-Etudes_Antares/4-hyb_nuc")
 # study_name = "OneNodeBase_93"
 study_name = "BP25_Aref_Liv3_EUeq_FReq31_2031"
 # addHybridBehavior(study_path / study_name)

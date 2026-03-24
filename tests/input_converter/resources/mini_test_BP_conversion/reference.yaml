@@ -44,35 +44,19 @@ system:
           time-dependent: true
           value: marginal_cost_fr_z_batteries
     - id: load_fr
-      model: antares-historic.load
+      model: antares_legacy_models.load
       parameters:
         - id: load
           scenario-dependent: true
           time-dependent: true
           value: load_fr
     - id: fr_fr_nuclear_epr
-      model: antares-historic.thermal
+      model: antares_legacy_models.thermal
       parameters:
         - id: p_min_cluster
           scenario-dependent: true
           time-dependent: true
           value: fr_fr_nuclear_epr_p_min_cluster
-        - id: nb_units_min
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_min
-        - id: nb_units_max
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_max
-        - id: nb_units_max_variation_forward
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_max_variation_forward
-        - id: nb_units_max_variation_backward
-          scenario-dependent: true
-          time-dependent: true
-          value: fr_fr_nuclear_epr_nb_units_max_variation_backward
         - id: unit_count
           scenario-dependent: false
           time-dependent: false
@@ -81,10 +65,6 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1130.25
-        - id: efficiency
-          scenario-dependent: false
-          time-dependent: false
-          value: 100.0
         - id: p_max_unit
           scenario-dependent: false
           time-dependent: false
@@ -114,7 +94,7 @@ system:
           time-dependent: true
           value: fr_fr_nuclear_epr_p_max_cluster
     - id: fr
-      model: antares-historic.area
+      model: antares_legacy_models.area
       parameters:
         - id: ens_cost
           scenario-dependent: false

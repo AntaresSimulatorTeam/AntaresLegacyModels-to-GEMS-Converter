@@ -20,7 +20,10 @@ from antares.craft.model.study import Study
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.logger import Logger
-from antares_gems_converter.input_converter.src.parsing import Operation, parse_conversion_template
+from antares_gems_converter.input_converter.src.parsing import (
+    Operation,
+    parse_conversion_template,
+)
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
@@ -59,7 +62,7 @@ DATAFRAME_PREPRO_BC_CONFIG = (
     create_dataframe_from_constant(lines=8760, columns=4),  # series
 )
 LIB_PATHS = [
-    "src/antares_gems_converter/libs/antares_historic/antares_historic.yml",
+    "src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml",
     "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 MODEL_LIST_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
@@ -111,7 +114,7 @@ class TestConverter:
             components=[
                 InputComponent(
                     id="fr",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -132,7 +135,7 @@ class TestConverter:
                 ),
                 InputComponent(
                     id="it",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -162,7 +165,7 @@ class TestConverter:
         expected_area_components = [
             InputComponent(
                 id="fr",
-                model="antares-historic.area",
+                model="antares_legacy_models.area",
                 parameters=[
                     InputComponentParameter(
                         id="ens_cost",
@@ -182,7 +185,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="it",
-                model="antares-historic.area",
+                model="antares_legacy_models.area",
                 parameters=[
                     InputComponentParameter(
                         id="ens_cost",
@@ -221,7 +224,7 @@ class TestConverter:
             components=[
                 InputComponent(
                     id="it",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -242,7 +245,7 @@ class TestConverter:
                 ),
                 InputComponent(
                     id="fr",
-                    model="antares-historic.area",
+                    model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
                         InputComponentParameter(
@@ -291,6 +294,9 @@ class TestConverter:
         pmax_injection_path = "p_max_injection_modulation_fr_storage_1"
         pmax_withdrawal_path = "p_max_withdrawal_modulation_fr_storage_1"
         upper_rule_curve_path = "upper_rule_curve_fr_storage_1"
+        cost_injection_path = "cost_injection_fr_storage_1"
+        cost_withdrawal_path = "cost_withdrawal_fr_storage_1"
+        cost_level_path = "cost_level_fr_storage_1"
         expected_storage_connections = [
             InputPortConnections(
                 component1="fr_storage_1",
@@ -382,6 +388,27 @@ class TestConverter:
                         scenario_group=None,
                         value=0.5,
                     ),
+                    InputComponentParameter(
+                        id="cost_injection",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_injection_path}",
+                    ),
+                    InputComponentParameter(
+                        id="cost_withdrawal",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_withdrawal_path}",
+                    ),
+                    InputComponentParameter(
+                        id="cost_level",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_level_path}",
+                    ),
                 ],
             )
         ]
@@ -427,50 +454,22 @@ class TestConverter:
         expected_thermals_components = [
             InputComponent(
                 id="fr_gaz",
-                model="antares-historic.thermal",
+                model="antares_legacy_models.thermal",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
-                        id="p_min_cluster",
+                        id="minimum_generation_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="fr_gaz_p_min_cluster",
+                        value="minimum_generation_modulation_fr_gaz",
                     ),
                     InputComponentParameter(
-                        id="nb_units_min",
+                        id="p_max_cluster",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="fr_gaz_nb_units_min",
-                    ),
-                    InputComponentParameter(
-                        id="nb_units_max",
-                        time_dependent=True,
-                        scenario_dependent=True,
-                        scenario_group=None,
-                        value="fr_gaz_nb_units_max",
-                    ),
-                    InputComponentParameter(
-                        id="nb_units_max_variation_forward",
-                        time_dependent=True,
-                        scenario_dependent=True,
-                        scenario_group=None,
-                        value="fr_gaz_nb_units_max_variation_forward",
-                    ),
-                    InputComponentParameter(
-                        id="nb_units_max_variation_backward",
-                        time_dependent=True,
-                        scenario_dependent=True,
-                        scenario_group=None,
-                        value="fr_gaz_nb_units_max_variation_backward",
-                    ),
-                    InputComponentParameter(
-                        id="unit_count",
-                        time_dependent=False,
-                        scenario_dependent=False,
-                        scenario_group=None,
-                        value=1.0,
+                        value="p_max_cluster_fr_gaz",
                     ),
                     InputComponentParameter(
                         id="p_min_unit",
@@ -478,13 +477,6 @@ class TestConverter:
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
-                    ),
-                    InputComponentParameter(
-                        id="efficiency",
-                        time_dependent=False,
-                        scenario_dependent=False,
-                        scenario_group=None,
-                        value=100.0,
                     ),
                     InputComponentParameter(
                         id="p_max_unit",
@@ -501,14 +493,14 @@ class TestConverter:
                         value=0.0,
                     ),
                     InputComponentParameter(
-                        id="fixed_cost",
+                        id="startup_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
                     InputComponentParameter(
-                        id="startup_cost",
+                        id="fixed_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -529,11 +521,11 @@ class TestConverter:
                         value=1.0,
                     ),
                     InputComponentParameter(
-                        id="p_max_cluster",
-                        time_dependent=True,
-                        scenario_dependent=True,
+                        id="unit_count",
+                        time_dependent=False,
+                        scenario_dependent=False,
                         scenario_group=None,
-                        value="fr_gaz_p_max_cluster",
+                        value=1.0,
                     ),
                 ],
             )
@@ -651,7 +643,7 @@ class TestConverter:
 
         expected_solar_components = InputComponent(
             id="solar_fr",
-            model="antares-historic.renewable",
+            model="antares_legacy_models.renewable",
             scenario_group=None,
             parameters=[
                 InputComponentParameter(
@@ -708,7 +700,7 @@ class TestConverter:
         )
         expected_load_components = InputComponent(
             id="load_fr",
-            model="antares-historic.load",
+            model="antares_legacy_models.load",
             scenario_group=None,
             parameters=[
                 InputComponentParameter(
@@ -756,7 +748,7 @@ class TestConverter:
         )
         expected_wind_components = InputComponent(
             id="wind_fr",
-            model="antares-historic.renewable",
+            model="antares_legacy_models.renewable",
             scenario_group="wind_group",
             parameters=[
                 InputComponentParameter(
@@ -858,7 +850,7 @@ class TestConverter:
         expected_link_component = [
             InputComponent(
                 id="fr_/_it",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
@@ -893,7 +885,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="at_/_fr",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(
@@ -928,7 +920,7 @@ class TestConverter:
             ),
             InputComponent(
                 id="at_/_it",
-                model="antares-historic.link",
+                model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
                     InputComponentParameter(

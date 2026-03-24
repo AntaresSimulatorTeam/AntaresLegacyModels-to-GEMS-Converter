@@ -58,7 +58,7 @@ def convert_bc_nuc(study_path : Path, study_name : str) -> None:
                 model_bc = get_bc_model(clusters_nuc, bc_port, constraint, model_id)
                 list_models.append(model_bc)
         
-        study.delete_binding_constraints([constraint])
+        study.delete_binding_constraint(constraint)
 
     # save_library(study_path, study_name, bc_port, list_models)
     lib["library"]["models"] += [model.model_dump(by_alias=True, exclude_unset=True) for model in list_models]
@@ -112,7 +112,7 @@ def get_list_cluster_nuc(study : Study) -> List[ThermalCluster]:
     for area in study.get_areas().values():
         if area.name in ["fr","y_nuc_modulation"]:
             for cluster in area.get_thermals().values():
-                if cluster.properties.group == ThermalClusterGroup.NUCLEAR.value and cluster.properties.enabled:
+                if cluster.properties.group == ThermalClusterGroup.NUCLEAR and cluster.properties.enabled:
                     clusters_nuc.append(cluster)
     return clusters_nuc
 

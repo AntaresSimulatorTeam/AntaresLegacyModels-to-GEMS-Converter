@@ -9,14 +9,14 @@ from antares.craft import *
 
 from antares_runner.antares_runner import AntaresHybridStudyBenchmarker
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
-from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
+    ConversionMode,
+)
 from antares_gems_converter.input_converter.src.logger import Logger
 
 ANTARES_VERSION_CREATED_STUDIES = "9.2"
 ANTARES_LEGACY_MODELS_PATH = [
-    Path(
-        "tests/antares_historic/antares-resources/reference_libraries/antares_legacy_models.yml"
-    )
+    Path("src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml")
 ]
 ACCURATE_TEMPLATE_PATH = Path(
     "tests/antares_historic/antares-resources/hybrid_mode_addon/uc_accurate"
@@ -75,6 +75,7 @@ def createThermalTestAntaresStudy(
     load_time_serie_file: Path,
     marg_cluster_properties: ThermalClusterProperties,
     marg_cluster_data_frame: pd.DataFrame,
+    modulation_data_frame: Optional[pd.DataFrame] = None,
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -109,9 +110,10 @@ def createThermalTestAntaresStudy(
         ),
     )
     cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
-
     cluster3 = area.create_thermal_cluster("prod3", marg_cluster_properties)
     cluster3.set_series(marg_cluster_data_frame)
+    if modulation_data_frame is not None:
+        cluster3.set_prepro_modulation(modulation_data_frame)
     addHybridBehavior(parent_dir_path / study_name)
 
 
@@ -193,12 +195,24 @@ def createLinkTestAntaresStudy(
     addHybridBehavior(parent_dir_path / study_name)
 
 
+STS_TIMESERIES_SETTER_MAP = {
+    "cost_injection": "set_cost_injection",
+    "cost_withdrawal": "set_cost_withdrawal",
+    "cost_level": "set_cost_level",
+    "pmax_injection": "update_pmax_injection",
+    "pmax_withdrawal": "set_pmax_withdrawal",
+    "lower_rule_curve": "set_lower_rule_curve",
+    "upper_rule_curve": "set_upper_rule_curve",
+    "storage_inflows": "set_storage_inflows",
+}
+
+
 def createSTSTestAntaresStudy(
     study_name: str,
     parent_dir_path: Path,
     load_time_serie_file: Path,
     sts_properties: STStorageProperties,
-    # sts_data_frame: pd.DataFrame,
+    sts_timeseries: Optional[dict[str, pd.DataFrame]] = None,
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -235,4 +249,13 @@ def createSTSTestAntaresStudy(
     cluster2.set_series(pd.DataFrame(data=400 * np.ones((8760, 1))))
 
     cluster3 = area.create_st_storage("sts", sts_properties)
+    if sts_timeseries:
+        for key, df in sts_timeseries.items():
+            getattr(cluster3, STS_TIMESERIES_SETTER_MAP[key])(df)
     addHybridBehavior(parent_dir_path / study_name)
+
+
+def random_availability_ratio(seed: int = 1000) -> np.ndarray:
+    np.random.seed(seed)  # for reproducibility
+    raw = np.random.random((8760, 1))
+    return 0.2 + 0.8 * raw

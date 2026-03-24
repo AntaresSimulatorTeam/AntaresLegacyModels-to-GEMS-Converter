@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from time import time
+from types import NoneType
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -12,6 +14,7 @@ from tests.antares_historic.utils import (
     convert_study,
     createThermalTestAntaresStudy,
     first_optim_relgap,
+    random_availability_ratio,
 )
 
 ## TESTING PROCEDURE FOR GEMS MODEL REPRENSENTING ANTARES v9.3 "THERMAL CLUSTER"  : CONSTANT DATA  ##
@@ -57,7 +60,9 @@ LOAD_TIME_SERIE_FILES = [
 
 
 # Testing Timeseries parameters
-## series (availability) : [TODO]
+## series (availability) : [OK : test_availability_series]
+## modulations : [TODO]
+## min_gen_modulation : [OK : test_min_gen_modulation]
 ## co2_cost_matrix : [TODO]
 ## fuel_cost_matrix : [TODO]
 
@@ -68,18 +73,23 @@ def thermal_test_procedure(
     marg_cluster_properties: ThermalClusterProperties,
     load_time_serie_file: Path,
     exec_folder: Path,
+    cluster_data_frame: Optional[pd.DataFrame] = None,
+    modulation_data_frame: Optional[pd.DataFrame] = None,
 ) -> None:
-    cluster_data_frame = pd.DataFrame(
-        data=marg_cluster_properties.unit_count
-        * marg_cluster_properties.nominal_capacity
-        * np.ones((8760, 1))
-    )
+    if type(cluster_data_frame) == NoneType:
+        cluster_data_frame = pd.DataFrame(
+            data=marg_cluster_properties.unit_count
+            * marg_cluster_properties.nominal_capacity
+            * np.ones((8760, 1))
+        )
+
     createThermalTestAntaresStudy(
         study_name,
         study_path,
         load_time_serie_file,
         marg_cluster_properties,
         cluster_data_frame,
+        modulation_data_frame=modulation_data_frame,
     )
     original_study_path, converted_study_path = convert_study(
         study_path, study_name, ["thermal"]
@@ -89,10 +99,62 @@ def thermal_test_procedure(
     )
     assert rel_gap < THERMAL_TEST_REL_ACCURACY
 
+    cluster_data_frame_perturbated = cluster_data_frame * 0.9
+    study_name_perturbated = study_name + "_perturbated"
+
+    createThermalTestAntaresStudy(
+        study_name_perturbated,
+        study_path,
+        load_time_serie_file,
+        marg_cluster_properties,
+        cluster_data_frame_perturbated,
+    )
+    orig_path_perturbated = study_path / study_name_perturbated
+    rel_gap_perturbated = first_optim_relgap(
+        exec_folder,
+        orig_path_perturbated,
+        converted_study_path,
+        THERMAL_TEST_SOLVER,
+    )
+    assert rel_gap_perturbated > 10 * THERMAL_TEST_REL_ACCURACY
+
 
 @pytest.fixture(scope="session")
 def cluster_list_general_test() -> list[ThermalClusterProperties]:
     return [
+        ThermalClusterProperties(
+            nominal_capacity=40,
+            unit_count=3,
+            marginal_cost=5,
+            market_bid_cost=5,
+            # startup_cost=1000,
+            # fixed_cost=1000,
+            # min_down_time=3,
+            # min_up_time=3,
+            group=ThermalClusterGroup.GAS,
+        ),
+        ThermalClusterProperties(
+            nominal_capacity=40,
+            unit_count=3,
+            marginal_cost=5,
+            market_bid_cost=5,
+            startup_cost=1000,
+            fixed_cost=1000,
+            # min_down_time=3,
+            # min_up_time=3,
+            group=ThermalClusterGroup.GAS,
+        ),
+        ThermalClusterProperties(
+            nominal_capacity=40,
+            unit_count=3,
+            marginal_cost=5,
+            market_bid_cost=5,
+            startup_cost=1000,
+            fixed_cost=1000,
+            min_down_time=3,
+            min_up_time=3,
+            group=ThermalClusterGroup.GAS,
+        ),
         ThermalClusterProperties(
             nominal_capacity=100,
             marginal_cost=10,
@@ -680,3 +742,62 @@ def test_min_stable_power(
             THERMAL_TEST_SOLVER,
         )
         assert rel_gap > THERMAL_TEST_REL_ACCURACY
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_availability_series(
+    cluster_list_general_test: list[ThermalClusterProperties],
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    for marg_cluster_properties in cluster_list_general_test:
+        availability_ratio = random_availability_ratio()
+        df = pd.DataFrame(
+            data=marg_cluster_properties.unit_count
+            * marg_cluster_properties.nominal_capacity
+            * availability_ratio
+        )
+        study_name = f"e2e_general_test_{str(int(100*time()))}"
+        thermal_test_procedure(
+            study_name,
+            auto_generated_studies_path,
+            marg_cluster_properties,
+            LOAD_FILES_DIR / load_time_serie_file,
+            antares_exec_folder,
+            cluster_data_frame=df,
+        )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_min_gen_modulation(
+    cluster_list_general_test: list[ThermalClusterProperties],
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    for marg_cluster_properties in cluster_list_general_test:
+        availability = np.concatenate(
+            [
+                random_availability_ratio(seed=1000),
+                random_availability_ratio(seed=2000),
+            ],
+            axis=1,
+        )
+        df = pd.DataFrame(
+            data=marg_cluster_properties.unit_count
+            * marg_cluster_properties.nominal_capacity
+            * availability
+        )
+        study_name = f"e2e_general_test_{str(int(100*time()))}"
+        modulation = np.ones((8760, 4), dtype=np.float64)
+        modulation[:, 3] = random_availability_ratio(seed=3000)[:, 0]
+        thermal_test_procedure(
+            study_name,
+            auto_generated_studies_path,
+            marg_cluster_properties,
+            LOAD_FILES_DIR / load_time_serie_file,
+            antares_exec_folder,
+            cluster_data_frame=df,
+            modulation_data_frame=pd.DataFrame(modulation),
+        )

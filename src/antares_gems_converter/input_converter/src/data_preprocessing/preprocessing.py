@@ -11,9 +11,14 @@ from antares_gems_converter.input_converter.src.config import (
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
     TIMESERIES_NAME_TO_METHOD,
 )
-from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import ConversionMode
+from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
+    ConversionMode,
+)
 from antares_gems_converter.input_converter.src.parsing import ConversionValue
-from antares_gems_converter.input_converter.src.utils import check_dataframe_validity, save_to_file
+from antares_gems_converter.input_converter.src.utils import (
+    check_dataframe_validity,
+    save_to_file,
+)
 
 ALLOWED_TYPES: list = [
     "binding_constraint",
