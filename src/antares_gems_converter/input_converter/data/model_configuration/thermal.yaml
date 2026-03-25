@@ -114,6 +114,15 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: unit_count
+      - id: spinning
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: spinning
 
   # For full modeler mode
   connections:

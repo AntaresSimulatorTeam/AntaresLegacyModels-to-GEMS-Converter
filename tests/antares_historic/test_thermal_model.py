@@ -801,3 +801,71 @@ def test_min_gen_modulation(
             cluster_data_frame=df,
             modulation_data_frame=pd.DataFrame(modulation),
         )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_spinning(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    # Setup thermal cluster properties
+    marg_cluster_properties = ThermalClusterProperties(
+        nominal_capacity=50,
+        marginal_cost=15,
+        market_bid_cost=15,
+        spinning=5,
+        group=ThermalClusterGroup.NUCLEAR,
+    )
+
+    # Run base test
+    study_name_base = f"e2e_spinning_base_{str(int(100*time()))}"
+    cluster_data_frame_base = pd.DataFrame(
+        data=marg_cluster_properties.unit_count
+        * marg_cluster_properties.nominal_capacity
+        * random_availability_ratio(seed=1000)
+    )
+    modulation = np.ones((8760, 4), dtype=np.float64)
+    modulation[:, 3] = random_availability_ratio(seed=2000)[:, 0]
+    createThermalTestAntaresStudy(
+        study_name_base,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        marg_cluster_properties,
+        cluster_data_frame_base,
+        modulation_data_frame=pd.DataFrame(modulation),
+    )
+    orig_path_base, conv_path_base = convert_study(
+        auto_generated_studies_path, study_name_base, ["thermal"]
+    )
+    rel_gap_base = first_optim_relgap(
+        antares_exec_folder, orig_path_base, conv_path_base, THERMAL_TEST_SOLVER
+    )
+    assert rel_gap_base < THERMAL_TEST_REL_ACCURACY
+    for perturbation in [MODIFICATION_RATIO, 1 / MODIFICATION_RATIO]:
+        # Test +/-20% marginal cost
+        marg_cluster = ThermalClusterProperties(
+            nominal_capacity=marg_cluster_properties.nominal_capacity,
+            marginal_cost=marg_cluster_properties.marginal_cost,
+            market_bid_cost=marg_cluster_properties.market_bid_cost,
+            spinning=marg_cluster_properties.spinning * perturbation,
+            group=marg_cluster_properties.group,
+        )
+        study_name = f"e2e_spinning_{str(int(100*time()))}"
+
+        createThermalTestAntaresStudy(
+            study_name,
+            auto_generated_studies_path,
+            LOAD_FILES_DIR / load_time_serie_file,
+            marg_cluster,
+            cluster_data_frame_base,
+            modulation_data_frame=pd.DataFrame(modulation),
+        )
+        orig_path_perturbated = auto_generated_studies_path / study_name
+        rel_gap = first_optim_relgap(
+            antares_exec_folder,
+            orig_path_perturbated,
+            conv_path_base,
+            THERMAL_TEST_SOLVER,
+        )
+        assert rel_gap > THERMAL_TEST_REL_ACCURACY

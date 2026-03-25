@@ -93,6 +93,10 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1.0
+        - id: spinning
+          scenario-dependent: false
+          time-dependent: false
+          value: 1.0
     - id: fr
       model: antares_legacy_models.area
       parameters:
