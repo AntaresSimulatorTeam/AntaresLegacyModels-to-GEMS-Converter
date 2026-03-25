@@ -137,24 +137,26 @@ library:
         - id: d_min_up
         - id: d_min_down
         - id: unit_count
+        - id: spinning # in percentage, taken into account in p_max_cluster and p_max_unit (except when computing minimum generation)
       variables:
         - id: generation
-          lower-bound: min(max(p_max_cluster, p_min_unit * ceil(p_max_cluster / p_max_unit)), minimum_generation_modulation * unit_count * p_max_unit)
-          upper-bound: max(p_max_cluster, p_min_unit * ceil(p_max_cluster / p_max_unit))
+          lower-bound: min(max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit)), minimum_generation_modulation * unit_count * p_max_unit)
+          upper-bound: max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit))
           variable-type: continuous
         - id: nb_units_on
-          lower-bound: min(ceil(p_max_cluster/p_max_unit), ceil(minimum_generation_modulation * unit_count))
-          upper-bound: ceil(p_max_cluster/p_max_unit)
-          variable-type: continuous
+          lower-bound: min(ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)), ceil(minimum_generation_modulation * unit_count * p_max_unit/(p_max_unit * (1-spinning/100))))
+          upper-bound: ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)) # could be simplified in ceil(p_max_cluster/p_max_unit) as done in min_up_duration and min_down_duration 
+          variable-type: continuous #integer
         - id: nb_starting
           lower-bound: 0
-          variable-type: continuous
+          variable-type: continuous #integer
         - id: nb_stopping
           lower-bound: 0
-          variable-type: continuous
+          variable-type: continuous #integer
         - id: nb_failing
           lower-bound: 0
-          variable-type: continuous
+          upper-bound: max(0, (ceil(p_max_cluster/p_max_unit))[t-1] - (ceil(p_max_cluster/p_max_unit)))
+          variable-type: continuous #integer
       ports:
         - id: balance_port
           type: flow
@@ -164,15 +166,13 @@ library:
           definition: generation
       constraints:
         - id: max_generation
-          expression: generation <= nb_units_on * p_max_unit
+          expression: generation <= nb_units_on * p_max_unit*(1-spinning/100)
         - id: min_generation
           expression: generation >= nb_units_on * p_min_unit
         - id: on_units_dynamics
           expression: nb_units_on = nb_units_on[t-1] + nb_starting - nb_stopping
         - id: nb_failing_lower_than_stopping
           expression: nb_failing <= nb_stopping
-        - id: nb_failing_lower_than_max_variation
-          expression: nb_failing <= max(0, (ceil(p_max_cluster/p_max_unit))[t-1] - (ceil(p_max_cluster/p_max_unit)))
         - id: min_up_duration
           expression: sum(t-d_min_up + 1 .. t, nb_starting - nb_failing) <= nb_units_on
         - id: min_down_duration
@@ -216,6 +216,15 @@ library:
         - id: initial_level
           time-dependent: false
           scenario-dependent: true
+        - id: cost_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_level
+          time-dependent: true
+          scenario-dependent: true
       variables:
         - id: p_injection
           lower-bound: 0
@@ -241,3 +250,6 @@ library:
           expression: level[0] = initial_level * reservoir_capacity
         - id: level_equation
           expression: level[t+1] = level + efficiency_injection * p_injection - efficiency_withdrawal * p_withdrawal + inflows
+      objective-contributions:
+        - id: objective
+          expression: sum(cost_injection * p_injection + cost_withdrawal * p_withdrawal + cost_level * level)

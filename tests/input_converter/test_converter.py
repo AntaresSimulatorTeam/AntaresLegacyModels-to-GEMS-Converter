@@ -294,6 +294,9 @@ class TestConverter:
         pmax_injection_path = "p_max_injection_modulation_fr_storage_1"
         pmax_withdrawal_path = "p_max_withdrawal_modulation_fr_storage_1"
         upper_rule_curve_path = "upper_rule_curve_fr_storage_1"
+        cost_injection_path = "cost_injection_fr_storage_1"
+        cost_withdrawal_path = "cost_withdrawal_fr_storage_1"
+        cost_level_path = "cost_level_fr_storage_1"
         expected_storage_connections = [
             InputPortConnections(
                 component1="fr_storage_1",
@@ -384,6 +387,27 @@ class TestConverter:
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.5,
+                    ),
+                    InputComponentParameter(
+                        id="cost_injection",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_injection_path}",
+                    ),
+                    InputComponentParameter(
+                        id="cost_withdrawal",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_withdrawal_path}",
+                    ),
+                    InputComponentParameter(
+                        id="cost_level",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=f"{cost_level_path}",
                     ),
                 ],
             )
@@ -502,6 +526,13 @@ class TestConverter:
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
+                    ),
+                    InputComponentParameter(
+                        id="spinning",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0,
                     ),
                 ],
             )

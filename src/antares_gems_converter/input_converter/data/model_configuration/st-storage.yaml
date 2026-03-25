@@ -123,6 +123,33 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: initial_level
+      - id: cost_injection
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_injection
+      - id: cost_withdrawal
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_withdrawal
+      - id: cost_level
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: st_storage
+            area: ${area}
+            cluster: ${st_storage}
+            field: cost_level
 
   # For full modeler mode
   connections:
