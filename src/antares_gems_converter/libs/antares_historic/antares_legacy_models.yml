@@ -144,8 +144,8 @@ library:
           upper-bound: max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit))
           variable-type: continuous
         - id: nb_units_on
-          lower-bound: min(ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)), ceil(minimum_generation_modulation * unit_count * p_max_unit/(p_max_unit * (1-spinning/100))))
-          upper-bound: ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)) # could be simplified in ceil(p_max_cluster/p_max_unit) as done in min_up_duration and min_down_duration 
+          lower-bound: min(ceil(p_max_cluster*(1-spinning/100)/(p_max_unit*(1-spinning/100))), ceil(minimum_generation_modulation * unit_count * p_max_unit/(p_max_unit*(1-spinning/100))))
+          upper-bound: ceil(p_max_cluster*(1-spinning/100)/(p_max_unit*(1-spinning/100))) # could be simplified in ceil(p_max_cluster/p_max_unit) as done in min_up_duration and min_down_duration 
           variable-type: continuous #integer
         - id: nb_starting
           lower-bound: 0
