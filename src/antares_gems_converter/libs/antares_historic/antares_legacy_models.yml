@@ -140,8 +140,8 @@ library:
         - id: spinning # in percentage, taken into account in p_max_cluster and p_max_unit (except when computing minimum generation)
       variables:
         - id: generation
-          lower-bound: min(max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit))*(1-spinning/100), minimum_generation_modulation * unit_count * p_max_unit)
-          upper-bound: max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit))*(1-spinning/100)
+          lower-bound: min(max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit)), minimum_generation_modulation * unit_count * p_max_unit)
+          upper-bound: max(p_max_cluster*(1-spinning/100), p_min_unit * ceil(p_max_cluster / p_max_unit))
           variable-type: continuous
         - id: nb_units_on
           lower-bound: min(ceil(p_max_cluster*(1-spinning/100)/p_max_unit*(1-spinning/100)), ceil(minimum_generation_modulation * unit_count * p_max_unit/(p_max_unit * (1-spinning/100))))
