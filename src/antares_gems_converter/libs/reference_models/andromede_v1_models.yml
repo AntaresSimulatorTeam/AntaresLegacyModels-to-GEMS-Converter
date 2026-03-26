@@ -200,7 +200,7 @@ library:
       port-field-definitions:
         - port: balance_port
           field: flow
-          definition: -max_load + curtailment
+          definition: curtailment
       constraints:
         - id: energy_max_day1
           expression: (sum(t .. t+23, curtailment))[0] <= (sum(t .. t+23, energy_max_daily))[0]
