@@ -51,7 +51,7 @@ LOAD_TIME_SERIE_FILES = [
 ## fixed_cost: [OK : test_fixed_cost]
 ## startup_cost: [OK : test_startup_cost]
 ## market_bid_cost: [OK : test_marginal_cost_marketbid_equals]
-## spinning: [TODO]
+## spinning: [OK : test_spinning]
 ## volatility_forced: [TODO]
 ## volatility_planned: [TODO]
 ## efficiency:  [TODO]
