@@ -1,17 +1,23 @@
 name: CI
+
 on:
   push:
     branches:
       - "**"
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
-  ci:
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -33,33 +39,58 @@ jobs:
       - name: Check formatting
         uses: psf/black@stable
         with:
-          # Version of Black should match the versions set in `requirements-dev.txt`
           version: "~=23.7.0"
           options: --check --diff
-      - name: Set Antares version
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-22.04
+    needs: code-quality
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
         run: |
-          ANTARES_VERSION=$(python -c "import json; print(json.load(open('dependencies.json'))['antares_simulator_version'])")
-          echo "ANTARES_VERSION=${ANTARES_VERSION}" >> $GITHUB_ENV
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r requirements-dev.txt
+
+      - name: Read Antares version
+        id: antares
+        run: |
+          VERSION=$(grep 'ANTARES_SIMULATOR_VERSION' versions/antares-simulator.txt | cut -d'=' -f2 | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Antares version: $VERSION"
 
       - name: Download Antares release
         run: |
-          echo "Downloading Antares v${ANTARES_VERSION}..."
-          curl -L -f -o antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz \
-            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${ANTARES_VERSION}/antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
-          if [ ! -f "antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz" ]; then
-            echo "Error: Download failed"
-            exit 1
-          fi
-          echo "Download successful. File size: $(ls -lh antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz | awk '{print $5}')"
+          VERSION="${{ steps.antares.outputs.version }}"
+          ARCHIVE="antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          echo "Downloading Antares v${VERSION}..."
+          curl -L -f -o "${ARCHIVE}" \
+            "https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${VERSION}/${ARCHIVE}"
+          echo "Download successful. File size: $(ls -lh "${ARCHIVE}" | awk '{print $5}')"
 
       - name: Extract Antares binaries
         run: |
-          echo "Extracting archive..."
-          tar -xzf antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
+          VERSION="${{ steps.antares.outputs.version }}"
+          tar -xzf "antares-${VERSION}-Ubuntu-22.04.tar.gz"
 
-      - name: Test
-        run: |
-          pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml
+      - name: Run tests
+        id: run_tests
+        run: pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml
 
       - name: Archive code coverage results
         uses: actions/upload-artifact@v4
@@ -67,9 +98,18 @@ jobs:
           name: python-code-coverage-report
           path: coverage.xml
 
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failures
+          path: |
+            **/*.log
+          retention-days: 7
+
       - name: Cleanup
         if: always()
         run: |
-          rm -f antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
-          rm -rf antares-${ANTARES_VERSION}-Ubuntu-22.04
-          echo "Cleanup completed"
+          VERSION="${{ steps.antares.outputs.version }}"
+          rm -f "antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          rm -rf "antares-${VERSION}-Ubuntu-22.04"

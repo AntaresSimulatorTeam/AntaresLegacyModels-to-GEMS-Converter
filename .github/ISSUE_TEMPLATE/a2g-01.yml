@@ -1,0 +1,107 @@
+name: "A2G-01 — Antares evolution impact on converter"
+description: Track updates to the Antares-Legacy-to-GEMS converter triggered by a new Antares-Simulator release
+title: "[A2G-01] Antares v — converter impact"
+labels: ["A2G-01", "antares-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Process A2G-01** — Triggered by a new Antares-Simulator release that impacts the Antares-Legacy-to-GEMS converter or the Antares Legacy models library.
+
+        > **Deviation from standard workflow — Step 5:** solver equivalence validation is required for all affected model types. Run converted GEMS studies in both HYBRID and FULL mode against the new Antares binary; compare objective function values against the previous version. Document any differences and confirm they are within the accepted tolerance (`5e-5` for thermal, `1e-6` for link/STS).
+
+  - type: input
+    id: antares_new_version
+    attributes:
+      label: New Antares Version
+      placeholder: "e.g. 10.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: antares_previous_version
+    attributes:
+      label: Previous Tracked Version
+      placeholder: "e.g. 10.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: trigger
+    attributes:
+      label: Trigger
+      description: What changed in the new Antares release? Link to the release notes or changelog.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Analysis
+      description: |
+        Assess the impact on:
+        - **Converter logic** — does parsing, data extraction, or GEMS study generation need updating?
+        - **Antares Legacy models library** — does `antares_legacy_models.yml` or model config templates need updating?
+        - **Results** — are solver equivalence values expected to change?
+        - **Compatibility** — breaking vs backward-compatible?
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation_strategy
+    attributes:
+      label: Validation Strategy
+      description: |
+        Describe the solver equivalence validation approach (A2G-01 Step 5 deviation):
+        - Which model types will be tested (thermal, link, STS, renewable, battery)?
+        - HYBRID mode and/or FULL mode?
+        - Expected tolerance (thermal `5e-5`, link/STS `1e-6`)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Process Checklist
+      value: |
+        ### Step 3 — Impact Analysis
+        - [ ] Antares release notes reviewed for converter-relevant changes
+        - [ ] Converter logic impact assessed (parsing, data extraction, study generation)
+        - [ ] `antares_legacy_models.yml` and model config templates impact assessed
+        - [ ] Breaking vs backward-compatible changes identified
+        - [ ] Results impact assessed (solver equivalence values expected to change?)
+        - [ ] antares-craft compatibility with new Antares version confirmed
+
+        ### Step 4 — Implementation
+        - [ ] Converter code updated if needed (`src/`)
+        - [ ] `antares_legacy_models.yml` updated if needed
+        - [ ] Model config templates updated if needed (`src/antares_gems_converter/input_converter/data/`)
+        - [ ] Backward compatibility maintained unless explicitly intended as breaking
+
+        ### Step 5 — Testing & Validation ⚠️ solver equivalence required in HYBRID and FULL mode
+        - [ ] Unit tests pass (`pytest tests/input_converter/`)
+        - [ ] Thermal solver equivalence confirmed against new binary (tolerance `5e-5`)
+        - [ ] Link solver equivalence confirmed against new binary (tolerance `1e-6`)
+        - [ ] STS solver equivalence confirmed against new binary (tolerance `1e-6`)
+        - [ ] HYBRID mode E2E tests pass
+        - [ ] FULL mode E2E tests pass (if applicable)
+
+        ### Step 6 — CI Validation
+        - [ ] Type checking passes (`mypy`)
+        - [ ] Formatting passes (`black`)
+        - [ ] All tests pass in CI
+
+        ### Step 7 — Review & Merge
+        - [ ] PR reviewed; documentation changes included
+
+        ### Step 8 — Versioning
+        - [ ] `versions/antares-simulator.txt` updated to new version
+        - [ ] `versions/converter.txt` bumped (Major if Antares major bump, Minor otherwise)
+        - [ ] `versions/antares_legacy_models_library.txt` bumped if library changed
+
+        ### Step 9 — Release
+        - [ ] Release documents supported Antares version, compatibility, and behaviour changes
+
+        ### Step 10 — Documentation & Changelog
+        - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed
+        - [ ] `COMPATIBILITY.md` updated with new version mapping
