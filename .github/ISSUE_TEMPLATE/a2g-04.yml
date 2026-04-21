@@ -1,6 +1,6 @@
 name: "A2G-04 — GemsPy evolution impact on converter"
 description: Track updates to the converter triggered by a new GemsPy release
-title: "[A2G-04] GemsPy v — converter impact"
+title: "[A2G-04] GemsPy update — converter impact"
 labels: ["A2G-04", "gemspy-update"]
 body:
   - type: markdown

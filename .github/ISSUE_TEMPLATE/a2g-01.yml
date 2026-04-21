@@ -1,6 +1,6 @@
 name: "A2G-01 — Antares evolution impact on converter"
 description: Track updates to the Antares-Legacy-to-GEMS converter triggered by a new Antares-Simulator release
-title: "[A2G-01] Antares v — converter impact"
+title: "[A2G-01] Antares update — converter impact"
 labels: ["A2G-01", "antares-update"]
 body:
   - type: markdown

@@ -1,6 +1,6 @@
 name: "A2G-03 — Antares-Craft evolution impact on converter"
 description: Track updates to the converter triggered by a new antares-craft release
-title: "[A2G-03] antares-craft v — converter impact"
+title: "[A2G-03] antares-craft update — converter impact"
 labels: ["A2G-03", "antares-craft-update"]
 body:
   - type: markdown
