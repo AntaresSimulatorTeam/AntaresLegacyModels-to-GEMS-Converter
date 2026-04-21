@@ -1,0 +1,112 @@
+name: Run Tests (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      antares_version:
+        description: 'Antares Simulator version to test against (leave empty to read from versions/antares-simulator.txt)'
+        required: false
+        type: string
+        default: ''
+      antares_craft_version:
+        description: 'antares-craft version to override the pinned version (leave empty to use pinned)'
+        required: false
+        type: string
+        default: ''
+      gemspy_version:
+        description: 'GemsPy version to override the pinned version (leave empty to use pinned)'
+        required: false
+        type: string
+        default: ''
+      artifact_name:
+        description: 'Name for the uploaded artifact on failure'
+        required: false
+        type: string
+        default: 'test-failures'
+    outputs:
+      test_outcome:
+        description: 'Outcome of the test run (success or failure)'
+        value: ${{ jobs.tests.outputs.test_outcome }}
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-22.04
+    outputs:
+      test_outcome: ${{ steps.run_tests.outcome }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r requirements-dev.txt
+
+      - name: Override antares-craft version
+        if: inputs.antares_craft_version != ''
+        run: pip install "antares-craft==${{ inputs.antares_craft_version }}"
+
+      - name: Override GemsPy version
+        if: inputs.gemspy_version != ''
+        run: pip install "gemspy==${{ inputs.gemspy_version }}"
+
+      - name: Resolve Antares version for downstream steps
+        id: resolve_version
+        run: |
+          VERSION="${{ inputs.antares_version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(grep 'ANTARES_SIMULATOR_VERSION' versions/antares-simulator.txt | cut -d'=' -f2 | tr -d '[:space:]')
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download Antares release
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          ARCHIVE="antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          echo "Downloading Antares v${VERSION}..."
+          curl -L -f -o "${ARCHIVE}" \
+            "https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${VERSION}/${ARCHIVE}"
+          echo "Download successful. File size: $(ls -lh "${ARCHIVE}" | awk '{print $5}')"
+
+      - name: Extract Antares binaries
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          tar -xzf "antares-${VERSION}-Ubuntu-22.04.tar.gz"
+
+      - name: Run tests
+        id: run_tests
+        run: pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
+        continue-on-error: true
+
+      - name: Upload test artifacts on failure
+        if: steps.run_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: |
+            **/*.log
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          rm -f "antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          rm -rf "antares-${VERSION}-Ubuntu-22.04"
+
+      - name: Fail job if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: exit 1

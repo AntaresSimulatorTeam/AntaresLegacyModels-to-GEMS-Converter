@@ -8,7 +8,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 ## Versioning Policy
 
-- **Converter** — version in `versions/converter.txt`. Follows semantic versioning:
+- **Converter** — version in `pyproject.toml` (`[project] version`). Follows semantic versioning:
   - **Major** — Antares-Simulator major version bump
   - **Minor** — Bug fix, new feature, or antares-craft/GemsPy version update
   - **Patch** — Dependency updates, code optimisation, or library-only change
@@ -34,7 +34,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
-| Converter | 0.0.1 | `versions/converter.txt` |
+| Converter | 0.0.1 | `pyproject.toml` |
 | Antares Legacy Models Library | 1.0.0 | `versions/antares_legacy_models_library.txt` |
 | Antares-Simulator | 10.0.0 | `versions/antares-simulator.txt` |
 | antares-craft | 0.3.0 | `versions/antares-craft.txt` |
