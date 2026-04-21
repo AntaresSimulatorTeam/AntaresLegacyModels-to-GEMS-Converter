@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       antares_version:
-        description: 'Antares Simulator version to test against (leave empty to read from versions/antares-simulator.txt)'
+        description: 'Antares Simulator version to test against (leave empty to read from dependencies.json)'
         required: false
         type: string
         default: ''
@@ -68,7 +68,7 @@ jobs:
         run: |
           VERSION="${{ inputs.antares_version }}"
           if [ -z "$VERSION" ]; then
-            VERSION=$(grep 'ANTARES_SIMULATOR_VERSION' versions/antares-simulator.txt | cut -d'=' -f2 | tr -d '[:space:]')
+            VERSION=$(jq -r '.antares_simulator_version' dependencies.json)
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 

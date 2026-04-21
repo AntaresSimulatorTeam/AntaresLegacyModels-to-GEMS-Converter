@@ -13,9 +13,9 @@ This table maps converter versions to the tool versions they are compatible with
   - **Minor** — Bug fix, new feature, or antares-craft/GemsPy version update
   - **Patch** — Dependency updates, code optimisation, or library-only change
 
-- **Antares-Simulator** — tracked version in `versions/antares-simulator.txt`. The version downloaded by CI and used for all tests.
+- **Antares-Simulator** — tracked version in `dependencies.json` (`antares_simulator_version`). The version downloaded by CI and used for all tests.
 
-- **antares-craft** — tracked version in `versions/antares-craft.txt`. The library used to read Antares studies.
+- **antares-craft** — pinned version in `requirements.txt`. The library used to read Antares studies.
 
 ## Compatibility Rules
 
@@ -28,5 +28,5 @@ This table maps converter versions to the tool versions they are compatible with
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
 | Converter | 0.0.1 | `pyproject.toml` |
-| Antares-Simulator | 10.0.0 | `versions/antares-simulator.txt` |
-| antares-craft | 0.3.0 | `versions/antares-craft.txt` |
+| Antares-Simulator | 10.0.0 | `dependencies.json` |
+| antares-craft | 0.3.0 | `requirements.txt` |

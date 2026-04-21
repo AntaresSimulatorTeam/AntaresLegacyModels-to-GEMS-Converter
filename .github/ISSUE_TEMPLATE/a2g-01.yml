@@ -79,7 +79,6 @@ body:
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation ⚠️ solver equivalence required in HYBRID and FULL mode
-        - [ ] Unit tests pass (`pytest tests/input_converter/`)
         - [ ] Thermal solver equivalence confirmed against new binary (tolerance `5e-5`)
         - [ ] Link solver equivalence confirmed against new binary (tolerance `1e-6`)
         - [ ] STS solver equivalence confirmed against new binary (tolerance `1e-6`)
@@ -95,7 +94,7 @@ body:
         - [ ] PR reviewed; documentation changes included
 
         ### Step 8 — Versioning
-        - [ ] `versions/antares-simulator.txt` updated to new version
+        - [ ] `dependencies.json` updated (`antares_simulator_version`)
         - [ ] `pyproject.toml` version bumped (Major if Antares major bump, Minor otherwise)
 
         ### Step 9 — Release

@@ -16,7 +16,6 @@
 
 ## Checklist
 
-- [ ] Unit tests pass (`pytest tests/input_converter/`)
 - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
 - [ ] `pyproject.toml` version bumped if converter logic changed
 - [ ] Changelog entry added if library changed (`CHANGELOG-antares_legacy_models_library.md`)

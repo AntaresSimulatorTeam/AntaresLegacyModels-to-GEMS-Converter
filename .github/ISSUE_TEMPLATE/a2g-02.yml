@@ -86,7 +86,6 @@ body:
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
-        - [ ] Unit tests pass (`pytest tests/input_converter/`)
         - [ ] If results are expected to change: before/after solver comparison documented
         - [ ] If results must not change: solver equivalence tests confirm values identical (within tolerance)
         - [ ] Antares historic equivalence tests pass (`pytest tests/antares_historic/`)

@@ -85,7 +85,6 @@ body:
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
-        - [ ] Unit tests pass (`pytest tests/input_converter/`)
         - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
         - [ ] Generated GEMS studies validated as structurally correct
 

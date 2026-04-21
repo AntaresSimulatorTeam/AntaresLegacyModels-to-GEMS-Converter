@@ -85,7 +85,6 @@ body:
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
-        - [ ] Unit tests pass (`pytest tests/input_converter/`)
         - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
 
         ### Step 6 — CI Validation
@@ -97,7 +96,7 @@ body:
         - [ ] PR reviewed; documentation changes included
 
         ### Step 8 — Versioning
-        - [ ] `versions/antares-craft.txt` updated to new version
+        - [ ] `requirements.in` / `requirements.txt` updated to new antares-craft version
         - [ ] `pyproject.toml` version bumped (Minor)
 
         ### Step 9 — Release
