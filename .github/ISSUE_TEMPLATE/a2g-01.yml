@@ -8,8 +8,6 @@ body:
       value: |
         **Process A2G-01** — Triggered by a new Antares-Simulator release that impacts the Antares-Legacy-to-GEMS converter or the Antares Legacy models library.
 
-        > **Deviation from standard workflow — Step 5:** solver equivalence validation is required for all affected model types. Run converted GEMS studies in both HYBRID and FULL mode against the new Antares binary; compare objective function values against the previous version. Document any differences and confirm they are within the accepted tolerance (`5e-5` for thermal, `1e-6` for link/STS).
-
   - type: input
     id: antares_new_version
     attributes:
@@ -52,10 +50,10 @@ body:
     attributes:
       label: Validation Strategy
       description: |
-        Describe the solver equivalence validation approach (A2G-01 Step 5 deviation):
-        - Which model types will be tested (thermal, link, STS, renewable, battery)?
-        - HYBRID mode and/or FULL mode?
-        - Expected tolerance (thermal `5e-5`, link/STS `1e-6`)?
+        Describe the solver equivalence validation approach:
+        - Which model types will be tested?
+        - Which studies will be used for validation?
+        - Are solver equivalence results expected to change?
     validations:
       required: true
 
@@ -78,12 +76,9 @@ body:
         - [ ] Model config templates updated if needed (`src/antares_gems_converter/input_converter/data/`)
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
-        ### Step 5 — Testing & Validation ⚠️ solver equivalence required in HYBRID and FULL mode
-        - [ ] Thermal solver equivalence confirmed against new binary (tolerance `5e-5`)
-        - [ ] Link solver equivalence confirmed against new binary (tolerance `1e-6`)
-        - [ ] STS solver equivalence confirmed against new binary (tolerance `1e-6`)
-        - [ ] HYBRID mode E2E tests pass
-        - [ ] FULL mode E2E tests pass (if applicable)
+        ### Step 5 — Testing & Validation ⚠️ solver equivalence required
+        - [ ] Solver equivalence confirmed for all affected model types against new binary
+        - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
 
         ### Step 6 — CI Validation
         - [ ] Type checking passes (`mypy`)
