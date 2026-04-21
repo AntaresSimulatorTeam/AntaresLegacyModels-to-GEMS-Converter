@@ -101,7 +101,6 @@ body:
 
         ### Step 8 — Versioning
         - [ ] `pyproject.toml` version bumped if converter logic changed
-        - [ ] `versions/antares_legacy_models_library.txt` bumped if library changed
 
         ### Step 10 — Documentation & Changelog
         - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed

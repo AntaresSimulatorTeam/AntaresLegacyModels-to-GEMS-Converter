@@ -13,11 +13,6 @@ This table maps converter versions to the tool versions they are compatible with
   - **Minor** — Bug fix, new feature, or antares-craft/GemsPy version update
   - **Patch** — Dependency updates, code optimisation, or library-only change
 
-- **Antares Legacy Models Library** — version in `versions/antares_legacy_models_library.txt`. Independent versioning:
-  - **Major** — New legacy model added to the library
-  - **Minor** — Bug fix or improvement to an existing model
-  - **Patch** — Non-functional change (rename variable/parameter, internal refactor)
-
 - **Antares-Simulator** — tracked version in `versions/antares-simulator.txt`. The version downloaded by CI and used for all tests.
 
 - **antares-craft** — tracked version in `versions/antares-craft.txt`. The library used to read Antares studies.
@@ -35,7 +30,6 @@ This table maps converter versions to the tool versions they are compatible with
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
 | Converter | 0.0.1 | `pyproject.toml` |
-| Antares Legacy Models Library | 1.0.0 | `versions/antares_legacy_models_library.txt` |
 | Antares-Simulator | 10.0.0 | `versions/antares-simulator.txt` |
 | antares-craft | 0.3.0 | `versions/antares-craft.txt` |
 | GemsPy | 0.0.2 | `versions/gemspy.txt` |

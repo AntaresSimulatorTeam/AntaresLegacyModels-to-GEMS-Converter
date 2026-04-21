@@ -97,7 +97,6 @@ body:
         ### Step 8 — Versioning
         - [ ] `versions/antares-simulator.txt` updated to new version
         - [ ] `pyproject.toml` version bumped (Major if Antares major bump, Minor otherwise)
-        - [ ] `versions/antares_legacy_models_library.txt` bumped if library changed
 
         ### Step 9 — Release
         - [ ] Release documents supported Antares version, compatibility, and behaviour changes

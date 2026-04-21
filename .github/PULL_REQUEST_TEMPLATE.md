@@ -19,7 +19,6 @@
 - [ ] Unit tests pass (`pytest tests/input_converter/`)
 - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
 - [ ] `pyproject.toml` version bumped if converter logic changed
-- [ ] `versions/antares_legacy_models_library.txt` bumped if library changed
 - [ ] Changelog entry added if library changed (`CHANGELOG-antares_legacy_models_library.md`)
 - [ ] `COMPATIBILITY.md` updated if supported versions changed
 - [ ] Documentation updated or confirmed up to date
