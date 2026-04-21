@@ -98,7 +98,6 @@ body:
         - [ ] PR reviewed; documentation changes included
 
         ### Step 8 — Versioning
-        - [ ] `versions/gemspy.txt` updated to new version
         - [ ] `pyproject.toml` version bumped (Minor)
 
         ### Step 9 — Release
