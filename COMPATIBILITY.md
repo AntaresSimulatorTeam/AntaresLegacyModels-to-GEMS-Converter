@@ -17,6 +17,8 @@ This table maps converter versions to the tool versions they are compatible with
 
 - **antares-craft** — pinned version in `requirements.txt`. The library used to read Antares studies.
 
+- **GemsPy** — pinned version in `requirements.txt`. The GEMS interpreter used for study generation and validation.
+
 ## Compatibility Rules
 
 - Patch versions are always backward-compatible within the same Major.Minor.
@@ -30,3 +32,4 @@ This table maps converter versions to the tool versions they are compatible with
 | Converter | 0.0.1 | `pyproject.toml` |
 | Antares-Simulator | 10.0.0 | `dependencies.json` |
 | antares-craft | 0.3.0 | `requirements.txt` |
+| GemsPy | 0.0.2 | `requirements.txt` |
