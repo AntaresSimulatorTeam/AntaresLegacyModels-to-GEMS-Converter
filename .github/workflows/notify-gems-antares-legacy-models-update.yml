@@ -1,0 +1,77 @@
+name: Notify GEMS — Antares Legacy Models Library Update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dependencies.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read library version
+        id: version
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            PREV=""
+          else
+            PREV=$(git show ${LAST_TAG}:dependencies.json | python3 -c "import json,sys; print(json.load(sys.stdin).get('antares_legacy_models_library_version',''))")
+          fi
+          CURR=$(python3 -c "import json; print(json.load(open('dependencies.json'))['antares_legacy_models_library_version'])")
+          echo "version=$CURR" >> "$GITHUB_OUTPUT"
+          if [ "$PREV" = "$CURR" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue in GEMS repository
+        if: steps.version.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GEMS_REPO_PAT }}
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const converterRepo = context.repo.repo;
+            const converterOwner = context.repo.owner;
+            const title = `[ANTARES LEGACY MODELS] New library version: v${version}`;
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: converterOwner,
+              repo: 'GEMS',
+              state: 'open',
+            });
+
+            const duplicate = existing.data.find(i => i.title.includes(`v${version}`));
+            if (duplicate) {
+              console.log(`Issue already exists: #${duplicate.number} — skipping.`);
+              return;
+            }
+
+            const body = [
+              `Antares Legacy models library updated to \`v${version}\` in [${converterRepo}](https://github.com/${converterOwner}/${converterRepo}).`,
+              '',
+              `Changelog: https://github.com/${converterOwner}/${converterRepo}/blob/main/src/antares_gems_converter/libs/antares_historic/CHANGELOG-antares_legacy_models_library.md`,
+              '',
+              'Update `libraries/antares_legacy_models.yml` in GEMS accordingly.',
+            ].join('\n');
+
+            const result = await github.rest.issues.create({
+              owner: converterOwner,
+              repo: 'GEMS',
+              title: title,
+              body: body,
+              labels: ['antares-legacy-models-update'],
+            });
+
+            console.log(`Issue created: #${result.data.number} — ${result.data.html_url}`);
