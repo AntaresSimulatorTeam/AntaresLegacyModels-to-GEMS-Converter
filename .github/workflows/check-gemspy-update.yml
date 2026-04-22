@@ -43,7 +43,7 @@ jobs:
 
       - name: Check for existing issue
         id: compare
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const latest = '${{ steps.latest.outputs.version }}';
@@ -64,7 +64,7 @@ jobs:
       - name: Create GitHub Issue
         id: create_issue
         if: steps.compare.outputs.update == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const latest = '${{ steps.latest.outputs.version }}';
@@ -119,7 +119,7 @@ jobs:
 
     steps:
       - name: Post results to issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const outcome = '${{ needs.run_tests.outputs.test_outcome }}';
