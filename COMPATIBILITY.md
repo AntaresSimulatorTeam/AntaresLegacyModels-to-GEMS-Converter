@@ -23,7 +23,6 @@ This table maps converter versions to the tool versions they are compatible with
 
 - Patch versions are always backward-compatible within the same Major.Minor.
 - Upgrading Antares-Simulator, antares-craft, or GemsPy may require a converter Minor or Major bump — see git history for details.
-- Solver equivalence tolerances: thermal `5e-5`, link/STS `1e-6` (relative).
 
 ## Version Files
 
