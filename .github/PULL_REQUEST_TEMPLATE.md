@@ -21,4 +21,3 @@
 - [ ] Changelog entry added if library changed (`CHANGELOG-antares_legacy_models_library.md`)
 - [ ] `COMPATIBILITY.md` updated if supported versions changed
 - [ ] Documentation updated or confirmed up to date
-- [ ] No direct commits to `main` (feature branch → PR → main)
