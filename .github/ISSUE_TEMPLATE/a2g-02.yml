@@ -90,7 +90,7 @@ body:
 
         ### Step 4 — Implementation ⚠️ model config template validation required
         - [ ] Converter code updated (`src/`) and/or library updated (`antares_legacy_models.yml`)
-        - [ ] All 7 model config templates validated (reference valid library models, correct parameter counts)
+        - [ ] All 7 model config templates validated (reference valid library models, correct parameter ids)
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
