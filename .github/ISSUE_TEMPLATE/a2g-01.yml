@@ -101,9 +101,9 @@ body:
         - [ ] `dependencies.json` updated (`antares_legacy_models_library_version`) if library changed
         - [ ] `pyproject.toml` version bumped (Major if Antares major bump, Minor otherwise)
 
-        ### Step 9 — Release
-        - [ ] Release documents supported Antares version, compatibility, and behaviour changes
-
-        ### Step 10 — Documentation & Changelog
+        ### Step 9 — Documentation & Changelog
         - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed
         - [ ] `COMPATIBILITY.md` updated with new version mapping
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines

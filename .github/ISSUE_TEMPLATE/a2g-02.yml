@@ -90,7 +90,7 @@ body:
 
         ### Step 4 — Implementation ⚠️ model config template validation required
         - [ ] Converter code updated (`src/`) and/or library updated (`antares_legacy_models.yml`)
-        - [ ] All 7 model config templates validated (reference valid library models, correct parameter counts)
+        - [ ] All model config templates validated (reference valid library models, correct parameter ids)
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
@@ -110,9 +110,9 @@ body:
         - [ ] `pyproject.toml` version bumped if converter logic changed
         - [ ] `dependencies.json` updated (`antares_legacy_models_library_version`) if library changed
 
-        ### Step 9 — Release
-        - [ ] Release documents changes, compatibility, and behaviour changes
-
-        ### Step 10 — Documentation & Changelog
+        ### Step 9 — Documentation & Changelog
         - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed
         - [ ] `COMPATIBILITY.md` updated if supported versions changed
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines

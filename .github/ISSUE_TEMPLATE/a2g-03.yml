@@ -107,8 +107,8 @@ body:
         - [ ] `requirements.in` / `requirements.txt` updated to new antares-craft version
         - [ ] `pyproject.toml` version bumped (Minor)
 
-        ### Step 9 — Release
-        - [ ] Release documents supported antares-craft version and compatibility
-
-        ### Step 10 — Documentation & Changelog
+        ### Step 9 — Documentation & Changelog
         - [ ] `COMPATIBILITY.md` updated with new antares-craft version mapping
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines
