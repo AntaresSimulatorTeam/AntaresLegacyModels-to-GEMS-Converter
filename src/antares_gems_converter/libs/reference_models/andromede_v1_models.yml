@@ -200,7 +200,7 @@ library:
       port-field-definitions:
         - port: balance_port
           field: flow
-          definition: -max_load + curtailment
+          definition: curtailment
       constraints:
         - id: energy_max_day1
           expression: (sum(t .. t+23, curtailment))[0] <= (sum(t .. t+23, energy_max_daily))[0]
@@ -216,4 +216,290 @@ library:
           expression: (sum(t+120 .. t+143, curtailment))[0] <= (sum(t+120 .. t+143, energy_max_daily))[0]
         - id: energy_max_day7
           expression: (sum(t+144 .. t+167, curtailment))[0] <= (sum(t+144 .. t+167, energy_max_daily))[0]
+      # extra-outputs:
+
+    - id: effacement_residentiel_report
+      parameters:
+        - id: valeur_effacement_a_reporter_max
+          time-dependent: true
+          scenario-dependent: true
+        - id: valeur_energie_journaliere_effacement_max
+          time-dependent: true
+          scenario-dependent: true
+        - id: valeur_puissance_2h_consecutives_max
+          time-dependent: true
+          scenario-dependent: true
+        - id: coefficient_report_heure_1
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_2
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_3
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_4
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_5
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_6
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_7
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_8
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_9
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_10
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_11
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_12
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_13
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_14
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_15
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_16
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_17
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_18
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_19
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_20
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_21
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_22
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_23
+          time-dependent: false
+          scenario-dependent: false
+        - id: coefficient_report_heure_24
+          time-dependent: false
+          scenario-dependent: false
+      variables:
+        - id: effacement_a_reporter_heure_1
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_2
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_3
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_4
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_5
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max 
+        - id: effacement_a_reporter_heure_6
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max 
+        - id: effacement_a_reporter_heure_7
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max 
+        - id: effacement_a_reporter_heure_8
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_9
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_10
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_11
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_12
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_13
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max 
+        - id: effacement_a_reporter_heure_14
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max 
+        - id: effacement_a_reporter_heure_15
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_16
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_17
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_18
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_19
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_20
+          lower-bound: 0 
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_21
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_22
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_23
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: effacement_a_reporter_heure_24
+          lower-bound: 0
+          upper-bound: valeur_effacement_a_reporter_max
+        - id: report
+          upper-bound: 0
+
+      # objective-contributions:
+      #   - id: obj
+      #     expression: sum(effacement * prix_effacement)
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: report+(effacement_a_reporter_heure_1+effacement_a_reporter_heure_2+effacement_a_reporter_heure_3+effacement_a_reporter_heure_4+effacement_a_reporter_heure_5+effacement_a_reporter_heure_6+effacement_a_reporter_heure_7+effacement_a_reporter_heure_8+effacement_a_reporter_heure_9+effacement_a_reporter_heure_10+effacement_a_reporter_heure_11+effacement_a_reporter_heure_12+effacement_a_reporter_heure_13+effacement_a_reporter_heure_14+effacement_a_reporter_heure_15+effacement_a_reporter_heure_16+effacement_a_reporter_heure_17+effacement_a_reporter_heure_18+effacement_a_reporter_heure_19+effacement_a_reporter_heure_20+effacement_a_reporter_heure_21+effacement_a_reporter_heure_22+effacement_a_reporter_heure_23+effacement_a_reporter_heure_24)
+      constraints:
+        - id: egalite_effacement_report_2
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_2[t]
+        - id: egalite_effacement_report_3
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_3[t]
+        - id: egalite_effacement_report_4
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_4[t]
+        - id: egalite_effacement_report_5
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_5[t]
+        - id: egalite_effacement_report_6
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_6[t]
+        - id: egalite_effacement_report_7
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_7[t]
+        - id: egalite_effacement_report_8
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_8[t]
+        - id: egalite_effacement_report_9
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_9[t]
+        - id: egalite_effacement_report_10
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_10[t]
+        - id: egalite_effacement_report_11
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_11[t]
+        - id: egalite_effacement_report_12
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_12[t]
+        - id: egalite_effacement_report_13
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_13[t]
+        - id: egalite_effacement_report_14
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_14[t]
+        - id: egalite_effacement_report_15
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_15[t]
+        - id: egalite_effacement_report_16
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_16[t]
+        - id: egalite_effacement_report_17
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_17[t]
+        - id: egalite_effacement_report_18
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_18[t]
+        - id: egalite_effacement_report_19
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_19[t]
+        - id: egalite_effacement_report_20
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_20[t]
+        - id: egalite_effacement_report_21
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_21[t]
+        - id: egalite_effacement_report_22
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_22[t]
+        - id: egalite_effacement_report_23
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_23[t]
+        - id: egalite_effacement_report_24
+          expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_24[t]
+        - id: valeur_report
+          expression: report[t] = (coefficient_report_heure_1 * effacement_a_reporter_heure_1[t-1] + coefficient_report_heure_2 * effacement_a_reporter_heure_2[t-2] + coefficient_report_heure_3 * effacement_a_reporter_heure_3[t-3] + coefficient_report_heure_4 * effacement_a_reporter_heure_4[t-4] + coefficient_report_heure_5 * effacement_a_reporter_heure_5[t-5] + coefficient_report_heure_6 * effacement_a_reporter_heure_6[t-6] + coefficient_report_heure_7 * effacement_a_reporter_heure_7[t-7] + coefficient_report_heure_8 * effacement_a_reporter_heure_8[t-8] + coefficient_report_heure_9 * effacement_a_reporter_heure_9[t-9] + coefficient_report_heure_10 * effacement_a_reporter_heure_10[t-10] + coefficient_report_heure_11 * effacement_a_reporter_heure_11[t-11]+coefficient_report_heure_12 * effacement_a_reporter_heure_12[t-12]+coefficient_report_heure_13 * effacement_a_reporter_heure_13[t-13]+coefficient_report_heure_14 * effacement_a_reporter_heure_14[t-14]+coefficient_report_heure_15 * effacement_a_reporter_heure_15[t-15]+coefficient_report_heure_16 * effacement_a_reporter_heure_16[t-16]+coefficient_report_heure_17 * effacement_a_reporter_heure_17[t-17]+coefficient_report_heure_18 * effacement_a_reporter_heure_18[t-18]+coefficient_report_heure_19 * effacement_a_reporter_heure_19[t-19]+coefficient_report_heure_20 * effacement_a_reporter_heure_20[t-20]+coefficient_report_heure_21 * effacement_a_reporter_heure_21[t-21]+coefficient_report_heure_22 * effacement_a_reporter_heure_22[t-22]+coefficient_report_heure_23 * effacement_a_reporter_heure_23[t-23]+coefficient_report_heure_24 * effacement_a_reporter_heure_24[t-24]) 
+        # - id: valeur_report_heure_1
+        #   expression: report[t+1] = coefficient_report_heure_1 * effacement_a_reporter_heure_1[t]
+        # - id: valeur_report_heure_2
+        #   expression: report[t+2] = coefficient_report_heure_2 * effacement_a_reporter_heure_2[t]
+        # - id: valeur_report_heure_3
+        #   expression: report[t+3] = coefficient_report_heure_3 * effacement_a_reporter_heure_3[t]
+        # - id: valeur_report_heure_4
+        #   expression: report[t+4] = coefficient_report_heure_4 * effacement_a_reporter_heure_4[t]
+        # - id: valeur_report_heure_5
+        #   expression: report[t+5] = coefficient_report_heure_5 * effacement_a_reporter_heure_5[t]
+        # - id: valeur_report_heure_6
+        #   expression: report[t+6] = coefficient_report_heure_6 * effacement_a_reporter_heure_6[t]
+        # - id: valeur_report_heure_7
+        #   expression: report[t+7] = coefficient_report_heure_7 * effacement_a_reporter_heure_7[t]
+        # - id: valeur_report_heure_8
+        #   expression: report[t+8] = coefficient_report_heure_8 * effacement_a_reporter_heure_8[t]
+        # - id: valeur_report_heure_9
+        #   expression: report[t+9] = coefficient_report_heure_9 * effacement_a_reporter_heure_9[t]
+        # - id: valeur_report_heure_10
+        #   expression: report[t+10] = coefficient_report_heure_10 * effacement_a_reporter_heure_10[t]
+        # - id: valeur_report_heure_11
+        #   expression: report[t+11] = coefficient_report_heure_11 * effacement_a_reporter_heure_11[t]
+        # - id: valeur_report_heure_12
+        #   expression: report[t+12] = coefficient_report_heure_12 * effacement_a_reporter_heure_12[t]
+        # - id: valeur_report_heure_13
+        #   expression: report[t+13] = coefficient_report_heure_13 * effacement_a_reporter_heure_13[t]
+        # - id: valeur_report_heure_14
+        #   expression: report[t+14] = coefficient_report_heure_14 * effacement_a_reporter_heure_14[t]
+        # - id: valeur_report_heure_15
+        #   expression: report[t+15] = coefficient_report_heure_15 * effacement_a_reporter_heure_15[t]
+        # - id: valeur_report_heure_16
+        #   expression: report[t+16] = coefficient_report_heure_16 * effacement_a_reporter_heure_16[t]
+        # - id: valeur_report_heure_17
+        #   expression: report[t+17] = coefficient_report_heure_17 * effacement_a_reporter_heure_17[t]
+        # - id: valeur_report_heure_18
+        #   expression: report[t+18] = coefficient_report_heure_18 * effacement_a_reporter_heure_18[t]
+        # - id: valeur_report_heure_19
+        #   expression: report[t+19] = coefficient_report_heure_19 * effacement_a_reporter_heure_19[t]
+        # - id: valeur_report_heure_20
+        #   expression: report[t+20] = coefficient_report_heure_20 * effacement_a_reporter_heure_20[t]
+        # - id: valeur_report_heure_21
+        #   expression: report[t+21] = coefficient_report_heure_21 * effacement_a_reporter_heure_21[t]
+        # - id: valeur_report_heure_22
+        #   expression: report[t+22] = coefficient_report_heure_22 * effacement_a_reporter_heure_22[t]
+        # - id: valeur_report_heure_23
+        #   expression: report[t+23] = coefficient_report_heure_23 * effacement_a_reporter_heure_23[t]
+        # - id: valeur_report_heure_24
+        #   expression: report[t+24] = coefficient_report_heure_24 * effacement_a_reporter_heure_24[t]
+
+        - id: energy_max_day1
+          expression: (sum(t .. t+23, effacement_a_reporter_heure_1))[0] <= (sum(t .. t+23, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day2
+          expression: (sum(t+24 .. t+47, effacement_a_reporter_heure_1))[0] <= (sum(t+24 .. t+47, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day3
+          expression: (sum(t+48 .. t+71, effacement_a_reporter_heure_1))[0] <= (sum(t+48 .. t+71, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day4
+          expression: (sum(t+72 .. t+95, effacement_a_reporter_heure_1))[0] <= (sum(t+72 .. t+95, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day5
+          expression: (sum(t+96 .. t+119, effacement_a_reporter_heure_1))[0] <= (sum(t+96 .. t+119, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day6
+          expression: (sum(t+120 .. t+143, effacement_a_reporter_heure_1))[0] <= (sum(t+120 .. t+143, valeur_energie_journaliere_effacement_max))[0]
+        - id: energy_max_day7
+          expression: (sum(t+144 .. t+167, effacement_a_reporter_heure_1))[0] <= (sum(t+144 .. t+167, valeur_energie_journaliere_effacement_max))[0]
+
+        - id: puissance_2h_consecutives_maximale_effacement
+          expression: effacement_a_reporter_heure_1[t-1] + effacement_a_reporter_heure_2[t] <= valeur_puissance_2h_consecutives_max
       # extra-outputs:

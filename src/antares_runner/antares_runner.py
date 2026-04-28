@@ -38,7 +38,7 @@ class AntaresHybridRunner:
         if self.solver:
             command.append("--linear-solver")
             command.append(self.solver)
-        command.append("--named-mps-problems")
+        # command.append("--named-mps-problems")
 
         # Run the command and wait for it to finish
         try:

@@ -98,6 +98,7 @@ MODEL_NAME_TO_FILE_NAME = {
     "wind": "wind.yaml",
     "p2g_asservi": "p2g_asservi.yaml",
     "p2g_base": "p2g_base.yaml",
+    "effacement_residentiel_report": "effacement_residentiel_report.yaml",
 }
 
 MATRIX_TYPES = ["load", "solar", "wind"]

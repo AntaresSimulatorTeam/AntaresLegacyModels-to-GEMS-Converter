@@ -1,0 +1,555 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+#TODOs :
+#*idem pour battery_pcomp
+
+template:
+  name: effacement_residentiel_report
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: andromede-v1-models.effacement_residentiel_report
+  scenario-group: scenario_effacement_report #To do : the modeler-scenariobuilder.dat file should be built
+  template-parameters:
+    - name: area
+      description: "Area identifier for the battery component"
+      exclude:
+      - id: at
+        object-properties:
+          type: area
+          area: at
+      - id: be
+        object-properties:
+          type: area
+          area: be
+      - id: ch
+        object-properties:
+          type: area
+          area: ch
+      - id: cz
+        object-properties:
+          type: area
+          area: cz
+      - id: de
+        object-properties:
+          type: area
+          area: de
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dke
+        object-properties:
+          type: area
+          area: dke
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: dkw
+        object-properties:
+          type: area
+          area: dkw
+      - id: es
+        object-properties:
+          type: area
+          area: es
+      - id: fr
+        object-properties:
+          type: area
+          area: es
+      - id: ie
+        object-properties:
+          type: area
+          area: ie
+      - id: itca
+        object-properties:
+          type: area
+          area: itca
+      - id: itcn
+        object-properties:
+          type: area
+          area: itcn
+      - id: itcs
+        object-properties:
+          type: area
+          area: itcs
+      - id: itn
+        object-properties:
+          type: area
+          area: itn
+      - id: its
+        object-properties:
+          type: area
+          area: its
+      - id: itsar
+        object-properties:
+          type: area
+          area: itsar
+      - id: itsic
+        object-properties:
+          type: area
+          area: itsic
+      - id: lu
+        object-properties:
+          type: area
+          area: lu
+      - id: nl
+        object-properties:
+          type: area
+          area: nl
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: nos
+        object-properties:
+          type: area
+          area: nos
+      - id: pl
+        object-properties:
+          type: area
+          area: pl
+      - id: pt
+        object-properties:
+          type: area
+          area: pt
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se3
+        object-properties:
+          type: area
+          area: se3
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
+      - id: ukgb
+        object-properties:
+          type: area
+          area: ukgb
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
+      - id: ve_eu
+        object-properties:
+          type: area
+          area: ve_eu
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_vhr_storage
+        object-properties:
+          type: area
+          area: ve_vhr_storage
+      - id: w_hydro_open_at
+        object-properties:
+          type: area
+          area: w_hydro_open_at
+      - id: w_hydro_open_cz
+        object-properties:
+          type: area
+          area: w_hydro_open_cz
+      - id: w_hydro_open_de
+        object-properties:
+          type: area
+          area: w_hydro_open_de
+      - id: w_hydro_open_es
+        object-properties:
+          type: area
+          area: w_hydro_open_es
+      - id: w_hydro_open_itcs
+        object-properties:
+          type: area
+          area: w_hydro_open_itcs
+      - id: w_hydro_open_itn
+        object-properties:
+          type: area
+          area: w_hydro_open_itn
+      - id: w_hydro_open_itsic
+        object-properties:
+          type: area
+          area: w_hydro_open_itsic
+      - id: w_hydro_open_nom
+        object-properties:
+          type: area
+          area: w_hydro_open_nom
+      - id: w_hydro_open_non
+        object-properties:
+          type: area
+          area: w_hydro_open_non
+      - id: w_hydro_open_nos
+        object-properties:
+          type: area
+          area: w_hydro_open_nos
+      - id: w_hydro_open_pl
+        object-properties:
+          type: area
+          area: w_hydro_open_pl
+      - id: w_hydro_open_pt
+        object-properties:
+          type: area
+          area: w_hydro_open_pt
+      - id: x_closed_pump
+        object-properties:
+          type: area
+          area: x_closed_pump
+      - id: x_closed_turb
+        object-properties:
+          type: area
+          area: x_closed_turb
+      - id: x_open_pump
+        object-properties:
+          type: area
+          area: x_open_pump
+      - id: x_open_turb
+        object-properties:
+          type: area
+          area: x_open_turb
+      - id: y_nuc_modulation
+        object-properties:
+          type: area
+          area: y_nuc_modulation
+      - id: z_batteries
+        object-properties:
+          type: area
+          area: z_batteries
+      - id: z_batteries_pcomp
+        object-properties:
+          type: area
+          area: z_batteries_pcomp
+      - id: z_p2g_asservi
+        object-properties:
+          type: area
+          area: z_p2g_asservi
+      - id: z_p2g_base
+        object-properties:
+          type: area
+          area: z_p2g_base
+      - id: zz_flowbased
+        object-properties:
+          type: area
+          area: zz_flowbased
+
+
+  component:
+    id: effacement_report_chauffage
+    parameters:
+      - id: coefficient_report_heure_1
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff01
+      
+      - id: coefficient_report_heure_2
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff02
+      
+      - id: coefficient_report_heure_3
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff03
+      
+      - id: coefficient_report_heure_4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff04
+      
+      - id: coefficient_report_heure_5
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff05
+      
+      - id: coefficient_report_heure_6
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff06
+      
+      - id: coefficient_report_heure_7
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff07
+      
+      - id: coefficient_report_heure_8
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff08
+      
+      - id: coefficient_report_heure_9
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff09
+      
+      - id: coefficient_report_heure_10
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff10
+      
+      - id: coefficient_report_heure_11
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff11
+      
+      - id: coefficient_report_heure_12
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff12
+      
+      - id: coefficient_report_heure_13
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff13
+      
+      - id: coefficient_report_heure_14
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff14
+      
+      - id: coefficient_report_heure_15
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff15
+      
+      - id: coefficient_report_heure_16
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff16
+      
+      - id: coefficient_report_heure_17
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff17
+      
+      - id: coefficient_report_heure_18
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff18
+      
+      - id: coefficient_report_heure_19
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff19
+      
+      - id: coefficient_report_heure_20
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff20
+      
+      - id: coefficient_report_heure_21
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff21
+      
+      - id: coefficient_report_heure_22
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff22
+      
+      - id: coefficient_report_heure_23
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff23
+      
+      - id: coefficient_report_heure_24
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: report_chauffage
+            field: z_effacement.z_effacement_prodeff24
+      
+      - id: valeur_effacement_a_reporter_max
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: z_effacement
+            cluster: z_effacement_prodeff01
+            field: thermal_series
+
+      - id: valeur_energie_journaliere_effacement_max
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: z_report
+            cluster: z_report_emax_eff
+            field: thermal_series
+
+      - id: valeur_puissance_2h_consecutives_max
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: z_report
+            cluster: z_report_pmax_eff
+            field: thermal_series
+  connections:
+    - component1: battery_${area}
+      port1: injection_port
+      component2: ${area}
+      port2: balance_port
+
+  area-connections: #Syntax for hybrid connections: https://antares-simulator.readthedocs.io/en/latest/user-guide/solver/08-hybrid-studies/
+    #To handle the case of hybrid studies, where we replace complex modeling artifacts for batteries by a model.
+    - component: effacement_report_chauffage
+      port: balance_port
+      area: fr
+
+  # legacy-objects-to-delete:
+  #   - id: batteries_binding_constraints
+  #     object-properties:
+  #       type: binding_constraint
+  #       binding-constraint-id: batteries_${area}
+  #   - id: battery_
+  #     object-properties:
+  #       type: binding_constraint
+  #       binding-constraint-id: battery_level_${area}
+  #   - id: virtual_links
+  #     object-properties:
+  #       type: link
+  #       link: ${area} / z_batteries
+  #   - id: virtual_nodes
+  #     object-properties:
+  #       type: area
+  #       area: z_batteries
+  #   - id: thermal_batteries_inj
+  #     object-properties:
+  #       type: thermal
+  #       area: ${area}
+  #       cluster: ${area}_batteries_inj
+  #   - id: thermal_z_batteries_1
+  #     object-properties:
+  #       type: thermal
+  #       area: z_batteries
+  #       cluster: z_batteries_batteries_${area}_1
+  #   - id: thermal_z_batteries_2
+  #     object-properties:
+  #       type: thermal
+  #       area: z_batteries
+  #       cluster: z_batteries_batteries_${area}_2

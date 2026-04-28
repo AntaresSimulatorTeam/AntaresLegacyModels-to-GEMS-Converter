@@ -129,7 +129,25 @@ class ModelConversionPreprocessor:
             )
             return 0.0
 
-        term: ConstraintTerm = binding.get_terms()[obj.object_properties.field]
+        try:
+            term: ConstraintTerm = binding.get_terms()[obj.object_properties.field]
+        except KeyError:
+            import logging
+            logger = logging.getLogger(__name__)
+            available_terms = list(binding.get_terms().keys())
+            logger.error(
+                f"Field '{obj.object_properties.field}' not found in binding constraint '{binding_id}'. "
+                f"Available terms: {available_terms}"
+            )
+            raise KeyError(
+                f"Field '{obj.object_properties.field}' not found in binding constraint '{binding_id}'. "
+                f"Available terms: {available_terms}"
+            )
+            
+            raise KeyError(
+                f"Field '{obj.object_properties.field}' not found in binding constraint '{binding_id}'. "
+                f"Available terms: {available_terms}"
+            )
         if obj.operation:
             return obj.operation.execute(term.weight)
         else:
