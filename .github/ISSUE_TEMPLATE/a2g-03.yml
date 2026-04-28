@@ -109,6 +109,7 @@ body:
 
         ### Step 9 — Documentation & Changelog
         - [ ] `COMPATIBILITY.md` updated with new antares-craft version mapping
+        - [ ] `AGENTS.md` reviewed for impact and updated if needed
 
         ### Step 10 — Release
         - [ ] If a release is needed: follow the release process in the Developer Guidelines
