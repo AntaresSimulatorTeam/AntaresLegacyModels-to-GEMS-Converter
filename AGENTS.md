@@ -28,7 +28,13 @@ src/antares_gems_converter/
 - process_all() dumps the final InputSystem to output/input/system.yml
 
 
-      parsing.py               # Pydantic models for YAML conversion templates
+      parsing.py - Pydantic models for YAML conversion templates
+- ConversionTemplate - top-level: model id, component, connections, legacy objects to delete
+- ParameterConversionConfig - parameter source: constant, matrix column, or object + optional operation
+- Operation - max / multiply_by / divide_by on a value or timeseries
+- VirtualObjectsRepository - areas/links/thermals to skip during iteration
+- All models have resolve_template() to substitute ${area} / ${thermal} placeholders
+- parse_conversion_template() - YAML file → ConversionTemplate
       config.py                # Central registry of type→method mappings
       utils.py                 # YAML I/O, path resolution, dataframe validation
       logger.py                # Dual logging (file + stdout)
