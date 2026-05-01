@@ -51,7 +51,9 @@ src/antares_gems_converter/
 - `read_yaml_file` - reads a YAML file into a dict, with error handling
 - `save_to_file` - writes a DataFrame/Series to a tab-separated file, creating dirs as needed
 
-      logger.py                # Dual logging (file + stdout)
+      logger.py - loger factory 
+- Logger(name, file_name) - creates a logging.Logger that writes to both stdout and an optional .log file at INFO/DEBUG level with timestamp + module + line format
+
       data_preprocessing/
         preprocessing.py       # ModelConversionPreprocessor: data extraction
         data_classes.py        # ConversionMode enum (FULL, HYBRID)
