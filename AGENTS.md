@@ -55,7 +55,14 @@ src/antares_gems_converter/
 - Logger(name, file_name) - creates a logging.Logger that writes to both stdout and an optional .log file at INFO/DEBUG level with timestamp + module + line format
 
       data_preprocessing/
-        preprocessing.py       # ModelConversionPreprocessor: data extraction
+        preprocessing.py - `ModelConversionPreprocessor`: extracts raw data from the study and converts it to GEMS parameter values
+
+- `convert_param_value()` - entry point: returns a constant directly, or delegates to `calculate_value()`
+- `calculate_value()` - dispatches by object type: matrix (load/wind/solar), binding constraint, link, or cluster
+- Each `calculate_*` method fetches the relevant timeseries/scalar from antares-craft, sets the output .tsv path, and optionally applies an `Operation`
+- Timeseries are saved to `output/input/data-series/` as `.tsv`, scalars are returned directly
+- `check_timeseries_validity()` - checks a matrix is non-empty and non-zero before emitting a component
+
         data_classes.py        # ConversionMode enum (FULL, HYBRID)
     data/
       config.ini               # Default INI config template
