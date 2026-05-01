@@ -35,7 +35,14 @@ src/antares_gems_converter/
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
 - All models have resolve_template() to substitute ${area} / ${thermal} placeholders
 - parse_conversion_template() - YAML file → ConversionTemplate
-      config.py                # Central registry of type→method mappings
+      config.py  - lookup dictionaries used by the converter
+
+-   `TEMPLATE_CLUSTER_TYPE_TO_GET/DELETE_METHOD` - maps thermal/renewable/st_storage → antares-craft area methods
+- `STUDY_LEVEL_GET/DELETION` - maps `area/link/binding_constraint` → study-level methods
+- `MATRIX_TYPES_TO_GET/SET_METHOD` - maps `load/solar/wind` → timeseries get/set methods
+- `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
+- `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
+- `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES` - categorize model types for iteration logic in the converter
       utils.py                 # YAML I/O, path resolution, dataframe validation
       logger.py                # Dual logging (file + stdout)
       data_preprocessing/
