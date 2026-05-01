@@ -43,7 +43,14 @@ src/antares_gems_converter/
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
 - `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES` - categorize model types for iteration logic in the converter
-      utils.py                 # YAML I/O, path resolution, dataframe validation
+      utils.py - small I/O helpers
+- `resolve_path` - resolves a `Path` to absolute, raises if it doesn't exist
+- `check_file_exists` - returns `True` only if file exists and is non-empty
+- `check_dataframe_validity` - returns `False` if DataFrame is empty or all-zeros
+- `dump_to_yaml` - serializes a Pydantic model into `system.yml`
+- `read_yaml_file` - reads a YAML file into a dict, with error handling
+- `save_to_file` - writes a DataFrame/Series to a tab-separated file, creating dirs as needed
+
       logger.py                # Dual logging (file + stdout)
       data_preprocessing/
         preprocessing.py       # ModelConversionPreprocessor: data extraction
