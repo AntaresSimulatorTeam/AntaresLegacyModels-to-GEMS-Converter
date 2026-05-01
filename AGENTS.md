@@ -18,7 +18,7 @@ Repository: `AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter` — Lic
 src/antares_gems_converter/
   input_converter/
     src/
-      main.py                  # CLI entry point (argparse)
+      main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator
       parsing.py               # Pydantic models for YAML conversion templates
       config.py                # Central registry of type→method mappings
