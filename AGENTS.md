@@ -226,7 +226,7 @@ Runs on every push to any branch:
 
 ## Critical Rules for AI Agents
 
-1. **Template ↔ model parameter counts must match.** Every parameter in a conversion template's `component.parameters` must correspond to a parameter in the referenced GEMS model. A mismatch causes silent failures at runtime.
+1. **Template ↔ model parameter ids must match.** Every parameter in a conversion template's `component.parameters` must correspond to a parameter in the referenced GEMS model. A mismatch causes silent failures at runtime.
 
 2. **`config.py` is the single source of truth for mappings.** Adding a new model type requires entries in `MODEL_NAME_TO_FILE_NAME`, and possibly `TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD`, `TIMESERIES_NAME_TO_METHOD`, and other mapping dictionaries. Missing entries cause `KeyError` at runtime.
 
