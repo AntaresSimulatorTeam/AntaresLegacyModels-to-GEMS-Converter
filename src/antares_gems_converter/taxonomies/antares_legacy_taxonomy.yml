@@ -27,6 +27,7 @@ taxonomy:
         - id: price
         - id: imbalance_cost
         - id: is_loss_of_load
+        - id: probability_loss_of_load
         - id: near_loss_of_load
       properties:
         - id: carrier
@@ -76,7 +77,16 @@ taxonomy:
         - id: carrier
 
     - id: fatal_consumption
-      parent-category: consumption     
+      parent-category: consumption
+
+    - id: renewable_fatal_production
+      parent-category: fatal_production
+
+    - id: misc_gen_fatal_production
+      parent-category: fatal_production 
+
+    - id: psp_fatal_production
+      parent-category: fatal_production  
 
     - id: flexible_consumption
       parent-category: consumption
@@ -88,13 +98,16 @@ taxonomy:
     - id: storage
       ports:
         - id: injection_port
-      extra-outputs:
+      variables:
         - id: p_injection
         - id: p_withdrawal
         - id: level
+        - id: overflow
       properties:
         - id: group
-
+    
+    - id: hydro_storage
+      parent-category: storage
 
     - id: link
       ports:

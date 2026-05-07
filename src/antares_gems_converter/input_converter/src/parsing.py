@@ -11,7 +11,7 @@
 # This file is part of the Antares project.
 
 from dataclasses import dataclass, field
-from typing import Optional, TextIO, Union
+from typing import Optional, TextIO, Union, List
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -133,7 +133,7 @@ class ObjectProperties(ModifiedBaseModel):
 
 class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
-    column: Optional[int] = None
+    column: Optional[List[int]] = None
     operation: Optional[Operation] = None
     constant: Optional[float] = None
 

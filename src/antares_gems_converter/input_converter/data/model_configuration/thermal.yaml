@@ -32,7 +32,8 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: prepro_modulation_matrix 
-          column: 3
+          column: 
+            - 3
       - id: p_max_cluster
         scenario-dependent: true
         time-dependent: true
@@ -123,6 +124,132 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: spinning
+      - id: co2_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: co2
+      - id: nh3_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: nh3
+      - id: so2_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: so2
+      - id: nox_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: nox
+      - id: pm2_5_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: pm2_5
+      - id: pm5_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: pm5
+      - id: pm10_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: pm10
+      - id: nmvoc_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: nmvoc
+      - id: op1_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: op1
+      - id: op2_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: op2
+      - id: op3_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: op3
+      - id: op4_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: op4
+      - id: op5_emissions_rate
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${thermal}
+            field: op5
+    # properties:
+    #   - id: technology
+    #     value:
+    #       object-properties:
+    #         type: thermal
+    #         area: ${area}
+    #         cluster: ${thermal}
+    #         field: group
+
 
   # For full modeler mode
   connections:

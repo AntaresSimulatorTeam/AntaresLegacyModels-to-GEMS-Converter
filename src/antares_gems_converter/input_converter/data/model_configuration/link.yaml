@@ -47,7 +47,8 @@ template:
             type: link
             link: ${link}
             field: links_parameters
-          column: 0
+          column: 
+            - 0
       - id: hurdle_cost_indirect
         time-dependent: true
         scenario-dependent: false
@@ -56,7 +57,8 @@ template:
             type: link
             link: ${link}
             field: links_parameters
-          column: 1
+          column: 
+            - 1
 
   # For full modeler mode
   connections:

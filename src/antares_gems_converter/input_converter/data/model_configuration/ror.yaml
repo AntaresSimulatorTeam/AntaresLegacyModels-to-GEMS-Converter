@@ -12,17 +12,16 @@
 # Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
 
 template:
-  name: wind
+  name: ror
   generator-version-compatibility: X.Y #TODO: find this information
   model: antares_legacy_models.renewable
-  # scenario-group: wind_group
   template-parameters:
     - name: area
-      description: "Area identifier for the wind component"
+      description: "Area identifier for the solar component"
       # exclude:
 
   component:
-    id: wind_${area}
+    id: ror_${area}
     parameters:
       - id: nominal_capacity
         time-dependent: false
@@ -39,24 +38,25 @@ template:
         scenario-dependent: true
         value:
           object-properties:
-            type: wind
+            type: hydro
             area: ${area}
+            field: ror
 
   # For full modeler mode
   connections:
-    - component1: wind_${area}
+    - component1: ror_${area}
       port1: balance_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: wind_${area}
+    - component: ror_${area}
       port: balance_port
       area: ${area}
 
   legacy-objects-to-delete:
-    - id: legacy_wind
+    - id: legacy_solar
       object-properties:
-        type: wind
+        type: ror
         area: ${area}

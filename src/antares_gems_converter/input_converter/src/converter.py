@@ -13,6 +13,7 @@ import logging
 import shutil
 from pathlib import Path
 from typing import Optional, Union
+import yaml
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
@@ -109,6 +110,9 @@ class AntaresStudyConverter:
         else:
             # In full mode, the output is a full Gems study so no need to copy the original study, we start "from scratch"
             self.output_folder.mkdir(parents=True, exist_ok=True)
+            params = {"solver":"xpress","solver-parameters": "THREADS 1"}
+            with open(f'{self.output_folder}/parameters.yml', 'w') as yaml_file:
+                yaml.dump(params, yaml_file)
 
         if isinstance(study_input, Study):
             # We have a different way of managing thermal preprocessing files, because in this case we want to modify the study_path.
@@ -222,7 +226,7 @@ class AntaresStudyConverter:
                 id=param.id,
                 time_dependent=bool(param.time_dependent),
                 scenario_dependent=bool(param.scenario_dependent),
-                value=mp.convert_param_value(param.id, param.value),
+                value=mp.convert_param_value(param.id, param.value,(resolved_conversion_template.component.id).replace(" ", "_")),
             )
             for param in resolved_conversion_template.component.parameters
         ]

@@ -62,9 +62,9 @@ class AntaresHybridRunner:
         simulation_table_1_path, simulation_table_2_path = path / Path(
             self.simulation_id + "/" + self.SIMULATION_TABLE_1_FILE
         ), path / Path(self.simulation_id + "/" + self.SIMULATION_TABLE_2_FILE)
-        self.simulation_table_1, self.simulation_table_2 = pd.read_csv(
+        self.simulation_table_1 = pd.read_csv(
             simulation_table_1_path
-        ), pd.read_csv(simulation_table_2_path)
+        )
 
 
 class AntaresHybridStudyBenchmarker:
@@ -95,13 +95,13 @@ class AntaresHybridStudyBenchmarker:
                     "value"
                 ].values
             )
-            self.weekly_objectives_2.append(
-                r.simulation_table_2.query('output == "OBJECTIVE_VALUE"')[
-                    "value"
-                ].values
-            )
+            # self.weekly_objectives_2.append(
+            #     r.simulation_table_2.query('output == "OBJECTIVE_VALUE"')[
+            #         "value"
+            #     ].values
+            # )
             self.simulation_tables_1.append(r.simulation_table_1)
-            self.simulation_tables_2.append(r.simulation_table_2)
+            # self.simulation_tables_2.append(r.simulation_table_2)
 
     def weekly_rel_gaps(self) -> Tuple[np.ndarray, np.ndarray]:
         return np.abs(

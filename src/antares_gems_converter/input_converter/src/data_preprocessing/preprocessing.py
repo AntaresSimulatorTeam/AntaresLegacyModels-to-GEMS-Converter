@@ -28,6 +28,8 @@ ALLOWED_TYPES: list = [
     "load",
     "solar",
     "wind",
+    "hydro",
+    "misc_gen"
 ]
 SERIES_FOLDER = "data-series"
 
@@ -44,14 +46,14 @@ class ModelConversionPreprocessor:
         self.file_path = Path(".")
 
     def calculate_matrix_data_values(
-        self, obj: ConversionValue, type_resource: str
+        self, obj: ConversionValue, type_resource: str, component_id: str
     ) -> pd.DataFrame:
         if not obj.object_properties or not obj.object_properties.area:
             raise ValueError(
                 f"Object properties and its area from {obj} must not be None"
             )
         area: str = obj.object_properties.area
-        self.file_path = Path(f"{self.param_id}_{area}.tsv")
+        self.file_path = Path(f"{component_id}_{self.param_id}.tsv")
         self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return getattr(
             self.study.get_areas()[area], MATRIX_TYPES_TO_GET_METHOD[type_resource]
@@ -110,6 +112,40 @@ class ModelConversionPreprocessor:
         self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return time_series
 
+    def calculate_hydro_data_values(
+        self, obj: ConversionValue
+    ) -> Union[Any, pd.DataFrame]:
+        if (
+            not obj.object_properties
+            or not obj.object_properties.area
+            or not obj.object_properties.field
+        ):
+            raise ValueError(
+                f"Object properties, its area, and field from {obj} must not be None"
+            )
+        area: str = obj.object_properties.area
+        if area not in self.study.get_areas():
+            raise KeyError(f"Area {area} is not found in the study")
+        hydro = getattr(self.study.get_areas()[area],"hydro")
+        if obj.object_properties.field in TIMESERIES_NAME_TO_METHOD:
+            time_series = getattr(
+                hydro, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field]
+            )()
+            if obj.object_properties.field in ["maxpower","reservoir_levels"]:
+                time_series = time_series.loc[time_series.index.repeat(24)].copy().reset_index(drop=True)
+            elif obj.object_properties.field in ["mingen","mod_inflows"]:
+                time_series = time_series.loc[time_series.index.repeat(24)].copy().reset_index(drop=True)/24
+        else:
+            hydro_properties = getattr(hydro, "properties")
+            field_name = obj.object_properties.field
+            value = getattr(hydro_properties, field_name)
+            return value
+        self.file_path = Path(
+            f"{self.param_id}_{area}_hydro.tsv"
+        )
+        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
+        return time_series
+
     def calculate_binding_constraint_data_values(
         self, obj: ConversionValue
     ) -> Union[float, pd.Series, pd.DataFrame]:
@@ -130,15 +166,15 @@ class ModelConversionPreprocessor:
         else:
             return term.weight
 
-    def calculate_value(self, obj: ConversionValue) -> Union[float, str]:
+    def calculate_value(self, obj: ConversionValue, component_id: str) -> Union[float, str]:
         if obj.object_properties is None or obj.object_properties.type is None:
             raise ValueError(f"Object properties {obj} must not be None")
         type_resource: str = obj.object_properties.type
         time_series: pd.DataFrame = pd.DataFrame()
-        if type_resource in ["load", "wind", "solar"]:
-            time_series = self.calculate_matrix_data_values(obj, type_resource)
-            save_to_file(time_series, self.output_file)
-            return str(self.file_path).removesuffix(".tsv")
+        if type_resource in ["load", "wind", "solar", "misc_gen"]:
+            time_series = self.calculate_matrix_data_values(obj, type_resource, component_id)
+            # save_to_file(time_series, self.output_file)
+            # return str(self.file_path).removesuffix(".tsv")
         elif type_resource == "binding_constraint":
             # TODO No timeseries linked to binding constraints for the moment
             return self.calculate_binding_constraint_data_values(obj)  # type: ignore
@@ -150,9 +186,15 @@ class ModelConversionPreprocessor:
                 time_series = data
             else:
                 return data
+        elif type_resource in ["hydro"]:
+            data = self.calculate_hydro_data_values(obj)
+            if isinstance(data, pd.DataFrame):
+                time_series = data
+            else:
+                return data
 
         if getattr(obj, "column", None) is not None:
-            time_series: pd.Series = time_series.iloc[:, obj.column]  # type: ignore
+            time_series: pd.Series = time_series[obj.column].sum(axis=1) # type: ignore
 
             if getattr(obj, "operation") and obj.operation is not None:
                 parameter_value: Union[
@@ -171,7 +213,7 @@ class ModelConversionPreprocessor:
         return str(self.file_path).removesuffix(".tsv")
 
     def convert_param_value(
-        self, id: str, value_content: ConversionValue
+        self, id: str, value_content: ConversionValue, component_id: str
     ) -> Union[str, float]:
         self.param_id = id
         if value_content.constant is not None:
@@ -183,7 +225,7 @@ class ModelConversionPreprocessor:
             raise ValueError(
                 f"Unknown value type: {value_content.object_properties.type}"
             )
-        return self.calculate_value(value_content)
+        return self.calculate_value(value_content, component_id)
 
     def check_timeseries_validity(self, value_content: ConversionValue) -> bool:
         if value_content.constant is not None:
