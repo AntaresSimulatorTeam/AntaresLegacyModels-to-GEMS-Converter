@@ -13,13 +13,20 @@ jobs:
   check-update:
     runs-on: ubuntu-latest
     outputs:
-      update: ${{ steps.compare.outputs.update }}
+      new_issue: ${{ steps.create_issue.outputs.new_issue }}
       latest_version: ${{ steps.latest.outputs.version }}
       issue_number: ${{ steps.create_issue.outputs.issue_number }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Read current GemsPy version
+        id: current
+        run: |
+          VERSION=$(grep '^gemspy==' requirements.txt | cut -d'=' -f3)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
 
       - name: Fetch latest GemsPy release from PyPI
         id: latest
@@ -41,25 +48,19 @@ jobs:
           echo "version=$LATEST" >> "$GITHUB_OUTPUT"
           echo "Latest GemsPy version: $LATEST"
 
-      - name: Check for existing issue
+      - name: Compare versions
         id: compare
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const latest = '${{ steps.latest.outputs.version }}';
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-            });
-            const duplicate = existing.data.find(i => i.title.includes(`v${latest}`));
-            if (duplicate) {
-              console.log(`Issue already exists: #${duplicate.number} — no update needed.`);
-              core.setOutput('update', 'false');
-            } else {
-              console.log(`No issue found for v${latest} — new version detected.`);
-              core.setOutput('update', 'true');
-            }
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.version }}"
+          echo "Current: $CURRENT  |  Latest: $LATEST"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "update=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date."
+          else
+            echo "update=true" >> "$GITHUB_OUTPUT"
+            echo "New version detected: $LATEST"
+          fi
 
       - name: Create GitHub Issue
         id: create_issue
@@ -69,6 +70,21 @@ jobs:
           script: |
             const latest = '${{ steps.latest.outputs.version }}';
             const title = `[GEMSPY UPDATE] New release: v${latest}`;
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'gemspy-update',
+            });
+
+            const duplicate = existing.data.find(i => i.title === title);
+            if (duplicate) {
+              console.log(`Issue already exists: #${duplicate.number} - ${duplicate.html_url}`);
+              core.setOutput('new_issue', 'false');
+              core.setOutput('issue_number', String(duplicate.number));
+              return;
+            }
 
             const body = [
               '> This issue was automatically created by the `check-gemspy-update` workflow.',
@@ -99,13 +115,14 @@ jobs:
               labels: ['gemspy-update'],
             });
 
+            core.setOutput('new_issue', 'true');
             core.setOutput('issue_number', String(result.data.number));
             console.log(`Issue created: #${result.data.number} - ${result.data.html_url}`);
 
   run_tests:
     name: Tests against GemsPy v${{ needs.check-update.outputs.latest_version }}
     needs: check-update
-    if: needs.check-update.outputs.update == 'true'
+    if: needs.check-update.outputs.new_issue == 'true'
     uses: ./.github/workflows/run-tests.yml
     with:
       gemspy_version: ${{ needs.check-update.outputs.latest_version }}
@@ -115,7 +132,7 @@ jobs:
     name: Post test results to issue
     runs-on: ubuntu-22.04
     needs: [check-update, run_tests]
-    if: always() && needs.check-update.outputs.update == 'true'
+    if: always() && needs.check-update.outputs.new_issue == 'true'
 
     steps:
       - name: Post results to issue
