@@ -78,7 +78,7 @@ jobs:
               labels: 'gemspy-update',
             });
 
-            const duplicate = existing.data.find(i => i.title === title);
+            const duplicate = existing.data.find(i => i.title.includes(latest));
             if (duplicate) {
               console.log(`Issue already exists: #${duplicate.number} - ${duplicate.html_url}`);
               core.setOutput('new_issue', 'false');
