@@ -107,7 +107,7 @@ body:
         - [ ] `requirements.in` / `requirements.txt` updated to new antares-craft version
         - [ ] `pyproject.toml` version bumped (Minor)
 
-        ### Step 9 — Documentation & Changelog
+        ### Step 9 — Supporting Files
         - [ ] `COMPATIBILITY.md` updated with new antares-craft version mapping
         - [ ] `AGENTS.md` reviewed for impact and updated if needed
 
