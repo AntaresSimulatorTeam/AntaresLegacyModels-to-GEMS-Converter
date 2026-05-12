@@ -1,0 +1,119 @@
+name: "A2G-02 — Internal converter development or model library update"
+description: Track internal bug fixes, converter improvements, or modifications to the Antares Legacy models library not driven by an external tool update
+title: "[A2G-02] "
+labels: ["A2G-02"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Process A2G-02** — Triggered by internal initiative to fix, improve, or modify the Antares-Legacy-to-GEMS converter or the Antares Legacy models library. Not driven by a new Antares, antares-craft, or GemsPy release.
+
+        > **Deviation from standard workflow — Step 4:** model config template validation is required. After any change to converter logic or `antares_legacy_models.yml`, validate that all 7 model config templates still reference valid library models, and that parameter counts remain consistent between templates and the library.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - Converter logic (src/)
+        - Antares Legacy models library (antares_legacy_models.yml)
+        - Model config templates (src/antares_gems_converter/input_converter/data/)
+        - Both converter and library
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: Type of Change
+      description: Determines the semantic version impact (see versioning rules in COMPATIBILITY.md).
+      options:
+        - "Converter — Minor: bug fix, new feature, or antares-craft/GemsPy update"
+        - "Converter — Patch: dependency update, code optimisation, library-only change"
+        - "Library — Major: new legacy model added"
+        - "Library — Minor: bug fix or improvement to existing model"
+        - "Library — Patch: non-functional change (rename variable/parameter)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What change is being proposed and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: results_impact
+    attributes:
+      label: Results Impact
+      description: |
+        Are solver equivalence results expected to change?
+        If yes: describe the before/after difference and why it is intended.
+        If no: this must be confirmed via E2E solver equivalence tests.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation_strategy
+    attributes:
+      label: Validation Strategy
+      description: |
+        Describe the validation approach including model config template validation (A2G-02 Step 4 deviation):
+        - Which model config templates will be validated after the change?
+        - How will parameter count consistency be verified?
+        - Which solver equivalence tests confirm correctness?
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Process Checklist
+      value: |
+        ### Step 1 — Issue Creation
+        - [x] Issue created and linked to process A2G-02
+
+        ### Step 2 — Triage
+        - [ ] Process confirmed applicable
+        - [ ] Assigned to responsible contributor
+        - [ ] Priority and milestone set (if applicable)
+
+        ### Step 3 — Impact Analysis
+        - [ ] Affected converter modules identified (`src/`)
+        - [ ] Affected models identified within `antares_legacy_models.yml` (if library change)
+        - [ ] All model config templates referencing affected models verified
+        - [ ] Breaking vs backward-compatible change determined
+        - [ ] Results impact assessed and declared (change intended / no change intended)
+
+        ### Step 4 — Implementation ⚠️ model config template validation required
+        - [ ] Converter code updated (`src/`) and/or library updated (`antares_legacy_models.yml`)
+        - [ ] All model config templates validated (reference valid library models, correct parameter ids)
+        - [ ] Backward compatibility maintained unless explicitly intended as breaking
+
+        ### Step 5 — Testing & Validation
+        - [ ] If results are expected to change: before/after solver comparison documented
+        - [ ] If results must not change: solver equivalence tests confirm values identical (within tolerance)
+        - [ ] Antares historic equivalence tests pass (`pytest tests/antares_historic/`)
+
+        ### Step 6 — CI Validation
+        - [ ] Type checking passes (`mypy`)
+        - [ ] Formatting passes (`black`)
+        - [ ] All tests pass in CI
+
+        ### Step 7 — Review & Merge
+        - [ ] PR reviewed; documentation changes included
+
+        ### Step 8 — Versioning
+        - [ ] `pyproject.toml` version bumped if converter logic changed
+        - [ ] `version` field in `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` bumped if library changed
+
+        ### Step 9 — Supporting Files
+        - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed
+        - [ ] `COMPATIBILITY.md` updated if supported versions changed
+        - [ ] `AGENTS.md` reviewed for impact and updated if needed
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines
