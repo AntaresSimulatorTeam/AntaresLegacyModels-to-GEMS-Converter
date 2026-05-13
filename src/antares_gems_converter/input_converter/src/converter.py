@@ -47,11 +47,11 @@ from antares_gems_converter.input_converter.src.utils import (
     resolve_path,
 )
 from gems.study.parsing import (
-    InputAreaConnections,
-    InputComponent,
-    InputComponentParameter,
-    InputPortConnections,
-    InputSystem,
+    AreaConnectionsSchema,
+    ComponentParameterSchema,
+    ComponentSchema,
+    PortConnectionsSchema,
+    SystemSchema,
 )
 
 ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
@@ -127,23 +127,23 @@ class AntaresStudyConverter:
 
     def _convert_area_to_component_list(
         self, lib_id: str, excluded_areas: Optional[list[str]] = None
-    ) -> list[InputComponent]:
+    ) -> list[ComponentSchema]:
         components = []
         self.logger.info("Converting areas to component list...")
         for area in self.areas.values():
             if not excluded_areas or area.id not in excluded_areas:
                 components.append(
-                    InputComponent(
+                    ComponentSchema(
                         id=area.id,
                         model=f"{lib_id}.area",
                         parameters=[
-                            InputComponentParameter(
+                            ComponentParameterSchema(
                                 id="ens_cost",
                                 time_dependent=False,
                                 scenario_dependent=False,
                                 value=area.properties.energy_cost_unsupplied,
                             ),
-                            InputComponentParameter(
+                            ComponentParameterSchema(
                                 id="spillage_cost",
                                 time_dependent=False,
                                 scenario_dependent=False,
@@ -166,11 +166,9 @@ class AntaresStudyConverter:
                         id = legacy_component.binding_constraint_id
                     else:
                         continue
-                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
-                        getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
-                            id
-                        ]
-                    )
+                    obj = getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[id]
+                    arg = [obj] if legacy_component.type == "binding_constraint" else obj
+                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(arg)
                 elif (
                     legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
                     and legacy_component.area is not None
@@ -198,7 +196,7 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
                 )
-            except KeyError:
+            except (KeyError, FileNotFoundError):
                 self.logger.warning(
                     f"Item {legacy_component} not found in study; skipping deletion"
                 )
@@ -218,7 +216,7 @@ class AntaresStudyConverter:
         mp: ModelConversionPreprocessor,
     ) -> None:
         parameters = [
-            InputComponentParameter(
+            ComponentParameterSchema(
                 id=param.id,
                 time_dependent=bool(param.time_dependent),
                 scenario_dependent=bool(param.scenario_dependent),
@@ -232,7 +230,7 @@ class AntaresStudyConverter:
             kwargs["scenario_group"] = scenario_group
 
         components.append(
-            InputComponent(
+            ComponentSchema(
                 id=(resolved_conversion_template.component.id).replace(" ", "_"),
                 model=resolved_conversion_template.model,
                 parameters=parameters,
@@ -260,7 +258,7 @@ class AntaresStudyConverter:
                     area_value = area_connection.area
                 area_value = area_value.replace(" ", "_")
                 area_connections.append(
-                    InputAreaConnections(
+                    AreaConnectionsSchema(
                         component=component_value,
                         port=area_connection.port,
                         area=area_value,
@@ -285,7 +283,7 @@ class AntaresStudyConverter:
                     treated_components.append(component_value.replace(" ", "_"))
 
                 connections.append(
-                    InputPortConnections(
+                    PortConnectionsSchema(
                         component1=treated_components[0],
                         port1=connection.port1,
                         component2=treated_components[1],
@@ -298,11 +296,11 @@ class AntaresStudyConverter:
         conversion_template: ConversionTemplate,
         virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
     ) -> tuple[
-        list[InputComponent], list[InputPortConnections], list[InputAreaConnections]
+        list[ComponentSchema], list[PortConnectionsSchema], list[AreaConnectionsSchema]
     ]:
-        components: list[InputComponent] = []
-        connections: list[InputPortConnections] = []
-        area_connections: list[InputAreaConnections] = []
+        components: list[ComponentSchema] = []
+        connections: list[PortConnectionsSchema] = []
+        area_connections: list[AreaConnectionsSchema] = []
 
         model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
 
@@ -458,9 +456,9 @@ class AntaresStudyConverter:
         self,
         conversion_template: ConversionTemplate,
         virtual_objects: VirtualObjectsRepository,
-        components: list[InputComponent],
-        connections: list[InputPortConnections],
-        area_connections: list[InputAreaConnections],
+        components: list[ComponentSchema],
+        connections: list[PortConnectionsSchema],
+        area_connections: list[AreaConnectionsSchema],
     ) -> None:
         self.logger.info(
             f"Converting components of model {conversion_template.name}..."
@@ -476,16 +474,16 @@ class AntaresStudyConverter:
         connections.extend(connections_from_model)
         area_connections.extend(area_connections_from_model)
 
-    def convert_study_to_input_system(self) -> InputSystem:
+    def convert_study_to_input_system(self) -> SystemSchema:
         self._copy_libs_to_model_librairies()
         self._copy_scenario_builder()
         self._create_dataseries_dir()
         model_conversion_templates = self._build_model_conversion_templates()
         self._check_converted_models_are_in_libs(model_conversion_templates)
         virtual_objects = self._build_virtual_objects_repo(model_conversion_templates)
-        components: list[InputComponent] = []
-        connections: list[InputPortConnections] = []
-        area_connections: list[InputAreaConnections] = []
+        components: list[ComponentSchema] = []
+        connections: list[PortConnectionsSchema] = []
+        area_connections: list[AreaConnectionsSchema] = []
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
             self._convert_single_model(
@@ -503,14 +501,14 @@ class AntaresStudyConverter:
                     ANTARES_HISTORIC_LIB_ID, virtual_objects.areas
                 )
             )
-        system = InputSystem(
+        system = SystemSchema(
             id=self.study.name,
             components=components,
             connections=connections or None,
             area_connections=area_connections or None,
         )
         data = system.model_dump(exclude_none=True)
-        return InputSystem(**data)
+        return SystemSchema(**data)
 
     def _build_model_conversion_templates(self) -> dict[str, ConversionTemplate]:
         model_conversion_templates: dict[str, ConversionTemplate] = {}
