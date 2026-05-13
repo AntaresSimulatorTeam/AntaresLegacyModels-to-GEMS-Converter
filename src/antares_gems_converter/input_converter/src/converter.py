@@ -166,9 +166,15 @@ class AntaresStudyConverter:
                         id = legacy_component.binding_constraint_id
                     else:
                         continue
-                    obj = getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[id]
-                    arg = [obj] if legacy_component.type == "binding_constraint" else obj
-                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(arg)
+                    obj = getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
+                        id
+                    ]
+                    arg = (
+                        [obj] if legacy_component.type == "binding_constraint" else obj
+                    )
+                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
+                        arg
+                    )
                 elif (
                     legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
                     and legacy_component.area is not None
