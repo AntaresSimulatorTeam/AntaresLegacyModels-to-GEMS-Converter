@@ -31,11 +31,11 @@ from antares_gems_converter.input_converter.src.utils import (
 )
 from gems.model.resolve_library import resolve_library
 from gems.study.parsing import (
-    InputAreaConnections,
-    InputComponent,
-    InputComponentParameter,
-    InputPortConnections,
-    InputSystem,
+    AreaConnectionsSchema,
+    ComponentParameterSchema,
+    ComponentSchema,
+    PortConnectionsSchema,
+    SystemSchema,
     parse_yaml_components,
 )
 from gems.study.resolve_components import resolve_system
@@ -109,22 +109,22 @@ class TestConverter:
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         input_study = converter.convert_study_to_input_system()
 
-        expected_input_study = InputSystem(
+        expected_input_study = SystemSchema(
             id="studyTest",
             components=[
-                InputComponent(
+                ComponentSchema(
                     id="fr",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="ens_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
                             value=0.5,
                         ),
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="spillage_cost",
                             time_dependent=False,
                             scenario_dependent=False,
@@ -133,19 +133,19 @@ class TestConverter:
                         ),
                     ],
                 ),
-                InputComponent(
+                ComponentSchema(
                     id="it",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="ens_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
                             value=0.5,
                         ),
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="spillage_cost",
                             time_dependent=False,
                             scenario_dependent=False,
@@ -163,18 +163,18 @@ class TestConverter:
         area_components = converter._convert_area_to_component_list(lib_id)
 
         expected_area_components = [
-            InputComponent(
+            ComponentSchema(
                 id="fr",
                 model="antares_legacy_models.area",
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="ens_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.5,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="spillage_cost",
                         time_dependent=False,
                         scenario_dependent=False,
@@ -183,18 +183,18 @@ class TestConverter:
                     ),
                 ],
             ),
-            InputComponent(
+            ComponentSchema(
                 id="it",
                 model="antares_legacy_models.area",
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="ens_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.5,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="spillage_cost",
                         time_dependent=False,
                         scenario_dependent=False,
@@ -210,7 +210,7 @@ class TestConverter:
     def test_convert_area_to_yaml(self, local_study_w_areas: Study, lib_id: str):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         area_components = converter._convert_area_to_component_list(lib_id)
-        input_study = InputSystem(id=converter.study.name, components=area_components)
+        input_study = SystemSchema(id=converter.study.name, components=area_components)
 
         # Dump model into yaml file
         yaml_path = converter.output_folder / "study_path.yaml"
@@ -219,22 +219,22 @@ class TestConverter:
         with open(yaml_path, "r", encoding="utf-8") as yaml_file:
             validated_data = parse_yaml_components(yaml_file)
 
-        expected_validated_data = InputSystem(
+        expected_validated_data = SystemSchema(
             id="studyTest",
             components=[
-                InputComponent(
+                ComponentSchema(
                     id="it",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="ens_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
                             value=0.5,
                         ),
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="spillage_cost",
                             time_dependent=False,
                             scenario_dependent=False,
@@ -243,19 +243,19 @@ class TestConverter:
                         ),
                     ],
                 ),
-                InputComponent(
+                ComponentSchema(
                     id="fr",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="ens_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
                             value=0.5,
                         ),
-                        InputComponentParameter(
+                        ComponentParameterSchema(
                             id="spillage_cost",
                             time_dependent=False,
                             scenario_dependent=False,
@@ -298,7 +298,7 @@ class TestConverter:
         cost_withdrawal_path = "cost_withdrawal_fr_storage_1"
         cost_level_path = "cost_level_fr_storage_1"
         expected_storage_connections = [
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="fr_storage_1",
                 port1="injection_port",
                 component2="fr",
@@ -306,103 +306,103 @@ class TestConverter:
             )
         ]
         expected_storage_component = [
-            InputComponent(
+            ComponentSchema(
                 id="fr_storage_1",
                 model=f"{lib_id}.short-term-storage",
                 scenario_group=None,
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="reservoir_capacity",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="injection_nominal_capacity",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=10.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="withdrawal_nominal_capacity",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=10.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="efficiency_injection",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="efficiency_withdrawal",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="lower_rule_curve",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{lower_rule_curve_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="upper_rule_curve",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{upper_rule_curve_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="p_max_injection_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{pmax_injection_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="p_max_withdrawal_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{pmax_withdrawal_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="inflows",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{inflows_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="initial_level",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.5,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="cost_injection",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{cost_injection_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="cost_withdrawal",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{cost_withdrawal_path}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="cost_level",
                         time_dependent=True,
                         scenario_dependent=True,
@@ -444,7 +444,7 @@ class TestConverter:
         # series_path = study_path / "input" / "thermal" / "series" / "fr" / "gaz"
         print(thermals_components)
         expected_thermals_connections = [
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="fr_gaz",
                 port1="balance_port",
                 component2="fr",
@@ -452,82 +452,82 @@ class TestConverter:
             )
         ]
         expected_thermals_components = [
-            InputComponent(
+            ComponentSchema(
                 id="fr_gaz",
                 model="antares_legacy_models.thermal",
                 scenario_group=None,
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="minimum_generation_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value="minimum_generation_modulation_fr_gaz",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="p_max_cluster",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value="p_max_cluster_fr_gaz",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="p_min_unit",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="p_max_unit",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=2.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="generation_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="startup_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="fixed_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="d_min_up",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="d_min_down",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="unit_count",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="spinning",
                         time_dependent=False,
                         scenario_dependent=False,
@@ -570,7 +570,7 @@ class TestConverter:
 
         ### Compare connections
         connection = load_connections[0]
-        expected_connection: InputPortConnections = InputPortConnections(
+        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
             **next(
                 (
                     connection
@@ -641,33 +641,33 @@ class TestConverter:
             (conn for conn in solar_connections if conn.component1 == "solar_fr"), None
         )
         solar_timeseries = "generation_fr"
-        expected_solar_connection = InputPortConnections(
+        expected_solar_connection = PortConnectionsSchema(
             component1="solar_fr",
             port1="balance_port",
             component2="fr",
             port2="balance_port",
         )
 
-        expected_solar_components = InputComponent(
+        expected_solar_components = ComponentSchema(
             id="solar_fr",
             model="antares_legacy_models.renewable",
             scenario_group=None,
             parameters=[
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="nominal_capacity",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                     scenario_group=None,
                 ),
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="unit_count",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                     scenario_group=None,
                 ),
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="generation",
                     time_dependent=True,
                     scenario_dependent=True,
@@ -699,18 +699,18 @@ class TestConverter:
         )
 
         load_timeseries = "load_fr"
-        expected_load_connection = InputPortConnections(
+        expected_load_connection = PortConnectionsSchema(
             component1="load_fr",
             port1="balance_port",
             component2="fr",
             port2="balance_port",
         )
-        expected_load_components = InputComponent(
+        expected_load_components = ComponentSchema(
             id="load_fr",
             model="antares_legacy_models.load",
             scenario_group=None,
             parameters=[
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="load",
                     time_dependent=True,
                     scenario_dependent=True,
@@ -747,30 +747,30 @@ class TestConverter:
             (conn for conn in wind_connections if conn.component1 == "wind_fr"), None
         )
 
-        expected_wind_connection = InputPortConnections(
+        expected_wind_connection = PortConnectionsSchema(
             component1="wind_fr",
             port1="balance_port",
             component2="fr",
             port2="balance_port",
         )
-        expected_wind_components = InputComponent(
+        expected_wind_components = ComponentSchema(
             id="wind_fr",
             model="antares_legacy_models.renewable",
             scenario_group="wind_group",
             parameters=[
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="nominal_capacity",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                 ),
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="unit_count",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                 ),
-                InputComponentParameter(
+                ComponentParameterSchema(
                     id="generation",
                     time_dependent=True,
                     scenario_dependent=True,
@@ -855,33 +855,33 @@ class TestConverter:
         at_it_direct_costs_timeseries = "hurdle_cost_direct_at_it"
         at_it_indirect_costs_timeseries = "hurdle_cost_indirect_at_it"
         expected_link_component = [
-            InputComponent(
+            ComponentSchema(
                 id="fr_/_it",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_direct",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{fr_it_direct_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_indirect",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{fr_it_indirect_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_direct",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{fr_it_direct_costs_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_indirect",
                         time_dependent=True,
                         scenario_dependent=False,
@@ -890,33 +890,33 @@ class TestConverter:
                     ),
                 ],
             ),
-            InputComponent(
+            ComponentSchema(
                 id="at_/_fr",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_direct",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_fr_direct_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_indirect",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_fr_indirect_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_direct",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_fr_direct_costs_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_indirect",
                         time_dependent=True,
                         scenario_dependent=False,
@@ -925,33 +925,33 @@ class TestConverter:
                     ),
                 ],
             ),
-            InputComponent(
+            ComponentSchema(
                 id="at_/_it",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_direct",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_it_direct_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="capacity_indirect",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_it_indirect_links_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_direct",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_it_direct_costs_timeseries}",
                     ),
-                    InputComponentParameter(
+                    ComponentParameterSchema(
                         id="hurdle_cost_indirect",
                         time_dependent=True,
                         scenario_dependent=False,
@@ -963,37 +963,37 @@ class TestConverter:
         ]
 
         expected_link_connections = [
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="at_/_fr",
                 port1="in_port",
                 component2="at",
                 port2="balance_port",
             ),
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="at_/_fr",
                 port1="out_port",
                 component2="fr",
                 port2="balance_port",
             ),
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="at_/_it",
                 port1="in_port",
                 component2="at",
                 port2="balance_port",
             ),
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="at_/_it",
                 port1="out_port",
                 component2="it",
                 port2="balance_port",
             ),
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="fr_/_it",
                 port1="in_port",
                 component2="fr",
                 port2="balance_port",
             ),
-            InputPortConnections(
+            PortConnectionsSchema(
                 component1="fr_/_it",
                 port1="out_port",
                 component2="it",
@@ -1060,7 +1060,7 @@ class TestConverter:
         assert area_connections == []
         # Compare connections
 
-        expected_connection: InputPortConnections = InputPortConnections(
+        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
             **next(
                 (
                     connection
@@ -1163,7 +1163,7 @@ class TestConverter:
         assert check_file_exists(path4)
         ### Compare area connections
         expected_area_connections = [
-            InputAreaConnections(
+            AreaConnectionsSchema(
                 component="battery_fr", port="injection_port", area="fr"
             )
         ]
