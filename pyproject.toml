@@ -17,10 +17,13 @@ dependencies = [
     "pandas",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest~=7.0.0",
     "pytest-cov",
+    "mypy",
+    "types-pyyaml",
+    "black~=23.7.0",
 ]
 
 
