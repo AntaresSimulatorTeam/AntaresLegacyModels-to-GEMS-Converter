@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "antares-legacy-gems-converter"
-version = "0.0.1"
+version = "0.1.0"
 description = "Convert Antares Legacy studies to GEMS format"
 license = {text = "MPL-2.0"}
 requires-python = ">=3.10"
 dependencies = [
-    "gemspy",
+    "gemspy==0.1.0",
     "numpy",
     "PyYAML>=6.0",
     "pydantic",
