@@ -284,24 +284,24 @@ class AntaresStudyConverter:
                     else:
                         # Should not happen
                         pass
-                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
-                        getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
-                            id
-                        ]
-                    )
+                    constraint = getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[id]
+                    if legacy_component.type == "binding_constraint":
+                        getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])([constraint])
+                    else:
+                        getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(constraint)
                 elif (
                     legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
                     and legacy_component.area is not None
                 ):
+                    cluster = getattr(
+                        self.areas[legacy_component.area],
+                        TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[legacy_component.type],
+                    )()[legacy_component.cluster]
                     getattr(
                         self.areas[legacy_component.area],
                         TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD[legacy_component.type],
-                    )(
-                        getattr(
-                            self.areas[legacy_component.area],
-                            TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[legacy_component.type],
-                        )()[legacy_component.cluster]
-                    ).set_series(pd.DataFrame([0]*8760))
+                    )(cluster)
+                    cluster.set_series(pd.DataFrame([0] * 8760))
                 elif (
                     legacy_component.type in MATRIX_TYPES_TO_SET_METHOD
                     and legacy_component.area is not None

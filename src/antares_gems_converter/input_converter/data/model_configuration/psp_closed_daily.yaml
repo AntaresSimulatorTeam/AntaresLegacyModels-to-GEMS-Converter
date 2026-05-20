@@ -11,49 +11,99 @@
 
 # Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
 
-# Description of the observed elements in BP25_AREF
-# z_P2G_base: UNSP = 4000 €/MWh, spillage cost = 0 €/MWh,
-# load with a time series (scenario-independent), 1 cluster "z_p2g_base_base"
-# Links: {area}/z_P2G_base. Hurdle cost = 0.1 in both directions,
-# direct capacity (time series, scenario-independent), no indirect capacity
-# Binding constraint: P2G_fatal_band_{area}. Hourly constraints,
-# lower bound on the flow on the aforementioned link (time series, scenario-independent)
-# For information, factor 2 between the two bounds.
-
-# Object to create: one P2G base object per area,
-# which consumes between the lower and upper bounds.
-# If consumption is not at the upper bound, a proportional shedding cost applies
-
-
 template:
-  name: p2g_base
-  generator-version-compatibility: X.Y #None
-  model: andromede-v1-models.shedding_load
-  scenario-group: scenario_p2g #To do : the modeler-scenariobuilder.dat file should be built
+  name: psp_closed_daily
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: andromede-v1-models.psp_closed_daily
+  # scenario-group: scenario_psp_closed #To do : the modeler-scenario
   template-parameters:
     - name: area
-      description: "Area identifier for the P2G_base component"
-      exclude: #Zones where this component should not be created
+      description: "Area identifier for the component"
+      exclude:
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dke
+        object-properties:
+          type: area
+          area: dke
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: dkw
+        object-properties:
+          type: area
+          area: dkw
+      - id: fr
+        object-properties:
+          type: area
+          area: fr
+      - id: itcn
+        object-properties:
+          type: area
+          area: itcn
+      - id: nl
+        object-properties:
+          type: area
+          area: nl
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: nos
+        object-properties:
+          type: area
+          area: nos
+      - id: pt
+        object-properties:
+          type: area
+          area: pt
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se3
+        object-properties:
+          type: area
+          area: se3
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
       - id: ve_eu
         object-properties:
           type: area
           area: ve_eu
-      - id: ve_fr_load_journee
-        object-properties:
-          type: area
-          area: ve_fr_load_journee
-      - id: ve_fr_load_total
-        object-properties:
-          type: area
-          area: ve_fr_load_total
-      - id: ve_fr_mobilite_lourde
-        object-properties:
-          type: area
-          area: ve_fr_mobilite_lourde
       - id: ve_vhr_storage
         object-properties:
           type: area
           area: ve_vhr_storage
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total          
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee      
       - id: w_hydro_open_at
         object-properties:
           type: area
@@ -150,83 +200,71 @@ template:
         object-properties:
           type: area
           area: zz_flowbased
-      - id: dekf
-        object-properties:
-          type: area
-          area: dekf
-      - id: dkkf
-        object-properties:
-          type: area
-          area: dkkf
-      - id: ie
-        object-properties:
-          type: area
-          area: ie
-      - id: nom
-        object-properties:
-          type: area
-          area: nom
-      - id: ukni
-        object-properties:
-          type: area
-          area: ukni
 
   component:
-    id: p2g_base_${area}
+    id: psp_closed_${area}
     parameters:
-      - id: max_load
-        time-dependent: true
+      - id: hurdle_cost
         scenario-dependent: false
+        time-dependent: false
         value:
-          object-properties:
-            type: link
-            link: ${area} / z_p2g_base
-            field: capacity_direct
-          column: 0
-      - id: marginal_shedding_cost
+          constant: 0.01
+      - id: efficiency_injection
         time-dependent: false
         scenario-dependent: false
         value:
           object-properties:
-            type: thermal
-            area: z_p2g_base
-            cluster: z_p2g_base_base
-            field: marginal_cost
-      - id: load_hurdle_cost #TO DO parameter to be added in the model (shedding_load model)
-        time-dependent: true
+            type: binding_constraint
+            binding-constraint-id: psp_closed_${area}
+            field: ${area}%x_closed_pump
+      - id: efficiency_withdrawal
+        time-dependent: false
         scenario-dependent: false
         value:
           object-properties:
+            type: binding_constraint
+            binding-constraint-id: psp_closed_${area}
+            field: ${area}%x_closed_turb
+      - id: p_max_injection
+        time-dependent: true
+        scenario-dependent: false
+        value:  
+          object-properties:
             type: link
-            link: ${area} / z_p2g_base
-            field: links_parameters
-          column: 0
-
+            link: ${area} / x_closed_pump
+            field: capacity_direct
+      - id: p_max_withdrawal
+        time-dependent: true
+        scenario-dependent: false
+        value:  
+          object-properties:
+            type: link
+            link: ${area} / x_closed_turb
+            field: capacity_indirect
 
   # For full modeler mode
   connections:
-    - component1: p2g_base_${area}
-      port1: balance_port
+    - component1: psp_closed_${area}
+      port1: injection_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: p2g_base_${area}
+    - component: psp_closed_${area}
       port: balance_port
       area: ${area}
 
-  legacy-objects-to-delete:
-    - id: virtual_binding_constraint
+  legacy-objects-to-delete: #for each area not in the exclude list, delete the legacy objects
+    - id: psp_closed_${area}
       object-properties:
         type: binding_constraint
-        binding-constraint-id: p2g_fatalband_${area}
-    - id: virtual_nodes
-      object-properties:
-        type: area
-        area: z_p2g_base
-    - id: virtual_links
+        binding-constraint-id: psp_closed_${area}
+    - id: x_closed_turb
       object-properties:
         type: link
-        link: ${area} / z_p2g_base
-    
+        link: ${area} / x_closed_turb
+    - id: x_closed_pump
+      object-properties:
+        type: link
+        link: ${area} / x_closed_pump

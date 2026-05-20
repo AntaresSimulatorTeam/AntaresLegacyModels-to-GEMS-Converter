@@ -12,19 +12,14 @@
 # Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
 
 template:
-  name: st_storage
+  name: electric_vehicle_eu_charging_constraint
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.short-term-storage
-  scenario-group: scenario_battery
+  model: andromede-v1-models.electric_vehicle_eu_charging_constraint
+  scenario-group: scenario_electric_vehicle #To do : the modeler-scenario
   template-parameters:
     - name: area
-      cluster-type: st_storage
       description: "Area identifier for the component"
-      exclude:
-      - id: at
-        object-properties:
-          type: area
-          area: at
+      exclude: #ne pas exclure "at", car il faut au moins un noeud pour que la conversion fonctionne, et les script "RHS_bindingconstraints_VE.py" et "add_tsv_params.py" doivent également reconnaitre la TS incluant le terme "at"
       - id: be
         object-properties:
           type: area
@@ -61,6 +56,10 @@ template:
         object-properties:
           type: area
           area: es
+      - id: fr
+        object-properties:
+          type: area
+          area: fr
       - id: ie
         object-properties:
           type: area
@@ -149,22 +148,22 @@ template:
         object-properties:
           type: area
           area: ve_eu
-      - id: ve_fr_load_journee
-        object-properties:
-          type: area
-          area: ve_fr_load_journee
-      - id: ve_fr_load_total
-        object-properties:
-          type: area
-          area: ve_fr_load_total
-      - id: ve_fr_mobilite_lourde
-        object-properties:
-          type: area
-          area: ve_fr_mobilite_lourde
       - id: ve_vhr_storage
         object-properties:
           type: area
           area: ve_vhr_storage
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total          
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee      
       - id: w_hydro_open_at
         object-properties:
           type: area
@@ -261,152 +260,90 @@ template:
         object-properties:
           type: area
           area: zz_flowbased
+  
 
   component:
-    id: ${area}_${st_storage}
+    id: electric_vehicle_eu_charging_constraint_${area}
     parameters:
-      - id: reservoir_capacity
-        time-dependent: false
+      - id: parametre_nul_uniquement_pour_fonctionnement_template
         scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: reservoir_capacity
-      - id: injection_nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: injection_nominal_capacity
-      - id: withdrawal_nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: withdrawal_nominal_capacity
-      - id: efficiency_injection
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: efficiency
-      - id: efficiency_withdrawal
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: efficiency_withdrawal
-      - id: lower_rule_curve
         time-dependent: true
-        scenario-dependent: true
         value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: lower_rule_curve
-      - id: upper_rule_curve
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: upper_rule_curve
-      - id: p_max_injection_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: pmax_injection
-      - id: p_max_withdrawal_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: pmax_withdrawal
-      - id: inflows
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: storage_inflows
-      - id: initial_level
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: initial_level
-      # - id: cost_level
-      #   time-dependent: true
-      #   scenario-dependent: true
-      #   value:
-      #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_level
-      # - id: cost_variation_injection
-      #   time-dependent: true
-      #   scenario-dependent: true
-      #   value:
-      #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_variation_injection
-      # - id: cost_variation_withdrawal
-      #   time-dependent: true
-      #   scenario-dependent: true
-      #   value:
-      #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_variation_withdrawal
+          constant: 0.01
   # For full modeler mode
   connections:
-    - component1: ${area}_${st_storage}
-      port1: injection_port
-      component2: ${area}
-      port2: balance_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: at
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: be
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: cz
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: de
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: dke
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: dkw
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: es
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: ie
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: itcn
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: itcs
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: itn
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: nl
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: nos
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: pl
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: pt
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: se3
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: ukgb
+      port2: ve_charging_port
+    - component1: electric_vehicle_eu_charging_constraint
+      port1: ve_charging_port
+      component2: ukni
+      port2: ve_charging_port
 
-  # For hybrid mode
-  area-connections:
-    - component: ${area}_${st_storage}
-      port: balance_port
-      area: ${area}
 
-  legacy-objects-to-delete:
-    - id: legacy_st_storages
-      object-properties:
-        type: st_storage
-        area: ${area}
-        cluster: ${st_storage}
+    

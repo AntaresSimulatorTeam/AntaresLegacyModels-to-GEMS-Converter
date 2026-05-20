@@ -121,6 +121,100 @@ class AntaresHybridStudyBenchmarker:
         ), np.abs(self.weekly_objectives_2[0] - self.weekly_objectives_2[1])
 
 
+class AntaresHybridRunnerReadOnly:
+    """Read-only variant that loads existing simulation results without running."""
+    def __init__(
+        self, study_dir: Path
+    ) -> None:
+        self.study_dir = study_dir
+        self.OUTPUT_FILE_DIR_NAME = "output"
+        self.SIMULATION_TABLE_1_FILE = "simulation_table--optim-nb-1.csv"
+        self.SIMULATION_TABLE_2_FILE = "simulation_table--optim-nb-2.csv"
+
+    def load_latest(self) -> None:
+        """Load the latest simulation results from study_dir without running."""
+        path = self.study_dir / Path(self.OUTPUT_FILE_DIR_NAME)
+        folders = [
+            name for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))
+        ]
+        self.simulation_id = sorted(folders)[-1]
+        simulation_table_1_path, simulation_table_2_path = path / Path(
+            self.simulation_id + "/" + self.SIMULATION_TABLE_1_FILE
+        ), path / Path(self.simulation_id + "/" + self.SIMULATION_TABLE_2_FILE)
+        self.simulation_table_1, self.simulation_table_2 = pd.read_csv(
+            simulation_table_1_path
+        ), pd.read_csv(simulation_table_2_path)
+
+
+class AntaresHybridStudyBenchmarkerWithCachedStudy1:
+    """Benchmarker that runs only study 2 and compares with cached study 1 results."""
+    def __init__(
+        self,
+        exec_path: Path,
+        study_path_1: Path,
+        study_path_2: Path,
+        solver: None | str = None,
+    ) -> None:
+        self.exec_path, self.study_path_1, self.study_path_2, self.solver = (
+            exec_path,
+            study_path_1,
+            study_path_2,
+            solver,
+        )
+        self.weekly_objectives_1: list = []
+        self.weekly_objectives_2: list = []
+        self.simulation_tables_1: list = []
+        self.simulation_tables_2: list = []
+
+    def run(self) -> None:
+        """Load study 1 results and run study 2 only."""
+        # Load existing results from study 1
+        r1 = AntaresHybridRunnerReadOnly(self.study_path_1)
+        r1.load_latest()
+        self.weekly_objectives_1.append(
+            r1.simulation_table_1.query('output == "OBJECTIVE_VALUE"')[
+                "value"
+            ].values
+        )
+        self.weekly_objectives_2.append(
+            r1.simulation_table_2.query('output == "OBJECTIVE_VALUE"')[
+                "value"
+            ].values
+        )
+        self.simulation_tables_1.append(r1.simulation_table_1)
+        self.simulation_tables_2.append(r1.simulation_table_2)
+
+        # Run only study 2
+        r2 = AntaresHybridRunner(self.exec_path, self.study_path_2, self.solver)
+        r2.run()
+        self.weekly_objectives_1.append(
+            r2.simulation_table_1.query('output == "OBJECTIVE_VALUE"')[
+                "value"
+            ].values
+        )
+        self.weekly_objectives_2.append(
+            r2.simulation_table_2.query('output == "OBJECTIVE_VALUE"')[
+                "value"
+            ].values
+        )
+        self.simulation_tables_1.append(r2.simulation_table_1)
+        self.simulation_tables_2.append(r2.simulation_table_2)
+
+    def weekly_rel_gaps(self) -> Tuple[np.ndarray, np.ndarray]:
+        return np.abs(
+            (self.weekly_objectives_1[0] - self.weekly_objectives_1[1])
+            / self.weekly_objectives_1[0]
+        ), np.abs(
+            (self.weekly_objectives_2[0] - self.weekly_objectives_2[1])
+            / self.weekly_objectives_2[0]
+        )
+
+    def weekly_abs_gaps(self) -> Tuple[np.ndarray, np.ndarray]:
+        return np.abs(
+            self.weekly_objectives_1[0] - self.weekly_objectives_1[1]
+        ), np.abs(self.weekly_objectives_2[0] - self.weekly_objectives_2[1])
+
+
 class AntaresModelerRunner:
     def __init__(self, exec_dir: str, study_dir: str) -> None:
         self.exec_dir, self.study_dir = exec_dir, study_dir

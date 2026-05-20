@@ -167,6 +167,14 @@ template:
       object-properties:
         type: binding_constraint
         binding-constraint-id: battery_level_${area}
+    - id: batteries_pcomp_binding_constraints
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: batteries_pcomp_${area}
+    - id: battery_pcomp
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: battery_pcomp_level_${area}
     - id: virtual_links
       object-properties:
         type: link
@@ -175,6 +183,10 @@ template:
       object-properties:
         type: area
         area: z_batteries
+    - id: virtual_nodes_pcomp
+      object-properties:
+        type: area
+        area: z_batteries_pcomp
     - id: thermal_batteries_inj
       object-properties:
         type: thermal

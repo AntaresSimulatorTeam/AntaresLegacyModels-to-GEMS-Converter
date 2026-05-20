@@ -1,0 +1,844 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+#TODOs :
+#*idem pour battery_pcomp
+
+template:
+  name: modulation_nucleaire
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: andromede-v1-models.modulation_nucleaire
+  scenario-group: scenario_modulation_nucleaire #To do : the modeler-scenariobuilder.dat file should be built
+  template-parameters:
+    - name: area
+      description: "Area identifier for the battery component"
+      exclude:
+      - id: at
+        object-properties:
+          type: area
+          area: at
+      - id: be
+        object-properties:
+          type: area
+          area: be
+      - id: ch
+        object-properties:
+          type: area
+          area: ch
+      - id: cz
+        object-properties:
+          type: area
+          area: cz
+      - id: de
+        object-properties:
+          type: area
+          area: de
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dke
+        object-properties:
+          type: area
+          area: dke
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: dkw
+        object-properties:
+          type: area
+          area: dkw
+      - id: es
+        object-properties:
+          type: area
+          area: es
+      - id: fr
+        object-properties:
+          type: area
+          area: es
+      - id: ie
+        object-properties:
+          type: area
+          area: ie
+      - id: itca
+        object-properties:
+          type: area
+          area: itca
+      - id: itcn
+        object-properties:
+          type: area
+          area: itcn
+      - id: itcs
+        object-properties:
+          type: area
+          area: itcs
+      - id: itn
+        object-properties:
+          type: area
+          area: itn
+      - id: its
+        object-properties:
+          type: area
+          area: its
+      - id: itsar
+        object-properties:
+          type: area
+          area: itsar
+      - id: itsic
+        object-properties:
+          type: area
+          area: itsic
+      - id: lu
+        object-properties:
+          type: area
+          area: lu
+      - id: nl
+        object-properties:
+          type: area
+          area: nl
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: nos
+        object-properties:
+          type: area
+          area: nos
+      - id: pl
+        object-properties:
+          type: area
+          area: pl
+      - id: pt
+        object-properties:
+          type: area
+          area: pt
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se3
+        object-properties:
+          type: area
+          area: se3
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
+      - id: ukgb
+        object-properties:
+          type: area
+          area: ukgb
+      - id: ukni
+        object-properties:
+          type: area
+          area: ukni
+      - id: ve_eu
+        object-properties:
+          type: area
+          area: ve_eu
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_vhr_storage
+        object-properties:
+          type: area
+          area: ve_vhr_storage
+      - id: w_hydro_open_at
+        object-properties:
+          type: area
+          area: w_hydro_open_at
+      - id: w_hydro_open_cz
+        object-properties:
+          type: area
+          area: w_hydro_open_cz
+      - id: w_hydro_open_de
+        object-properties:
+          type: area
+          area: w_hydro_open_de
+      - id: w_hydro_open_es
+        object-properties:
+          type: area
+          area: w_hydro_open_es
+      - id: w_hydro_open_itcs
+        object-properties:
+          type: area
+          area: w_hydro_open_itcs
+      - id: w_hydro_open_itn
+        object-properties:
+          type: area
+          area: w_hydro_open_itn
+      - id: w_hydro_open_itsic
+        object-properties:
+          type: area
+          area: w_hydro_open_itsic
+      - id: w_hydro_open_nom
+        object-properties:
+          type: area
+          area: w_hydro_open_nom
+      - id: w_hydro_open_non
+        object-properties:
+          type: area
+          area: w_hydro_open_non
+      - id: w_hydro_open_nos
+        object-properties:
+          type: area
+          area: w_hydro_open_nos
+      - id: w_hydro_open_pl
+        object-properties:
+          type: area
+          area: w_hydro_open_pl
+      - id: w_hydro_open_pt
+        object-properties:
+          type: area
+          area: w_hydro_open_pt
+      - id: x_closed_pump
+        object-properties:
+          type: area
+          area: x_closed_pump
+      - id: x_closed_turb
+        object-properties:
+          type: area
+          area: x_closed_turb
+      - id: x_open_pump
+        object-properties:
+          type: area
+          area: x_open_pump
+      - id: x_open_turb
+        object-properties:
+          type: area
+          area: x_open_turb
+      - id: y_nuc_modulation
+        object-properties:
+          type: area
+          area: y_nuc_modulation
+      - id: z_batteries
+        object-properties:
+          type: area
+          area: z_batteries
+      - id: z_batteries_pcomp
+        object-properties:
+          type: area
+          area: z_batteries_pcomp
+      - id: z_p2g_asservi
+        object-properties:
+          type: area
+          area: z_p2g_asservi
+      - id: z_p2g_base
+        object-properties:
+          type: area
+          area: z_p2g_base
+      - id: zz_flowbased
+        object-properties:
+          type: area
+          area: zz_flowbased
+      - id: z_report
+        object-properties:
+          type: area
+          area: z_report
+      - id: z_effacement
+        object-properties:
+          type: area
+          area: z_effacement
+
+
+  component:
+    id: fr_nuclear_cp0_cp1_cp2
+    parameters:
+      - id: minimum_generation_modulation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: prepro_modulation_matrix 
+          column: 3
+      - id: p_max_cluster
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: thermal_series
+      - id: p_min_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: min_stable_power
+      - id: p_max_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: nominal_capacity
+      - id: generation_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: marginal_cost
+      - id: startup_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: startup_cost
+      - id: fixed_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: fixed_cost
+      - id: d_min_up
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: min_up_time
+      - id: d_min_down
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: min_down_time
+      - id: unit_count
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: unit_count
+      - id: spinning
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_cp0_cp1_cp2
+            field: spinning
+    id: fr_nuclear_epr
+    parameters:
+      - id: minimum_generation_modulation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: prepro_modulation_matrix 
+          column: 3
+      - id: p_max_cluster
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: thermal_series
+      - id: p_min_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: min_stable_power
+      - id: p_max_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: nominal_capacity
+      - id: generation_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: marginal_cost
+      - id: startup_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: startup_cost
+      - id: fixed_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: fixed_cost
+      - id: d_min_up
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: min_up_time
+      - id: d_min_down
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: min_down_time
+      - id: unit_count
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: unit_count
+      - id: spinning
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: spinning
+    id: fr_nuclear_n4
+    parameters:
+      - id: minimum_generation_modulation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: prepro_modulation_matrix 
+          column: 3
+      - id: p_max_cluster
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: thermal_series
+      - id: p_min_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: min_stable_power
+      - id: p_max_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: nominal_capacity
+      - id: generation_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: marginal_cost
+      - id: startup_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: startup_cost
+      - id: fixed_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: fixed_cost
+      - id: d_min_up
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: min_up_time
+      - id: d_min_down
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: min_down_time
+      - id: unit_count
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: unit_count
+      - id: spinning
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_n4
+            field: spinning
+    id: fr_nuclear_p4
+    parameters:
+      - id: minimum_generation_modulation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: prepro_modulation_matrix 
+          column: 3
+      - id: p_max_cluster
+        scenario-dependent: true
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: thermal_series
+      - id: p_min_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: min_stable_power
+      - id: p_max_unit
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_epr
+            field: nominal_capacity
+      - id: generation_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: marginal_cost
+      - id: startup_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: startup_cost
+      - id: fixed_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: fixed_cost
+      - id: d_min_up
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: min_up_time
+      - id: d_min_down
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: min_down_time
+      - id: unit_count
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: unit_count
+      - id: spinning
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_nuclear_p4
+            field: spinning
+
+    id: modulation_nucleaire
+    parameters:
+      - id: coefficient_mod_max_weekly_cp0_cp1_cp2
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_mod_max_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_cp0_cp1_cp2
+      
+      - id: coefficient_mod_max_weekly_epr
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_mod_max_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_epr
+      
+      - id: coefficient_mod_max_weekly_n4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_mod_max_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_n4
+      
+      - id: coefficient_mod_max_weekly_p4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_mod_max_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_p4
+
+      - id: coefficient_modulation_weekly_cp0_cp1_cp2
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_cp0_cp1_cp2
+      
+      - id: coefficient_modulation_weekly_epr
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_epr
+      
+      - id: coefficient_modulation_weekly_n4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_n4
+      
+      - id: coefficient_modulation_weekly_p4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_weekly
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_p4
+
+      - id: coefficient_modulation_limit_cp0_cp1_cp2
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_limit
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_cp0_cp1_cp2
+      
+      - id: coefficient_modulation_limit_epr
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_limit
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_epr
+      
+      - id: coefficient_modulation_limit_n4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_limit
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_n4
+      
+      - id: coefficient_modulation_limit_p4
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: nuc_modulation_limit
+            field: y_nuc_modulation.y_nuc_modulation_nuclear_p4
+
+      
+  connections:
+    - component1: battery_${area}
+      port1: injection_port
+      component2: ${area}
+      port2: balance_port
+
+  area-connections: #Syntax for hybrid connections: https://antares-simulator.readthedocs.io/en/latest/user-guide/solver/08-hybrid-studies/
+    #To handle the case of hybrid studies, where we replace complex modeling artifacts for batteries by a model.
+    - component: fr_nuclear_cp0_cp1_cp2
+      port: balance_port
+      area: fr
+    - component: fr_nuclear_epr
+      port: balance_port
+      area: fr
+    - component: fr_nuclear_n4
+      port: balance_port
+      area: fr
+    - component: fr_nuclear_p4
+      port: balance_port
+      area: fr
+  # legacy-objects-to-delete:
+  #   - id: batteries_binding_constraints
+  #     object-properties:
+  #       type: binding_constraint
+  #       binding-constraint-id: batteries_${area}
+  #   - id: battery_
+  #     object-properties:
+  #       type: binding_constraint
+  #       binding-constraint-id: battery_level_${area}
+  #   - id: virtual_links
+  #     object-properties:
+  #       type: link
+  #       link: ${area} / z_batteries
+  #   - id: virtual_nodes
+  #     object-properties:
+  #       type: area
+  #       area: z_batteries
+  #   - id: thermal_batteries_inj
+  #     object-properties:
+  #       type: thermal
+  #       area: ${area}
+  #       cluster: ${area}_batteries_inj
+  #   - id: thermal_z_batteries_1
+  #     object-properties:
+  #       type: thermal
+  #       area: z_batteries
+  #       cluster: z_batteries_batteries_${area}_1
+  #   - id: thermal_z_batteries_2
+  #     object-properties:
+  #       type: thermal
+  #       area: z_batteries
+  #       cluster: z_batteries_batteries_${area}_2

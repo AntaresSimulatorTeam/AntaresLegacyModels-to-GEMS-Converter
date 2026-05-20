@@ -18,6 +18,8 @@ library:
       description: A port which transfers power flow
       fields:
         - id: flow
+      area-connection:
+        - injection-field: flow
 
   models:
     - id: area
@@ -224,10 +226,10 @@ library:
           lower-bound: lower_rule_curve * reservoir_capacity
           upper-bound: upper_rule_curve * reservoir_capacity
       ports:
-        - id: injection_port
+        - id: balance_port
           type: flow
       port-field-definitions:
-        - port: injection_port
+        - port: balance_port
           field: flow
           definition: p_withdrawal - p_injection
       constraints:

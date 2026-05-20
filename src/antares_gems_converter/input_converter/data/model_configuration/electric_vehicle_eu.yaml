@@ -11,29 +11,71 @@
 
 # Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
 
-# Description of the observed elements in BP25_AREF
-# z_P2G_base: UNSP = 4000 €/MWh, spillage cost = 0 €/MWh,
-# load with a time series (scenario-independent), 1 cluster "z_p2g_base_base"
-# Links: {area}/z_P2G_base. Hurdle cost = 0.1 in both directions,
-# direct capacity (time series, scenario-independent), no indirect capacity
-# Binding constraint: P2G_fatal_band_{area}. Hourly constraints,
-# lower bound on the flow on the aforementioned link (time series, scenario-independent)
-# For information, factor 2 between the two bounds.
-
-# Object to create: one P2G base object per area,
-# which consumes between the lower and upper bounds.
-# If consumption is not at the upper bound, a proportional shedding cost applies
-
-
 template:
-  name: p2g_base
-  generator-version-compatibility: X.Y #None
-  model: andromede-v1-models.shedding_load
-  scenario-group: scenario_p2g #To do : the modeler-scenariobuilder.dat file should be built
+  name: electric_vehicle_eu
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: andromede-v1-models.electric_vehicle_eu
+  scenario-group: scenario_electric_vehicle #To do : the modeler-scenario
   template-parameters:
     - name: area
-      description: "Area identifier for the P2G_base component"
-      exclude: #Zones where this component should not be created
+      description: "Area identifier for the component"
+      exclude:
+      - id: fr
+        object-properties:
+          type: area
+          area: fr
+      - id: ch
+        object-properties:
+          type: area
+          area: ch
+      - id: dekf
+        object-properties:
+          type: area
+          area: dekf
+      - id: dkkf
+        object-properties:
+          type: area
+          area: dkkf
+      - id: itca
+        object-properties:
+          type: area
+          area: itca
+      - id: itsar
+        object-properties:
+          type: area
+          area: itsar
+      - id: its
+        object-properties:
+          type: area
+          area: its
+      - id: itsic
+        object-properties:
+          type: area
+          area: itsic
+      - id: lu
+        object-properties:
+          type: area
+          area: lu
+      - id: nom
+        object-properties:
+          type: area
+          area: nom
+      - id: non
+        object-properties:
+          type: area
+          area: non
+      - id: se1
+        object-properties:
+          type: area
+          area: se1
+      - id: se2
+        object-properties:
+          type: area
+          area: se2
+      - id: se4
+        object-properties:
+          type: area
+          area: se4
       - id: ve_eu
         object-properties:
           type: area
@@ -150,83 +192,120 @@ template:
         object-properties:
           type: area
           area: zz_flowbased
-      - id: dekf
-        object-properties:
-          type: area
-          area: dekf
-      - id: dkkf
-        object-properties:
-          type: area
-          area: dkkf
-      - id: ie
-        object-properties:
-          type: area
-          area: ie
-      - id: nom
-        object-properties:
-          type: area
-          area: nom
-      - id: ukni
-        object-properties:
-          type: area
-          area: ukni
 
   component:
-    id: p2g_base_${area}
+    id: electric_vehicle_eu_${area}
     parameters:
-      - id: max_load
-        time-dependent: true
+      - id: stock_energie_ve
         scenario-dependent: false
+        time-dependent: true
         value:
           object-properties:
-            type: link
-            link: ${area} / z_p2g_base
-            field: capacity_direct
-          column: 0
-      - id: marginal_shedding_cost
+            type: thermal
+            area: ve_vhr_storage
+            cluster: ve_vhr_storage_ve_${area}_1
+            field: thermal_series
+      # - id: stock_energie_ve_2
+      #   scenario-dependent: false
+      #   time-dependent: true
+      #   value:
+      #     object-properties:
+      #       type: thermal
+      #       area: ve_vhr_storage
+      #       cluster: ve_vhr_storage_ve_${area}_1
+      #       field: thermal_series
+      - id: hurdle_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          constant: 0.01
+      - id: rendement_charge_ve
         time-dependent: false
         scenario-dependent: false
         value:
           object-properties:
-            type: thermal
-            area: z_p2g_base
-            cluster: z_p2g_base_base
-            field: marginal_cost
-      - id: load_hurdle_cost #TO DO parameter to be added in the model (shedding_load model)
-        time-dependent: true
+            type: binding_constraint
+            binding-constraint-id: ve_stock_${area}
+            field: ${area}%ve_eu
+      - id: rendement_v2g
+        time-dependent: false
         scenario-dependent: false
         value:
           object-properties:
+            type: binding_constraint
+            binding-constraint-id: ve_stock_${area}
+            field: ${area}.${area}_ve_inj
+      - id: ve_dispo_v2g
+        scenario-dependent: false
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: ${area}
+            cluster: ${area}_ve_inj
+            field: thermal_series
+      - id: ve_dispo_charging
+        scenario-dependent: false
+        time-dependent: true
+        value:  
+          object-properties:
             type: link
-            link: ${area} / z_p2g_base
-            field: links_parameters
-          column: 0
+            link: ${area} / ve_eu
+            field: capacity_direct
 
 
   # For full modeler mode
   connections:
-    - component1: p2g_base_${area}
-      port1: balance_port
+    - component1: electric_vehicle_eu_${area}
+      port1: injection_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: p2g_base_${area}
+    - component: electric_vehicle_eu_${area}
       port: balance_port
       area: ${area}
-
-  legacy-objects-to-delete:
-    - id: virtual_binding_constraint
+  
+  legacy-objects-to-delete: #for each area not in the exclude list, delete the legacy objects
+    - id: ve_eu_load_min
       object-properties:
         type: binding_constraint
-        binding-constraint-id: p2g_fatalband_${area}
-    - id: virtual_nodes
+        binding-constraint-id: ve_eu_load_min
+    - id: ve_level_${area}
       object-properties:
-        type: area
-        area: z_p2g_base
-    - id: virtual_links
+        type: binding_constraint
+        binding-constraint-id: ve_level_${area}
+    - id: ve_level_min_${area}
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_level_min_${area}
+    - id: ve_stock_${area}
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_stock_${area}
+    - id: ${area}_ve_inj
+      object-properties:
+        type: thermal
+        area: ${area}
+        cluster: ${area}_ve_inj
+    - id: ve_vhr_storage_ve_${area}_1
+      object-properties:
+        type: thermal
+        area: ve_vhr_storage
+        cluster: ve_vhr_storage_ve_${area}_1
+    - id: ve_vhr_storage_ve_${area}_2
+      object-properties:
+        type: thermal
+        area: ve_vhr_storage
+        cluster: ve_vhr_storage_ve_${area}_2
+    - id: link_ve_eu
       object-properties:
         type: link
-        link: ${area} / z_p2g_base
+        link: ${area} / ve_eu
+    - id: ve_eu
+      object-properties:
+        type: area
+        area: ve_eu
+
     

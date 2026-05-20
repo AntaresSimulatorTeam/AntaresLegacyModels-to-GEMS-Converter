@@ -10,7 +10,8 @@ src_path = repo_root / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from src.antares_runner.antares_runner import AntaresHybridStudyBenchmarker
+from src.antares_runner.antares_runner import AntaresHybridStudyBenchmarkerWithCachedStudy1
+# from src.antares_runner.antares_runner import AntaresHybridStudyBenchmarker
 # helper to add hybrid behaviour to a study (copies template input files)
 from tests.antares_historic.utils import addHybridBehaviorPerso
 from shutil import copy2
@@ -41,8 +42,10 @@ else:
 print("Ensuring hybrid behaviour files are present for study1...")
 addHybridBehaviorPerso(study1)
 
-bench = AntaresHybridStudyBenchmarker(exec_path, study1, study2, solver)
-print("Running antares solver for both studies (this may take a while)...")
+bench = AntaresHybridStudyBenchmarkerWithCachedStudy1(exec_path, study1, study2, solver)
+# bench = AntaresHybridStudyBenchmarker(exec_path, study1, study2, solver)
+
+print("Running antares solver for study 2 only (study 1 results loaded from cache)...")
 bench.run()
 rel1, rel2 = bench.weekly_rel_gaps()
 print("Weekly relative gaps (optim 1):")

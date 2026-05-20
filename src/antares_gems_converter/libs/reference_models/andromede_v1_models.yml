@@ -21,6 +21,11 @@ library:
         - id: flow
       area-connection:
         - injection-field: flow
+    - id: charging_flow
+      description: A port which transfers charging_flow
+      fields:
+        - id: charging_flow
+        
   models:
     - id: dsr
       parameters:
@@ -436,55 +441,6 @@ library:
           expression: effacement_a_reporter_heure_1[t] = effacement_a_reporter_heure_24[t]
         - id: valeur_report
           expression: report[t] = (coefficient_report_heure_1 * effacement_a_reporter_heure_1[t-1] + coefficient_report_heure_2 * effacement_a_reporter_heure_2[t-2] + coefficient_report_heure_3 * effacement_a_reporter_heure_3[t-3] + coefficient_report_heure_4 * effacement_a_reporter_heure_4[t-4] + coefficient_report_heure_5 * effacement_a_reporter_heure_5[t-5] + coefficient_report_heure_6 * effacement_a_reporter_heure_6[t-6] + coefficient_report_heure_7 * effacement_a_reporter_heure_7[t-7] + coefficient_report_heure_8 * effacement_a_reporter_heure_8[t-8] + coefficient_report_heure_9 * effacement_a_reporter_heure_9[t-9] + coefficient_report_heure_10 * effacement_a_reporter_heure_10[t-10] + coefficient_report_heure_11 * effacement_a_reporter_heure_11[t-11]+coefficient_report_heure_12 * effacement_a_reporter_heure_12[t-12]+coefficient_report_heure_13 * effacement_a_reporter_heure_13[t-13]+coefficient_report_heure_14 * effacement_a_reporter_heure_14[t-14]+coefficient_report_heure_15 * effacement_a_reporter_heure_15[t-15]+coefficient_report_heure_16 * effacement_a_reporter_heure_16[t-16]+coefficient_report_heure_17 * effacement_a_reporter_heure_17[t-17]+coefficient_report_heure_18 * effacement_a_reporter_heure_18[t-18]+coefficient_report_heure_19 * effacement_a_reporter_heure_19[t-19]+coefficient_report_heure_20 * effacement_a_reporter_heure_20[t-20]+coefficient_report_heure_21 * effacement_a_reporter_heure_21[t-21]+coefficient_report_heure_22 * effacement_a_reporter_heure_22[t-22]+coefficient_report_heure_23 * effacement_a_reporter_heure_23[t-23]+coefficient_report_heure_24 * effacement_a_reporter_heure_24[t-24]) 
-        # - id: valeur_report_heure_1
-        #   expression: report[t+1] = coefficient_report_heure_1 * effacement_a_reporter_heure_1[t]
-        # - id: valeur_report_heure_2
-        #   expression: report[t+2] = coefficient_report_heure_2 * effacement_a_reporter_heure_2[t]
-        # - id: valeur_report_heure_3
-        #   expression: report[t+3] = coefficient_report_heure_3 * effacement_a_reporter_heure_3[t]
-        # - id: valeur_report_heure_4
-        #   expression: report[t+4] = coefficient_report_heure_4 * effacement_a_reporter_heure_4[t]
-        # - id: valeur_report_heure_5
-        #   expression: report[t+5] = coefficient_report_heure_5 * effacement_a_reporter_heure_5[t]
-        # - id: valeur_report_heure_6
-        #   expression: report[t+6] = coefficient_report_heure_6 * effacement_a_reporter_heure_6[t]
-        # - id: valeur_report_heure_7
-        #   expression: report[t+7] = coefficient_report_heure_7 * effacement_a_reporter_heure_7[t]
-        # - id: valeur_report_heure_8
-        #   expression: report[t+8] = coefficient_report_heure_8 * effacement_a_reporter_heure_8[t]
-        # - id: valeur_report_heure_9
-        #   expression: report[t+9] = coefficient_report_heure_9 * effacement_a_reporter_heure_9[t]
-        # - id: valeur_report_heure_10
-        #   expression: report[t+10] = coefficient_report_heure_10 * effacement_a_reporter_heure_10[t]
-        # - id: valeur_report_heure_11
-        #   expression: report[t+11] = coefficient_report_heure_11 * effacement_a_reporter_heure_11[t]
-        # - id: valeur_report_heure_12
-        #   expression: report[t+12] = coefficient_report_heure_12 * effacement_a_reporter_heure_12[t]
-        # - id: valeur_report_heure_13
-        #   expression: report[t+13] = coefficient_report_heure_13 * effacement_a_reporter_heure_13[t]
-        # - id: valeur_report_heure_14
-        #   expression: report[t+14] = coefficient_report_heure_14 * effacement_a_reporter_heure_14[t]
-        # - id: valeur_report_heure_15
-        #   expression: report[t+15] = coefficient_report_heure_15 * effacement_a_reporter_heure_15[t]
-        # - id: valeur_report_heure_16
-        #   expression: report[t+16] = coefficient_report_heure_16 * effacement_a_reporter_heure_16[t]
-        # - id: valeur_report_heure_17
-        #   expression: report[t+17] = coefficient_report_heure_17 * effacement_a_reporter_heure_17[t]
-        # - id: valeur_report_heure_18
-        #   expression: report[t+18] = coefficient_report_heure_18 * effacement_a_reporter_heure_18[t]
-        # - id: valeur_report_heure_19
-        #   expression: report[t+19] = coefficient_report_heure_19 * effacement_a_reporter_heure_19[t]
-        # - id: valeur_report_heure_20
-        #   expression: report[t+20] = coefficient_report_heure_20 * effacement_a_reporter_heure_20[t]
-        # - id: valeur_report_heure_21
-        #   expression: report[t+21] = coefficient_report_heure_21 * effacement_a_reporter_heure_21[t]
-        # - id: valeur_report_heure_22
-        #   expression: report[t+22] = coefficient_report_heure_22 * effacement_a_reporter_heure_22[t]
-        # - id: valeur_report_heure_23
-        #   expression: report[t+23] = coefficient_report_heure_23 * effacement_a_reporter_heure_23[t]
-        # - id: valeur_report_heure_24
-        #   expression: report[t+24] = coefficient_report_heure_24 * effacement_a_reporter_heure_24[t]
-
         - id: energy_max_day1
           expression: (sum(t .. t+23, effacement_a_reporter_heure_1))[0] <= (sum(t .. t+23, valeur_energie_journaliere_effacement_max))[0]
         - id: energy_max_day2
@@ -503,3 +459,408 @@ library:
         - id: puissance_2h_consecutives_maximale_effacement
           expression: effacement_a_reporter_heure_1[t-1] + effacement_a_reporter_heure_2[t] <= valeur_puissance_2h_consecutives_max
       # extra-outputs:
+
+
+
+    # - id: modulation_nucleaire
+    #   parameters:
+    #     - id: disponibilite_nucleaire_cp0_cp1_cp2
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: disponibilite_nucleaire_epr
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: disponibilite_nucleaire_n4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: disponibilite_nucleaire_p4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_mod_max_weekly_cp0_cp1_cp2
+    #       time-dependent: false
+    #       scenario-dependent: false
+    #     - id: coefficient_mod_max_weekly_epr
+    #       time-dependent: false
+    #       scenario-dependent: false
+    #     - id: coefficient_mod_max_weekly_n4
+    #       time-dependent: false
+    #       scenario-dependent: false
+    #     - id: coefficient_mod_max_weekly_p4
+    #       time-dependent: false
+    #       scenario-dependent: false
+    #     - id: coefficient_modulation_weekly_cp0_cp1_cp2
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_weekly_epr
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_weekly_n4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_weekly_p4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_limit_cp0_cp1_cp2
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_limit_epr
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_limit_n4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #     - id: coefficient_modulation_limit_p4
+    #       time-dependent: true
+    #       scenario-dependent: true
+    #   constraints:
+    #     - id: mod_max_weekly
+    #       expression: (sum(t+0 .. t+167,fr_nucleaire_cp0_cp1_cp2.generation + fr_nucleaire_epr.generation + fr_nucleaire_n4.generation + fr_nucleaire_p4.generation))[0] >= (sum(t+0 .. t+167,coefficient_mod_max_weekly_cp0_cp1_cp2 * (-1) * disponibilite_fr_nuclear_cp0_cp1_cp2 + coefficient_mod_max_weekly_epr * (-1) * disponibilite_nucleaire_epr + coefficient_mod_max_weekly_n4 * (-1) * disponibilite_nucleaire_n4 + coefficient_mod_max_weekly_p4 * (-1) * disponibilite_nucleaire_p4))[0]
+    #     - id: modulation_weekly
+    #       expression: (sum(t+0 .. t+167,fr_nucleaire_cp0_cp1_cp2.generation + fr_nucleaire_epr.generation + fr_nucleaire_n4.generation + fr_nucleaire_p4.generation))[0] <= (sum(t+0 .. t+167,coefficient_modulation_weekly_cp0_cp1_cp2 * (-1) * disponibilite_fr_nuclear_cp0_cp1_cp2 + coefficient_modulation_weekly_epr * (-1) * disponibilite_nucleaire_epr + coefficient_modulation_weekly_n4 * (-1) * disponibilite_nucleaire_n4 + coefficient_modulation_weekly_p4 * (-1) * disponibilite_nucleaire_p4))[0]
+    #     # - id: modulation_limit
+    #       # expression: fr_nucleaire_cp0_cp1_cp2.generation + fr_nucleaire_epr.generation + fr_nucleaire_n4.generation + fr_nucleaire_p4.generation >= coefficient_modulation_limit_cp0_cp1_cp2 * disponibilite_fr_nuclear_cp0_cp1_cp2 + coefficient_modulation_limit_epr * disponibilite_nucleaire_epr + coefficient_modulation_limit_n4 * disponibilite_nucleaire_n4 + coefficient_modulation_limit_p4 * disponibilite_nucleaire_p4
+    #   objective-contributions:
+    #     - id: obj
+    #       expression: sum(generation_cost * generation + startup_cost * nb_starting + fixed_cost * nb_units_on)    
+
+
+    - id: electric_vehicle_fr  
+      parameters:
+        - id: stock_energie_ve #stock de batteries de VE dans le noeud ; VE_VHR_storage_VE_X_1
+          time-dependent: true
+          scenario-dependent: false
+        # - id: stock_energie_ve_2 #stock de batteries de VE dans le noeud
+        #   time-dependent: true
+        #   scenario-dependent: false
+        - id: hurdle_cost
+          time-dependent: false
+          scenario-dependent: false
+        - id: rendement_charge_ve #coef Contrainte couplante de suivi de stock
+          time-dependent: false
+          scenario-dependent: false
+        - id: rendement_v2g #coef Contrainte couplante de suivi de stock
+          time-dependent: false
+          scenario-dependent: false
+        - id: stock_mobile #RHS Contrainte couplante de suivi de stock
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_fr_min_24h_charging #RHS Contrainte de recharge sur la journée
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_fr_min_24h_charging_at_night #RHS Contrainte de recharge sur la nuit
+          time-dependent: true
+          scenario-dependent: false
+        - id: stock_minimal #RHS Contraintes de niveau minimal (level min)
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_fr_max_v2g_24h #RHS Contrainte de limite du V2G 
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_fr_max_mobilite_lourde_24h #RHS Contrainte d'énergie des véhicules lourds
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_dispo_v2g #dispo du cluster thermique VE_INJ de chaque area
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_dispo_charging #ROW Balance du noeud VE_FR_load_total
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_dispo_mobilite_lourde #capacite lien VE_FR_mobilite_lourde
+          time-dependent: true
+          scenario-dependent: false
+      variables:
+        - id: charging
+          lower-bound: 0
+          upper-bound: -ve_dispo_charging
+        - id: v2g
+          lower-bound: 0
+          upper-bound: ve_dispo_v2g
+        - id: charging_mobilite_lourde
+          lower-bound: 0
+          upper-bound: ve_dispo_mobilite_lourde
+        - id: suivi_stock_energie_ve
+          lower-bound: 0
+          upper-bound: stock_energie_ve
+        - id: suivi_stock_energie_ve_2
+          lower-bound: 0
+          upper-bound: stock_energie_ve
+      objective-contributions:
+        - id: obj
+          expression: sum(charging * hurdle_cost + charging_mobilite_lourde * hurdle_cost)
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -charging-charging_mobilite_lourde+v2g
+
+      constraints:
+      #FR UNIQUEMENT
+        #Contrainte de recharge par jour
+        - id: constraint_ve_fr_min_24h_charging_day_1
+          expression: (sum(t+0 .. t+23, charging))[0] >= (sum(t+0 .. t+23, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_2
+          expression: (sum(t+24 .. t+47, charging))[0] >= (sum(t+24 .. t+47, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_3
+          expression: (sum(t+48 .. t+71, charging))[0] >= (sum(t+48 .. t+71, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_4
+          expression: (sum(t+72 .. t+95, charging))[0] >= (sum(t+72 .. t+95, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_5
+          expression: (sum(t+96 .. t+119, charging))[0] >= (sum(t+96 .. t+119, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_6
+          expression: (sum(t+120 .. t+143, charging))[0] >= (sum(t+120 .. t+143, ve_fr_min_24h_charging))[0]
+        - id: constraint_ve_fr_min_24h_charging_day_7
+          expression: (sum(t+144 .. t+166, charging))[0] >= (sum(t+144 .. t+166, ve_fr_min_24h_charging))[0]
+
+        #Contrainte de recharge sur la nuit
+        - id: constraint_ve_fr_min_24h_charging_at_night_1 #20h --> 6h
+          expression: (sum(t+0 .. t+5, charging))[0] + (sum(t+21 .. t+23, charging))[0] >= (sum(t+0 .. t+23, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_2 #20h --> 6h
+          expression: (sum(t+24 .. t+29, charging))[0] + (sum(t+45 .. t+47, charging))[0] >=  (sum(t+24 .. t+47, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_3 #20h --> 6h
+          expression: (sum(t+48 .. t+53, charging))[0] + (sum(t+69 .. t+71, charging))[0] >=  (sum(t+48 .. t+71, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_4 #20h --> 6h
+          expression: (sum(t+72 .. t+77, charging))[0] + (sum(t+93 .. t+95, charging))[0] >= (sum(t+72 .. t+95, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_5 #20h --> 6h
+          expression: (sum(t+96 .. t+101, charging))[0] + (sum(t+117 .. t+119, charging))[0] >= (sum(t+96 .. t+119, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_6 #20h --> 6h
+          expression: (sum(t+120 .. t+125, charging))[0] + (sum(t+141 .. t+143, charging))[0] >= (sum(t+120 .. t+143, ve_fr_min_24h_charging_at_night))[0]
+        - id: constraint_ve_fr_min_24h_charging_at_night_7 #20h --> 6h
+          expression: (sum(t+144 .. t+149, charging))[0] + (sum(t+165 .. t+167, charging))[0] >= (sum(t+144 .. t+167, ve_fr_min_24h_charging_at_night))[0]
+        
+        #Contrainte de limite du V2G 
+        - id: constraint_ve_fr_v2g_at_day_1
+          expression: (sum(t .. t+23, v2g))[0] <= (sum(t .. t+23, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_2
+          expression: (sum(t+24 .. t+47, v2g))[0] <= (sum(t+24 .. t+47, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_3
+          expression: (sum(t+48 .. t+71, v2g))[0] <= (sum(t+48 .. t+71, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_4
+          expression: (sum(t+72 .. t+95, v2g))[0] <= (sum(t+72 .. t+95, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_5
+          expression: (sum(t+96 .. t+119, v2g))[0] <= (sum(t+96 .. t+119, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_6
+          expression: (sum(t+120 .. t+143, v2g))[0] <= (sum(t+120 .. t+143, ve_fr_max_v2g_24h))[0]
+        - id: constraint_ve_fr_v2g_at_day_7
+          expression: (sum(t+144 .. t+167, v2g))[0] <= (sum(t+144 .. t+167, ve_fr_max_v2g_24h))[0]
+
+        #Contrainte d'énergie des véhicules lourds
+        - id: constraint_ve_fr_mobilite_lourde_at_day_1
+          expression: (sum(t .. t+23, charging_mobilite_lourde))[0] = (sum(t .. t+23, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_2
+          expression: (sum(t+24 .. t+47, charging_mobilite_lourde))[0] = (sum(t+24 .. t+47, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_3
+          expression: (sum(t+48 .. t+71, charging_mobilite_lourde))[0] = (sum(t+48 .. t+71, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_4
+          expression: (sum(t+72 .. t+95, charging_mobilite_lourde))[0] = (sum(t+72 .. t+95, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_5
+          expression: (sum(t+96 .. t+119, charging_mobilite_lourde))[0] = (sum(t+96 .. t+119, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_6
+          expression: (sum(t+120 .. t+143, charging_mobilite_lourde))[0] = (sum(t+120 .. t+143, ve_fr_max_mobilite_lourde_24h))[0]
+        - id: constraint_ve_fr_mobilite_lourde_at_day_7
+          expression: (sum(t+144 .. t+167, charging_mobilite_lourde))[0] = (sum(t+144 .. t+167, ve_fr_max_mobilite_lourde_24h))[0]
+
+
+      #ALL COUNTRIES INDEPENDENTLY
+        #Contrainte couplante de suivi de stock
+        - id: constraint_stock
+          expression: suivi_stock_energie_ve_2[t+1] - suivi_stock_energie_ve[t] + rendement_charge_ve * charging + rendement_v2g * v2g = stock_mobile 
+          #stock mobile = RHS de la CC VE_stock_X ; ils représentent les VE qui se connectent avec une batterie pas totalement chargée et se déconnectent avec une batterie pleine
+        
+        #Contraintes de niveau minimal
+        - id: constraint_stock_minimal
+          expression: suivi_stock_energie_ve >= stock_minimal
+
+        #Contraintes de transmission du stock
+        - id: transmission du stock
+          expression: suivi_stock_energie_ve = suivi_stock_energie_ve_2
+
+
+    - id: electric_vehicle_eu
+      parameters:
+        - id: stock_energie_ve #stock de batteries de VE dans le noeud
+          time-dependent: true
+          scenario-dependent: false
+        # - id: stock_energie_ve_2 #stock de batteries de VE dans le noeud
+        #   time-dependent: true
+        #   scenario-dependent: false
+        - id: hurdle_cost
+          time-dependent: false
+          scenario-dependent: false
+        - id: rendement_charge_ve #coef Contrainte couplante de suivi de stock
+          time-dependent: false
+          scenario-dependent: false
+        - id: rendement_v2g #coef Contrainte couplante de suivi de stock
+          time-dependent: false
+          scenario-dependent: false
+        - id: stock_mobile #RHS Contrainte couplante de suivi de stock
+          time-dependent: true
+          scenario-dependent: false
+        - id: stock_minimal #RHS Contraintes de niveau minimal (level min)
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_dispo_v2g #dispo du cluster thermique VE_INJ de chaque area
+          time-dependent: true
+          scenario-dependent: false
+        - id: ve_dispo_charging #dispo du lien avec VE_EU de chaque area
+          time-dependent: true
+          scenario-dependent: false
+      variables:
+        - id: charging
+          lower-bound: 0
+          upper-bound: ve_dispo_charging
+        - id: v2g
+          lower-bound: 0
+          upper-bound: ve_dispo_v2g
+        - id: suivi_stock_energie_ve
+          lower-bound: 0
+          upper-bound: stock_energie_ve
+        - id: suivi_stock_energie_ve_2
+          lower-bound: 0
+          upper-bound: stock_energie_ve
+      objective-contributions:
+        - id: obj
+          expression: sum(charging * hurdle_cost)
+      ports:
+        - id: balance_port
+          type: flow
+        - id: ve_charging_port
+          type: charging_flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -charging+v2g
+        - port: ve_charging_port
+          field: charging_flow
+          definition: charging
+      constraints:
+      #ALL COUNTRIES INDEPENDENTLY
+        #Contrainte couplante de suivi de stock
+        - id: constraint_stock
+          expression: suivi_stock_energie_ve_2[t+1] - suivi_stock_energie_ve[t] + rendement_charge_ve * charging + rendement_v2g * v2g = stock_mobile 
+          #stock mobile = RHS de la CC VE_stock_X ; ils représentent les VE qui se connectent avec une batterie pas totalement chargée et se déconnectent avec une batterie pleine
+        
+        #Contraintes de niveau minimal
+        - id: constraint_stock_minimal
+          expression: suivi_stock_energie_ve >= stock_minimal
+
+        #Contraintes de transmission du stock
+        - id: transmission du stock
+          expression: suivi_stock_energie_ve = suivi_stock_energie_ve_2
+
+
+    - id: electric_vehicle_eu_charging_constraint
+      parameters:
+        - id: ve_eu_agregee_min_24h_charging_at_day #RHS Contrainte de recharge des autres pays EU (VE_EU_load_min)
+          time-dependent: true
+          scenario-dependent: false
+      ports:
+        - id: ve_charging_port
+          type: charging_flow
+      binding-constraints:
+      #ALL CONTRIES AGGREGATED
+        #Contrainte de recharge des autres pays EU 
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_1
+          expression: (sum(t .. t+23, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t .. t+23, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_2 
+          expression: (sum(t+24 .. t+47, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t+24 .. t+47, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_3 
+          expression: (sum(t+48 .. t+71, sum_connections(ve_charging_port.charging_flow )))[0] >= (sum(t+48 .. t+71, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_4 
+          expression: (sum(t+72 .. t+95, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t+72 .. t+95, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_5 
+          expression: (sum(t+96 .. t+119, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t+96 .. t+119, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_6 
+          expression: (sum(t+120 .. t+143, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t+120 .. t+143, ve_eu_agregee_min_24h_charging_at_day))[0]
+        - id: constraint_ve_eu_agregee_min_24h_charging_at_day_7 
+          expression: (sum(t+144 .. t+167, sum_connections(ve_charging_port.charging_flow)))[0] >= (sum(t+144 .. t+167, ve_eu_agregee_min_24h_charging_at_day))[0]
+
+    - id: psp_closed_daily
+      parameters:
+        - id: efficiency_injection
+          time-dependent: false
+          scenario-dependent: false
+        - id: efficiency_withdrawal
+          time-dependent: false
+          scenario-dependent: false
+        - id: p_max_injection  # Read in p_max_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: p_max_withdrawal # Read in p_max_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: hurdle_cost
+          time-dependent: false
+          scenario-dependent: false
+      variables:
+        - id: p_injection
+          lower-bound: 0
+          upper-bound: p_max_injection
+        - id: p_withdrawal
+          lower-bound: 0
+          upper-bound: p_max_withdrawal
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: p_withdrawal - p_injection
+      constraints:
+        - id: reset_stock_daily_1
+          expression: (sum(t .. t+23, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_2
+          expression: (sum(t+24 .. t+47, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_3
+          expression: (sum(t+48 .. t+71, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_4
+          expression: (sum(t+72 .. t+95, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_5
+          expression: (sum(t+96 .. t+119, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_6
+          expression: (sum(t+120 .. t+143, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+        - id: reset_stock_daily_7
+          expression: (sum(t+144 .. t+167, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+      objective-contributions:
+        - id: obj
+          expression: sum(hurdle_cost * p_injection + hurdle_cost * p_withdrawal)
+          
+    - id: psp_closed_weekly
+      parameters:
+        - id: efficiency_injection
+          time-dependent: false
+          scenario-dependent: false
+        - id: efficiency_withdrawal
+          time-dependent: false
+          scenario-dependent: false
+        - id: p_max_injection  # Read in p_max_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: p_max_withdrawal # Read in p_max_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: hurdle_cost
+          time-dependent: false
+          scenario-dependent: false
+      variables:
+        - id: p_injection
+          lower-bound: 0
+          upper-bound: p_max_injection
+        - id: p_withdrawal
+          lower-bound: 0
+          upper-bound: p_max_withdrawal
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: p_withdrawal - p_injection
+      constraints:
+        - id: reset_stock_daily_1
+          expression: (sum(t .. t+167, efficiency_injection * p_injection - p_withdrawal * efficiency_withdrawal))[0] = 0
+      objective-contributions:
+        - id: obj
+          expression: sum(hurdle_cost * p_injection + hurdle_cost * p_withdrawal)
+          

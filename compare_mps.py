@@ -106,5 +106,5 @@ if __name__ == "__main__":
     #     print(f"Usage : {sys.argv[0]} fichier1 fichier2")
     #     sys.exit(1)
 
-    compare_files("C:/Users/jeannecor/Documents/1-PROJECTS/OPEN SOURCE/BP25/output/20260427-1619eco/problem-1-1--optim-nb-1.mps",
-                  "C:/Users/jeannecor/Documents/1-PROJECTS/OPEN SOURCE/antares-studies-converted/BP25/output/20260427-1624eco/problem-1-1--optim-nb-1.mps")
+    compare_files("C:/Users/jeannecor/Documents/1-PROJECTS/OPEN SOURCE/BP25/output/20260512-1834eco/problem-1-1--optim-nb-1.mps",
+                  "C:/Users/jeannecor/Documents/1-PROJECTS/OPEN SOURCE/antares-studies-converted/BP25/output/20260512-1841eco/problem-1-1--optim-nb-1.mps")

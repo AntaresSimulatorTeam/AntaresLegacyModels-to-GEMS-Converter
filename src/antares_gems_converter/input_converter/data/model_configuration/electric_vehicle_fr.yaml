@@ -12,13 +12,12 @@
 # Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
 
 template:
-  name: st_storage
+  name: electric_vehicle_fr
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares-historic.short-term-storage
-  scenario-group: scenario_battery
+  model: andromede-v1-models.electric_vehicle_fr
+  scenario-group: scenario_electric_vehicle #To do : the modeler-scenario
   template-parameters:
     - name: area
-      cluster-type: st_storage
       description: "Area identifier for the component"
       exclude:
       - id: at
@@ -149,22 +148,22 @@ template:
         object-properties:
           type: area
           area: ve_eu
-      - id: ve_fr_load_journee
-        object-properties:
-          type: area
-          area: ve_fr_load_journee
-      - id: ve_fr_load_total
-        object-properties:
-          type: area
-          area: ve_fr_load_total
-      - id: ve_fr_mobilite_lourde
-        object-properties:
-          type: area
-          area: ve_fr_mobilite_lourde
       - id: ve_vhr_storage
         object-properties:
           type: area
           area: ve_vhr_storage
+      - id: ve_fr_mobilite_lourde
+        object-properties:
+          type: area
+          area: ve_fr_mobilite_lourde
+      - id: ve_fr_load_total
+        object-properties:
+          type: area
+          area: ve_fr_load_total          
+      - id: ve_fr_load_journee
+        object-properties:
+          type: area
+          area: ve_fr_load_journee      
       - id: w_hydro_open_at
         object-properties:
           type: area
@@ -263,150 +262,154 @@ template:
           area: zz_flowbased
 
   component:
-    id: ${area}_${st_storage}
+    id: electric_vehicle_fr
     parameters:
-      - id: reservoir_capacity
-        time-dependent: false
+      - id: stock_energie_ve
         scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: reservoir_capacity
-      - id: injection_nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: injection_nominal_capacity
-      - id: withdrawal_nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: withdrawal_nominal_capacity
-      - id: efficiency_injection
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: efficiency
-      - id: efficiency_withdrawal
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: efficiency_withdrawal
-      - id: lower_rule_curve
         time-dependent: true
-        scenario-dependent: true
         value:
           object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: lower_rule_curve
-      - id: upper_rule_curve
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: upper_rule_curve
-      - id: p_max_injection_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: pmax_injection
-      - id: p_max_withdrawal_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: pmax_withdrawal
-      - id: inflows
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: storage_inflows
-      - id: initial_level
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: st_storage
-            area: ${area}
-            cluster: ${st_storage}
-            field: initial_level
-      # - id: cost_level
+            type: thermal
+            area: ve_vhr_storage
+            cluster: ve_vhr_storage_ve_fr_1
+            field: thermal_series
+      # - id: stock_energie_ve_2
+      #   scenario-dependent: false
       #   time-dependent: true
-      #   scenario-dependent: true
       #   value:
       #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_level
-      # - id: cost_variation_injection
+      #       type: thermal
+      #       area: ve_vhr_storage
+      #       cluster: ve_vhr_storage_ve_fr_1
+      #       field: thermal_series
+      - id: hurdle_cost
+        scenario-dependent: false
+        time-dependent: false
+        value:
+          constant: 0.01
+      - id: rendement_charge_ve
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: ve_stock_fr
+            field: fr%ve_fr_load_total
+      - id: rendement_v2g
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: binding_constraint
+            binding-constraint-id: ve_stock_fr
+            field: fr.fr_ve_inj
+      - id: ve_dispo_v2g
+        scenario-dependent: false
+        time-dependent: true
+        value:
+          object-properties:
+            type: thermal
+            area: fr
+            cluster: fr_ve_inj
+            field: thermal_series
+      # - id: ve_dispo_charging
+      #   scenario-dependent: false
       #   time-dependent: true
-      #   scenario-dependent: true
       #   value:
       #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_variation_injection
-      # - id: cost_variation_withdrawal
-      #   time-dependent: true
-      #   scenario-dependent: true
-      #   value:
-      #     object-properties:
-      #       type: st_storage
-      #       area: ${area}
-      #       cluster: ${st_storage}
-      #       field: cost_variation_withdrawal
+      #       type: row_bal
+      #       area: ve_fr_total_load
+      - id: ve_dispo_mobilite_lourde #capacite lien VE_FR_mobilite_lourde
+        time-dependent: true
+        scenario-dependent: false
+        value:  
+          object-properties:
+            type: link
+            link: fr / ve_fr_mobilite_lourde
+            field: capacity_direct
+
   # For full modeler mode
   connections:
-    - component1: ${area}_${st_storage}
+    - component1: electric_vehicle_${area}
       port1: injection_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: ${area}_${st_storage}
+    - component: electric_vehicle_fr
       port: balance_port
-      area: ${area}
+      area: fr
 
-  legacy-objects-to-delete:
-    - id: legacy_st_storages
+  legacy-objects-to-delete: #for each area not in the exclude list, delete the legacy objects
+    - id: ve_fr_load_min
       object-properties:
-        type: st_storage
-        area: ${area}
-        cluster: ${st_storage}
+        type: binding_constraint
+        binding-constraint-id: ve_fr_load_min
+    - id: ve_fr_night_load_min
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_fr_night_load_min
+    - id: ve_fr_mobilite_lourde
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_fr_mobilite_lourde
+    - id: ve_level_fr
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_level_fr
+    - id: ve_level_min_fr
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_level_min_fr
+    - id: ve_stock_fr
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_stock_fr
+    - id: ve_v2g_limit
+      object-properties:
+        type: binding_constraint
+        binding-constraint-id: ve_v2g_limit
+    - id: fr_ve_inj
+      object-properties:
+        type: thermal
+        area: fr
+        cluster: fr_ve_inj
+    - id: ve_fr_load_total
+      object-properties:
+        type: area
+        area: ve_fr_load_total
+    - id: ve_fr_load_journee
+      object-properties:
+        type: area
+        area: ve_fr_load_journee
+    - id: ve_fr_mobilite_lourde
+      object-properties:
+        type: area
+        area: ve_fr_mobilite_lourde
+    - id: ve_fr_load_total
+      object-properties:
+        type: link
+        link: fr / ve_fr_load_total
+    - id: ve_fr_load_journee
+      object-properties:
+        type: link
+        link: fr / ve_fr_load_journee
+    - id: ve_fr_mobilite_lourde
+      object-properties:
+        type: link
+        link: fr / ve_fr_mobilite_lourde
+    - id: ve_fr_load_journee_ve_fr_load_total
+      object-properties:
+        type: link
+        link: ve_fr_load_journee / ve_fr_load_total
+    - id: ve_vhr_storage_ve_fr_1
+      object-properties:
+        type: thermal
+        area: ve_vhr_storage
+        cluster: ve_vhr_storage_ve_fr_1
+    - id: ve_vhr_storage_ve_fr_2
+      object-properties:
+        type: thermal
+        area: ve_vhr_storage
+        cluster: ve_vhr_storage_ve_fr_2

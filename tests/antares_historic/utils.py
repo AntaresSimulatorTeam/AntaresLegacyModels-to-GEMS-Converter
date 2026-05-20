@@ -8,14 +8,14 @@ import pandas as pd
 from antares.craft import *
 
 from antares_runner.antares_runner import AntaresHybridStudyBenchmarker
-from gems.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from gems.input_converter.src.data_preprocessing.data_classes import ConversionMode
 from gems.input_converter.src.logger import Logger
-from gems.input_converter.src import converter as gems_converter
+from antares_gems_converter.input_converter.src import converter as local_converter
 
 # Point the installed converter to the workspace model templates so we don't need
 # to copy template files into site-packages.
-gems_converter.MODEL_TEMPLATE_FOLDER = (
+local_converter.MODEL_TEMPLATE_FOLDER = (
     Path(__file__).resolve().parents[2]
     / "src"
     / "antares_gems_converter"
@@ -25,14 +25,14 @@ gems_converter.MODEL_TEMPLATE_FOLDER = (
 )
 
 # Make deletion of legacy objects robust when the referenced object is missing
-_orig_delete = gems_converter.AntaresStudyConverter._delete_legacy_objects
+_orig_delete = local_converter.AntaresStudyConverter._delete_legacy_objects
 def _safe_delete(self):
     try:
         _orig_delete(self)
-    except KeyError as e:
-        self.logger.warning(f"Skipping deletion of missing legacy object: {e}")
+    except Exception as e:
+        self.logger.warning(f"Skipping deletion of legacy object: {e}")
 
-gems_converter.AntaresStudyConverter._delete_legacy_objects = _safe_delete
+local_converter.AntaresStudyConverter._delete_legacy_objects = _safe_delete
 
 ANTARES_VERSION_CREATED_STUDIES = "9.2"
 ANTARES_LEGACY_MODELS_PATH = [
