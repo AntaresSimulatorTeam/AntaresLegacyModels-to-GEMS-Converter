@@ -272,7 +272,9 @@ class AntaresStudyConverter:
         return components
 
     def _delete_legacy_objects(self) -> None:
+        self.logger.info(f"Deleting {len(self.legacy_objects)} legacy objects")
         for legacy_component in self.legacy_objects:
+            self.logger.info(f"Deleting legacy component: {legacy_component}")
             try:
                 if legacy_component.type in STUDY_LEVEL_DELETION:
                     if legacy_component.type == "area":
@@ -301,7 +303,8 @@ class AntaresStudyConverter:
                         self.areas[legacy_component.area],
                         TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD[legacy_component.type],
                     )(cluster)
-                    cluster.set_series(pd.DataFrame([0] * 8760))
+                    if hasattr(cluster, "set_series"):
+                        cluster.set_series(pd.DataFrame([0] * 8760))
                 elif (
                     legacy_component.type in MATRIX_TYPES_TO_SET_METHOD
                     and legacy_component.area is not None
@@ -610,15 +613,17 @@ class AntaresStudyConverter:
         self._create_dataseries_dir()
         model_conversion_templates = self._build_model_conversion_templates()
         self._check_converted_models_are_in_libs(model_conversion_templates)
-        virtual_objects = self._build_virtual_objects_repo(model_conversion_templates)
         components: list[InputComponent] = []
         connections: list[InputPortConnections] = []
         area_connections: list[InputAreaConnections] = []
+        virtual_objects = VirtualObjectsRepository()
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
+            virtual_objects_this_model = conversion_template.get_excluded_objects_ids()
+            virtual_objects.add(virtual_objects_this_model)
             self._convert_single_model(
                 conversion_template,
-                virtual_objects,
+                virtual_objects_this_model,
                 components,
                 connections,
                 area_connections,

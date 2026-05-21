@@ -13,12 +13,17 @@ study_name = "BP25"
 # model_list = ["short-term-storage"]
 # model_list = ["p2g_asservi"]
 # model_list = ["effacement_residentiel_report"]
+
 # model_list = ["electric_vehicle_eu_charging_constraint"]
 # model_list = ["electric_vehicle_eu"]
 # model_list = ["electric_vehicle_fr"]
+
 # model_list = ["electric_vehicle_eu_charging_constraint","electric_vehicle_eu"]
 # model_list = ["psp_closed_daily"]
-model_list = ["p2g_base"]
+# model_list = ["p2g_base"]
+# model_list = ["p2g_asservi","p2g_base"]
+# model_list = ["battery","p2g_asservi","p2g_base"]
+model_list = ["battery","dsr_industrie","short-term-storage","effacement_residentiel_report","p2g_asservi","psp_closed_daily","p2g_base","electric_vehicle_fr","electric_vehicle_eu_charging_constraint","electric_vehicle_eu"]
 
 
 study_path, out_folder = convert_study_adapted(study_dir, study_name, model_list)

@@ -20,7 +20,11 @@ from antares.craft.model.study import Study
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.logger import Logger
-from antares_gems_converter.input_converter.src.parsing import Operation, parse_conversion_template
+from antares_gems_converter.input_converter.src.parsing import (
+    ObjectProperties,
+    Operation,
+    parse_conversion_template,
+)
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
@@ -388,6 +392,24 @@ class TestConverter:
 
         assert storage_components == expected_storage_component
         assert storage_connections == expected_storage_connections
+
+    def test_delete_legacy_st_storage_without_set_series(
+        self, local_study_with_st_storage: Study
+    ):
+        converter = self._init_converter_from_study(
+            local_study_with_st_storage, model_list=[]
+        )
+        converter.legacy_objects = [
+            ObjectProperties(type="st_storage", area="fr", cluster="storage_1")
+        ]
+
+        converter._delete_legacy_objects()
+
+        assert converter.legacy_objects == []
+        assert (
+            "storage_1"
+            not in local_study_with_st_storage.get_areas()["fr"].get_st_storages()
+        )
 
     # This parametrize allows to pass the parameter "DATAFRAME_PREPRO_THERMAL_CONFIG" inside the fixture
     # To specify the modulation and series dataframes

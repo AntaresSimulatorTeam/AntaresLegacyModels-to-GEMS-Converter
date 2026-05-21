@@ -304,15 +304,15 @@ template:
       port: balance_port
       area: ${area}
 
-  #legacy-objects-to-delete:
+  # legacy-objects-to-delete:
   #  - id: dsr_binding_constraints
   #    object-properties:
-    #     type: binding_constraint
-    #     binding-constraint-id: ${area}_dsr_industrie_stock_lt
-    # - id: legacy_thermal_cluster
-    #   object-properties:
-    #     type: thermal
-    #     area: ${area}
-    #     cluster: ${area}_dsr_industrie
+  #       type: binding_constraint
+  #       binding-constraint-id: ${area}_dsr_industrie_stock_lt
+  #  - id: legacy_thermal_cluster
+  #    object-properties:
+  #       type: thermal
+  #       area: ${area}
+  #       cluster: ${area}_dsr_industrie
 
     
