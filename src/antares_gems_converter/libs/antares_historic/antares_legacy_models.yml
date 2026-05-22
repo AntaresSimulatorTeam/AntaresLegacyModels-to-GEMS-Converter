@@ -12,6 +12,7 @@
 library:
   id: antares_legacy_models
   description: Antares historic model library
+  version: "1.0.0"
 
 
   port-types:
