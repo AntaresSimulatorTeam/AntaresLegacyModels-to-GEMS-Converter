@@ -1,18 +1,24 @@
 name: CI
+
 on:
   push:
     branches:
       - "**"
+  pull_request:
+    branches:
+      - "**"
 
 jobs:
-  ci:
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -33,43 +39,12 @@ jobs:
       - name: Check formatting
         uses: psf/black@stable
         with:
-          # Version of Black should match the versions set in `requirements-dev.txt`
           version: "~=23.7.0"
           options: --check --diff
-      - name: Set Antares version
-        run: |
-          ANTARES_VERSION=$(python -c "import json; print(json.load(open('dependencies.json'))['antares_simulator_version'])")
-          echo "ANTARES_VERSION=${ANTARES_VERSION}" >> $GITHUB_ENV
 
-      - name: Download Antares release
-        run: |
-          echo "Downloading Antares v${ANTARES_VERSION}..."
-          curl -L -f -o antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz \
-            https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${ANTARES_VERSION}/antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
-          if [ ! -f "antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz" ]; then
-            echo "Error: Download failed"
-            exit 1
-          fi
-          echo "Download successful. File size: $(ls -lh antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz | awk '{print $5}')"
-
-      - name: Extract Antares binaries
-        run: |
-          echo "Extracting archive..."
-          tar -xzf antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
-
-      - name: Test
-        run: |
-          pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml
-
-      - name: Archive code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-code-coverage-report
-          path: coverage.xml
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f antares-${ANTARES_VERSION}-Ubuntu-22.04.tar.gz
-          rm -rf antares-${ANTARES_VERSION}-Ubuntu-22.04
-          echo "Cleanup completed"
+  tests:
+    name: Tests
+    needs: code-quality
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      artifact_name: test-failures

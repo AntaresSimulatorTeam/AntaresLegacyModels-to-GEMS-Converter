@@ -1,0 +1,115 @@
+name: "A2G-03 — Antares-Craft evolution impact on converter"
+description: Track updates to the converter triggered by a new antares-craft release
+title: "[A2G-03] antares-craft update — converter impact"
+labels: ["A2G-03", "antares-craft-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Process A2G-03** — Triggered by a new antares-craft release that impacts the converter's study parsing, data extraction, or area/link reading logic.
+
+        > **Deviation from standard workflow — Step 3:** antares-craft API analysis is required before implementation. Explicitly analyse how the new API changes affect study reading (`parsing.py`, `preprocessing.py`), component access (areas, links, thermal clusters, renewable, STS), and data class structures. Verify backward compatibility.
+
+  - type: input
+    id: antares_craft_new_version
+    attributes:
+      label: New Antares-Craft Version
+      placeholder: "e.g. 0.4.0"
+    validations:
+      required: true
+
+  - type: input
+    id: antares_craft_previous_version
+    attributes:
+      label: Previous Tracked Version
+      placeholder: "e.g. 0.3.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: trigger
+    attributes:
+      label: Trigger
+      description: What changed in the new antares-craft release? Link to the changelog or release notes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api_analysis
+    attributes:
+      label: Antares-Craft API Analysis
+      description: |
+        A2G-03 Step 3 deviation — complete before implementation:
+        - Which API surfaces changed? (study reading, component access, data classes)
+        - How does this impact `parsing.py` and `preprocessing.py`?
+        - Are data class structures (thermal, link, STS, renewable) affected?
+        - Is backward compatibility with the previous version feasible?
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact on Converter
+      description: |
+        Which converter modules need updating?
+        - Study parsing (`src/antares_gems_converter/input_converter/src/parsing.py`)
+        - Data preprocessing (`src/antares_gems_converter/input_converter/src/data_preprocessing/`)
+        - Main converter logic (`src/antares_gems_converter/input_converter/src/converter.py`)
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation_strategy
+    attributes:
+      label: Validation Strategy
+      description: How will correctness be validated after the antares-craft upgrade?
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Process Checklist
+      value: |
+        ### Step 1 — Issue Creation
+        - [x] Issue created and linked to process A2G-03
+
+        ### Step 2 — Triage
+        - [ ] Process confirmed applicable
+        - [ ] Assigned to responsible contributor
+        - [ ] Priority and milestone set (if applicable)
+
+        ### Step 3 — Impact Analysis ⚠️ antares-craft API analysis required before implementation
+        - [ ] antares-craft changelog reviewed in full
+        - [ ] API changes affecting study reading identified (`parsing.py`, `preprocessing.py`)
+        - [ ] Data class structure changes assessed
+        - [ ] Impact on component access (thermal, link, renewable, STS, battery) assessed
+        - [ ] Backward compatibility with previous antares-craft version assessed
+
+        ### Step 4 — Implementation
+        - [ ] Converter code updated to align with new antares-craft API
+        - [ ] `requirements.txt` / `requirements.in` updated to new antares-craft version
+        - [ ] Backward compatibility maintained unless explicitly intended as breaking
+
+        ### Step 5 — Testing & Validation
+        - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
+
+        ### Step 6 — CI Validation
+        - [ ] Type checking passes (`mypy`)
+        - [ ] Formatting passes (`black`)
+        - [ ] All tests pass in CI
+
+        ### Step 7 — Review & Merge
+        - [ ] PR reviewed; documentation changes included
+
+        ### Step 8 — Versioning
+        - [ ] `requirements.in` / `requirements.txt` updated to new antares-craft version
+        - [ ] `pyproject.toml` version bumped (Minor)
+
+        ### Step 9 — Supporting Files
+        - [ ] `COMPATIBILITY.md` updated with new antares-craft version mapping
+        - [ ] `AGENTS.md` reviewed for impact and updated if needed
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines

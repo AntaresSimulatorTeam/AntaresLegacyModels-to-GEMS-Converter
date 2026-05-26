@@ -1,0 +1,161 @@
+name: Check GemsPy Update
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    outputs:
+      new_issue: ${{ steps.create_issue.outputs.new_issue }}
+      latest_version: ${{ steps.latest.outputs.version }}
+      issue_number: ${{ steps.create_issue.outputs.issue_number }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Read current GemsPy version
+        id: current
+        run: |
+          VERSION=$(grep '^gemspy==' requirements.txt | cut -d'=' -f3)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: Fetch latest GemsPy release from PyPI
+        id: latest
+        run: |
+          RESPONSE=$(curl -sf "https://pypi.org/pypi/gemspy/json")
+
+          if [ -z "$RESPONSE" ]; then
+            echo "ERROR: Could not fetch GemsPy info from PyPI"
+            exit 1
+          fi
+
+          LATEST=$(echo "$RESPONSE" | jq -r '.info.version')
+
+          if [ -z "$LATEST" ] || [ "$LATEST" = "null" ]; then
+            echo "ERROR: Could not parse latest GemsPy version"
+            exit 1
+          fi
+
+          echo "version=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "Latest GemsPy version: $LATEST"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.version }}"
+          echo "Current: $CURRENT  |  Latest: $LATEST"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "update=false" >> "$GITHUB_OUTPUT"
+            echo "Already up to date."
+          else
+            echo "update=true" >> "$GITHUB_OUTPUT"
+            echo "New version detected: $LATEST"
+          fi
+
+      - name: Create GitHub Issue
+        id: create_issue
+        if: steps.compare.outputs.update == 'true'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const latest = '${{ steps.latest.outputs.version }}';
+            const title = `[GEMSPY UPDATE] New release: v${latest}`;
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'gemspy-update',
+            });
+
+            const duplicate = existing.data.find(i => i.title.includes(latest));
+            if (duplicate) {
+              console.log(`Issue already exists: #${duplicate.number} - ${duplicate.html_url}`);
+              core.setOutput('new_issue', 'false');
+              core.setOutput('issue_number', String(duplicate.number));
+              return;
+            }
+
+            const body = [
+              '> This issue was automatically created by the `check-gemspy-update` workflow.',
+              '',
+              '## New Version Detected',
+              '',
+              '| | |',
+              '|---|---|',
+              `| **New version** | \`${latest}\` |`,
+              `| **PyPI page** | https://pypi.org/project/gemspy/${latest}/ |`,
+              '',
+              '## Triage',
+              '',
+              '- [ ] GemsPy changelog reviewed',
+              '- [ ] A2G-04 issue opened (if API changes affect GEMS study generation, model validation, or simulation output)',
+              '- [ ] No action needed (if release has no impact on the converter)',
+              '',
+              '---',
+              '',
+              '_Test results against this version will be posted below by the workflow._',
+            ].join('\n');
+
+            const result = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['gemspy-update'],
+            });
+
+            core.setOutput('new_issue', 'true');
+            core.setOutput('issue_number', String(result.data.number));
+            console.log(`Issue created: #${result.data.number} - ${result.data.html_url}`);
+
+  run_tests:
+    name: Tests against GemsPy v${{ needs.check-update.outputs.latest_version }}
+    needs: check-update
+    if: needs.check-update.outputs.new_issue == 'true'
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      gemspy_version: ${{ needs.check-update.outputs.latest_version }}
+      artifact_name: test-failures-gemspy-${{ needs.check-update.outputs.latest_version }}
+
+  post-results:
+    name: Post test results to issue
+    runs-on: ubuntu-22.04
+    needs: [check-update, run_tests]
+    if: always() && needs.check-update.outputs.new_issue == 'true'
+
+    steps:
+      - name: Post results to issue
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const outcome = '${{ needs.run_tests.outputs.test_outcome }}';
+            const version = '${{ needs.check-update.outputs.latest_version }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const icon = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passed' : 'failed';
+
+            const body = [
+              `## Test Results — GemsPy v${version}`,
+              '',
+              `${icon} Tests **${status}** against GemsPy v${version}.`,
+              '',
+              `[View full run](${runUrl})`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number('${{ needs.check-update.outputs.issue_number }}'),
+              body: body,
+            });

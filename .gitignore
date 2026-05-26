@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Antares Simulator binary downloaded for tests/antares_historic/
+antares-*-Ubuntu-*/
+antares-*-Ubuntu-*.tar.gz

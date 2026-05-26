@@ -1,0 +1,110 @@
+name: "A2G-01 — Antares evolution impact on converter"
+description: Track updates to the Antares-Legacy-to-GEMS converter triggered by a new Antares-Simulator release
+title: "[A2G-01] Antares update — converter impact"
+labels: ["A2G-01", "antares-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Process A2G-01** — Triggered by a new Antares-Simulator release that impacts the Antares-Legacy-to-GEMS converter or the Antares Legacy models library.
+
+  - type: input
+    id: antares_new_version
+    attributes:
+      label: New Antares Version
+      placeholder: "e.g. 10.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: antares_previous_version
+    attributes:
+      label: Previous Tracked Version
+      placeholder: "e.g. 10.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: trigger
+    attributes:
+      label: Trigger
+      description: What changed in the new Antares release? Link to the release notes or changelog.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Analysis
+      description: |
+        Assess the impact on:
+        - **Converter logic** — does parsing, data extraction, or GEMS study generation need updating?
+        - **Antares Legacy models library** — does `antares_legacy_models.yml` or model config templates need updating?
+        - **Results** — are solver equivalence values expected to change?
+        - **Compatibility** — breaking vs backward-compatible?
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation_strategy
+    attributes:
+      label: Validation Strategy
+      description: |
+        Describe the solver equivalence validation approach:
+        - Which model types will be tested?
+        - Which studies will be used for validation?
+        - Are solver equivalence results expected to change?
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Process Checklist
+      value: |
+        ### Step 1 — Issue Creation
+        - [x] Issue created and linked to process A2G-01
+
+        ### Step 2 — Triage
+        - [ ] Process confirmed applicable
+        - [ ] Assigned to responsible contributor
+        - [ ] Priority and milestone set (if applicable)
+
+        ### Step 3 — Impact Analysis
+        - [ ] Antares release notes reviewed for converter-relevant changes
+        - [ ] Converter logic impact assessed (parsing, data extraction, study generation)
+        - [ ] `antares_legacy_models.yml` and model config templates impact assessed
+        - [ ] Breaking vs backward-compatible changes identified
+        - [ ] Results impact assessed (solver equivalence values expected to change?)
+        - [ ] antares-craft compatibility with new Antares version confirmed
+
+        ### Step 4 — Implementation
+        - [ ] Converter code updated if needed (`src/`)
+        - [ ] `antares_legacy_models.yml` updated if needed
+        - [ ] Model config templates updated if needed (`src/antares_gems_converter/input_converter/data/`)
+        - [ ] Backward compatibility maintained unless explicitly intended as breaking
+
+        ### Step 5 — Testing & Validation ⚠️ solver equivalence required
+        - [ ] Solver equivalence confirmed for all affected model types against new binary
+        - [ ] Solver equivalence tests pass (`pytest tests/antares_historic/`)
+
+        ### Step 6 — CI Validation
+        - [ ] Type checking passes (`mypy`)
+        - [ ] Formatting passes (`black`)
+        - [ ] All tests pass in CI
+
+        ### Step 7 — Review & Merge
+        - [ ] PR reviewed; documentation changes included
+
+        ### Step 8 — Versioning
+        - [ ] `dependencies.json` updated (`antares_simulator_version`)
+        - [ ] `version` field in `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` bumped if library changed
+        - [ ] `pyproject.toml` version bumped (Major if Antares major bump, Minor otherwise)
+
+        ### Step 9 — Supporting Files
+        - [ ] Changelog entry added (`CHANGELOG-antares_legacy_models_library.md`) if library changed
+        - [ ] `COMPATIBILITY.md` updated with new version mapping
+        - [ ] `AGENTS.md` reviewed for impact and updated if needed
+
+        ### Step 10 — Release
+        - [ ] If a release is needed: follow the release process in the Developer Guidelines
