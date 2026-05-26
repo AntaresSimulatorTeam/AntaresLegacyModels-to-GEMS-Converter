@@ -166,7 +166,7 @@ Both use the `flow` port-type with a single `flow` field for power balance conne
 ### Prerequisites
 
 - Python >= 3.10 (CI uses 3.12)
-- E2E tests in `tests/antares_historic/` require the Antares Simulator binary (version in `dependencies.json`, currently 10.0.0). CI downloads it automatically.
+- E2E tests in `tests/antares_historic/` require the Antares Simulator binary (version defined in `dependencies.json`). CI downloads it automatically.
 
 ### Commands
 
@@ -213,9 +213,9 @@ Runs on every push to any branch:
 1. Install deps (`pip install -e . && pip install -r requirements-dev.txt`)
 2. Type checking: `mypy src/`
 3. Format checking: `black --check --diff` (Black 23.7.x)
-4. Download and extract Antares Simulator binary
-5. Run tests with coverage
-6. Upload coverage artifact
+4. Download and extract Antares Simulator binary (version from `dependencies.json`)
+5. Run tests
+6. Upload test failure artifacts on failure (logs)
 
 ---
 
