@@ -13,7 +13,7 @@ dependencies = [
     "numpy",
     "PyYAML>=6.0",
     "pydantic",
-    "antares_craft==0.3.0",
+    "antares_craft==0.14.0",
     "pandas",
 ]
 
