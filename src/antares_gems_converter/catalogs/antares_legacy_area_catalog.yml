@@ -331,8 +331,6 @@ catalog:
       - taxonomy-category: miscellaneous_fatal_production
         output-id: actual_generation
         location-ports: balance_port
-    breakdown:
-      - key: technology
     terms-operator: sum
     time-operator: sum
   
@@ -341,8 +339,6 @@ catalog:
       - taxonomy-category: pumped_storage_plant_fatal_production
         output-id: actual_generation
         location-ports: balance_port
-    breakdown:
-      - key: technology
     terms-operator: sum
     time-operator: sum
 

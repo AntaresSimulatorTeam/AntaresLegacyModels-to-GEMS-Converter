@@ -29,19 +29,14 @@ taxonomy:
         - id: is_loss_of_load
         - id: is_near_loss_of_load
         - id: loss_of_load_probability
-      properties:
-        - id: carrier
 
     - id: production
       ports:
         - id: balance_port
-      properties:
-        - id: carrier
-        - id: technology
 
     - id: dispatchable_production
       parent-category: production
-      variables: # just an example of how to use variables in a category
+      variables: 
         - id: generation
       extra-outputs:
         - id: prop_cost
@@ -65,6 +60,7 @@ taxonomy:
         - id: op5_emissions
         - id: profit
       properties:
+        - id: technology
         - id: plant
 
     - id: fatal_generation
@@ -77,6 +73,8 @@ taxonomy:
     
     - id: renewable_fatal_production
       parent-category: fatal_generation
+      properties:
+        - id: technology
 
     - id: miscellaneous_fatal_production
       parent-category: fatal_generation 
@@ -92,8 +90,6 @@ taxonomy:
         - id: actual_load
       ports:
         - id: balance_port
-      properties:
-        - id: carrier
 
     - id: fatal_consumption
       parent-category: consumption
@@ -116,8 +112,6 @@ taxonomy:
     
     - id: short_term_storage
       parent-category: storage
-      properties:
-        - id: group
       extra-outputs:
         - id: profit
 
