@@ -10,6 +10,16 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [1.1.0]
+
+Renaming to match naming conventions. 
+
+New extra-outputs to be able to reproduce lecagy output metrics.
+
+New parameter on link model : loop flow. 
+
+---
+
 ## [1.0.0] — 2026-04-19
 
 Initial baseline release.

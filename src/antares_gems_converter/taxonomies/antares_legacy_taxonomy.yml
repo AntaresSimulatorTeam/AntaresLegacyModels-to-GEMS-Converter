@@ -114,6 +114,8 @@ taxonomy:
       parent-category: storage
       extra-outputs:
         - id: profit
+      properties:
+        - id: group
 
     - id: link
       ports:

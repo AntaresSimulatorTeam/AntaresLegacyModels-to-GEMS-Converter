@@ -13,6 +13,7 @@
 library:
   id: andromede-v1-models
   description: Andromede V1 model library
+  taxonomy: antares_legacy_taxonomy
 
   port-types:
     - id: flow

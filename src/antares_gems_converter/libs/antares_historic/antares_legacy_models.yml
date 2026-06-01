@@ -442,6 +442,8 @@ library:
       extra-outputs:
         - id: profit
           expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price)+0.5)
+      properties:
+        - id: group
     
     - id: long-term-storage
       taxonomy-category: long_term_storage
