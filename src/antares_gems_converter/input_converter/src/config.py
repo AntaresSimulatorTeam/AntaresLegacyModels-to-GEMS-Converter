@@ -41,6 +41,7 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "load": "get_load_matrix",
     "solar": "get_solar_matrix",
     "wind": "get_wind_matrix",
+    "misc_gen": "get_misc_gen_matrix",
 }
 TIMESERIES_NAME_TO_METHOD = {
     "capacity_direct": "get_capacity_direct",
@@ -97,9 +98,12 @@ MODEL_NAME_TO_FILE_NAME = {
     "short-term-storage": "st-storage.yaml",
     "thermal": "thermal.yaml",
     "wind": "wind.yaml",
+    "misc_gen": "misc_gen.yaml",
+    "row_balance": "row_balance.yaml",
+    "psp": "psp.yaml",
 }
 
-MATRIX_TYPES = ["load", "solar", "wind"]
+MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "rest_of_world", "psp"]
 CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
 AREA_TYPES = ["area"]

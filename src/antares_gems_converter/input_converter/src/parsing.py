@@ -11,7 +11,7 @@
 # This file is part of the Antares project.
 
 from dataclasses import dataclass, field
-from typing import Optional, TextIO, Union
+from typing import Optional, TextIO, Union, List
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -130,10 +130,20 @@ class ObjectProperties(ModifiedBaseModel):
             field=field,
         )
 
+ALLOWED_TYPES: list = [
+    "binding_constraint",
+    "thermal",
+    "link",
+    "st_storage",
+    "load",
+    "solar",
+    "wind",
+    "misc_gen",
+]
 
 class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
-    column: Optional[int] = None
+    column: Optional[List[int]] = None
     operation: Optional[Operation] = None
     constant: Optional[float] = None
 
@@ -149,6 +159,17 @@ class ConversionValue(ModifiedBaseModel):
             operation=self.operation,
             constant=self.constant,
         )
+    
+    def check_validity(self) -> bool:
+        if not self.object_properties:
+            raise ValueError(
+                f"Object properties from {self} must not be None"
+            )
+        if self.object_properties.type not in ALLOWED_TYPES:
+            raise ValueError(
+                f"Unknown value type: {self.object_properties.type}"
+            )
+        return True
 
 
 class ParameterConversionConfig(ModifiedBaseModel):

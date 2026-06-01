@@ -222,7 +222,11 @@ class AntaresStudyConverter:
                 id=param.id,
                 time_dependent=bool(param.time_dependent),
                 scenario_dependent=bool(param.scenario_dependent),
-                value=mp.convert_param_value(param.id, param.value),
+                value=mp.convert_param_value(
+                    param.id,
+                    param.value,
+                    resolved_conversion_template.component.id,
+                ),
             )
             for param in resolved_conversion_template.component.parameters
         ]

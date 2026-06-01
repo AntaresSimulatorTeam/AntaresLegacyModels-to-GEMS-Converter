@@ -122,6 +122,69 @@ library:
           field: flow
           definition: generation
 
+    - id: rest_of_world
+      taxonomy-category: rest_of_world
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: generation
+      extra-outputs:
+        - id: minus_generation
+          expression: -generation
+        - id: actual_generation
+          expression: generation
+      properties:
+        - id: carrier
+
+    - id: pumped_storage_plant
+      taxonomy-category: pumped_storage_plant_fatal_production
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: generation
+      extra-outputs:
+        - id: minus_generation
+          expression: -generation
+        - id: actual_generation
+          expression: generation
+      properties:
+        - id: carrier
+    
+    - id: misc_generation
+      taxonomy-category: miscellaneous_fatal_production
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: generation
+      extra-outputs:
+        - id: minus_generation
+          expression: -generation
+        - id: actual_generation
+          expression: generation
+      properties:
+        - id: carrier
+
     - id: thermal
       parameters:
         - id: minimum_generation_modulation # Timeseries used to define the minimum generation of the cluster by minimum_generation_modulation * unit_count * p_max_unit, this cannot exceed the maximum generation power p_max_cluster (after being increased by p_min_unit). 

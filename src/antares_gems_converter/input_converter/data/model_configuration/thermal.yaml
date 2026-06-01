@@ -32,7 +32,8 @@ template:
             area: ${area}
             cluster: ${thermal}
             field: prepro_modulation_matrix 
-          column: 3
+          column: 
+            - 3
       - id: p_max_cluster
         scenario-dependent: true
         time-dependent: true

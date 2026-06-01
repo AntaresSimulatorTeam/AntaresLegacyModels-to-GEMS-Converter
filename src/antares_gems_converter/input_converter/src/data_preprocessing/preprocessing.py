@@ -20,15 +20,6 @@ from antares_gems_converter.input_converter.src.utils import (
     save_to_file,
 )
 
-ALLOWED_TYPES: list = [
-    "binding_constraint",
-    "thermal",
-    "link",
-    "st_storage",
-    "load",
-    "solar",
-    "wind",
-]
 SERIES_FOLDER = "data-series"
 
 
@@ -44,14 +35,14 @@ class ModelConversionPreprocessor:
         self.file_path = Path(".")
 
     def calculate_matrix_data_values(
-        self, obj: ConversionValue, type_resource: str
+        self, obj: ConversionValue, type_resource: str, component_id: str
     ) -> pd.DataFrame:
         if not obj.object_properties or not obj.object_properties.area:
             raise ValueError(
                 f"Object properties and its area from {obj} must not be None"
             )
         area: str = obj.object_properties.area
-        self.file_path = Path(f"{self.param_id}_{area}.tsv")
+        self.file_path = Path(f"{component_id}_{self.param_id}.tsv")
         self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return getattr(
             self.study.get_areas()[area], MATRIX_TYPES_TO_GET_METHOD[type_resource]
@@ -130,15 +121,17 @@ class ModelConversionPreprocessor:
         else:
             return term.weight
 
-    def calculate_value(self, obj: ConversionValue) -> Union[float, str]:
+    def calculate_value(
+        self, obj: ConversionValue, component_id: str
+    ) -> Union[float, str]:
         if obj.object_properties is None or obj.object_properties.type is None:
             raise ValueError(f"Object properties {obj} must not be None")
         type_resource: str = obj.object_properties.type
         time_series: pd.DataFrame = pd.DataFrame()
-        if type_resource in ["load", "wind", "solar"]:
-            time_series = self.calculate_matrix_data_values(obj, type_resource)
-            save_to_file(time_series, self.output_file)
-            return str(self.file_path).removesuffix(".tsv")
+        if type_resource in ["load", "wind", "solar", "misc_gen"]:
+            time_series = self.calculate_matrix_data_values(
+                obj, type_resource, component_id
+            )
         elif type_resource == "binding_constraint":
             # TODO No timeseries linked to binding constraints for the moment
             return self.calculate_binding_constraint_data_values(obj)  # type: ignore
@@ -152,7 +145,7 @@ class ModelConversionPreprocessor:
                 return data
 
         if getattr(obj, "column", None) is not None:
-            time_series: pd.Series = time_series.iloc[:, obj.column]  # type: ignore
+            time_series: pd.Series = time_series[obj.column].sum(axis=1)  # type: ignore
 
             if getattr(obj, "operation") and obj.operation is not None:
                 parameter_value: Union[
@@ -171,39 +164,22 @@ class ModelConversionPreprocessor:
         return str(self.file_path).removesuffix(".tsv")
 
     def convert_param_value(
-        self, id: str, value_content: ConversionValue
+        self, id: str, value_content: ConversionValue, component_id: str
     ) -> Union[str, float]:
         self.param_id = id
         if value_content.constant is not None:
             return value_content.constant
-
-        if not value_content.object_properties:
-            raise ValueError(f"Object properties from {value_content} must not be None")
-        if value_content.object_properties.type not in ALLOWED_TYPES:
-            raise ValueError(
-                f"Unknown value type: {value_content.object_properties.type}"
-            )
-        return self.calculate_value(value_content)
+        value_content.check_validity()
+        return self.calculate_value(value_content, component_id)
 
     def check_timeseries_validity(self, value_content: ConversionValue) -> bool:
         if value_content.constant is not None:
             return True
-
-        if (
-            not value_content.object_properties
-            or not value_content.object_properties.area
-            or not value_content.object_properties.type
-        ):
-            raise ValueError(
-                f"Object properties, its area, and type from {value_content} must not be None"
-            )
-        # TODO : Do not duplicate logic with the one in convert_param_value
-        if value_content.object_properties.type not in ALLOWED_TYPES:
-            raise ValueError(
-                f"Unknown value type: {value_content.object_properties.type}"
-            )
+        value_content.check_validity()
         time_series: pd.DataFrame = getattr(
             self.study.get_areas()[value_content.object_properties.area],
             MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],
         )()
+        if getattr(value_content, "column", None) is not None:
+            time_series: pd.Series = time_series[value_content.column].sum(axis=1)  # type: ignore
         return check_dataframe_validity(time_series)
