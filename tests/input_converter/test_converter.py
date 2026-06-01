@@ -534,28 +534,29 @@ class TestConverter:
                         scenario_group=None,
                         value=0,
                     ),
-                ] + [
+                ]
+                + [
                     ComponentParameterSchema(
-                        id=polluant, 
+                        id=polluant,
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0,
                     )
-                for polluant in [
-                    "co2_emissions_rate",
-                    "nh3_emissions_rate",
-                    "so2_emissions_rate",
-                    "nox_emissions_rate",
-                    "pm2_5_emissions_rate",
-                    "pm5_emissions_rate",
-                    "pm10_emissions_rate",
-                    "nmvoc_emissions_rate",
-                    "op1_emissions_rate",
-                    "op2_emissions_rate",
-                    "op3_emissions_rate",
-                    "op4_emissions_rate",
-                    "op5_emissions_rate"
+                    for polluant in [
+                        "co2_emissions_rate",
+                        "nh3_emissions_rate",
+                        "so2_emissions_rate",
+                        "nox_emissions_rate",
+                        "pm2_5_emissions_rate",
+                        "pm5_emissions_rate",
+                        "pm10_emissions_rate",
+                        "nmvoc_emissions_rate",
+                        "op1_emissions_rate",
+                        "op2_emissions_rate",
+                        "op3_emissions_rate",
+                        "op4_emissions_rate",
+                        "op5_emissions_rate",
                     ]
                 ],
             )

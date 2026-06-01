@@ -332,7 +332,12 @@ def test_loop_flow(
     antares_exec_folder: Path,
 ) -> None:
     loop_flow = 100.0
-    capacity_direct, capacity_indirect, hurdle_cost_direct, hurdle_cost_indirect = 200.0, 200.0, 1, 1
+    capacity_direct, capacity_indirect, hurdle_cost_direct, hurdle_cost_indirect = (
+        200.0,
+        200.0,
+        1,
+        1,
+    )
     study_name = f"link_test_study_{str(int(100*time()))}"
     load1_time_serie_file = LOAD_FILES_DIR / "load_matrix_1.txt"
     load2_time_serie_file = LOAD_FILES_DIR / "load_matrix_2.txt"
@@ -364,9 +369,7 @@ def test_loop_flow(
 
     for modification in [MODIFICATION_RATIO, 1 / MODIFICATION_RATIO]:
         perturbed_study_name = f"link_test_study_{str(int(100*time()))}"
-        loop_flow_perturbated = (
-            loop_flow * modification * np.ones((8760, 1))
-        )
+        loop_flow_perturbated = loop_flow * modification * np.ones((8760, 1))
         createLinkTestAntaresStudy(
             perturbed_study_name,
             auto_generated_studies_path,

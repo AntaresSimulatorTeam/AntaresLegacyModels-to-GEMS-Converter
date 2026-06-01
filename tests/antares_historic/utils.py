@@ -179,7 +179,11 @@ def createLinkTestAntaresStudy(
     )
     link.set_capacity_direct(pd.DataFrame(direct_capacity))
     link.set_capacity_indirect(pd.DataFrame(indirect_capacity))
-    if hurdle_cost_direct is not None or hurdle_cost_indirect is not None or loop_flow is not None:
+    if (
+        hurdle_cost_direct is not None
+        or hurdle_cost_indirect is not None
+        or loop_flow is not None
+    ):
         parameters = np.zeros((8760, 6))
         if hurdle_cost_direct is not None:
             parameters[:, 0] = hurdle_cost_direct.flatten()

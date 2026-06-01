@@ -29,30 +29,12 @@ def build_taxonomy_index(taxonomy):
     for category in taxonomy["taxonomy"]["categories"]:
         categories[category["id"]] = {
             "parent": category.get("parent-category"),
-            "variables": {
-                item["id"]
-                for item in category.get("variables", [])
-            },
-            "ports": {
-                item["id"]
-                for item in category.get("ports", [])
-            },
-            "constraints": {
-                item["id"]
-                for item in category.get("constraints", [])
-            },
-            "extra_outputs": {
-                item["id"]
-                for item in category.get("extra-outputs", [])
-            },
-            "properties": {
-                item["id"]
-                for item in category.get("properties", [])
-            },
-            "parameters": {
-                item["id"]
-                for item in category.get("parameters", [])
-            },
+            "variables": {item["id"] for item in category.get("variables", [])},
+            "ports": {item["id"] for item in category.get("ports", [])},
+            "constraints": {item["id"] for item in category.get("constraints", [])},
+            "extra_outputs": {item["id"] for item in category.get("extra-outputs", [])},
+            "properties": {item["id"] for item in category.get("properties", [])},
+            "parameters": {item["id"] for item in category.get("parameters", [])},
         }
 
     return categories
@@ -107,30 +89,14 @@ def test_models_implement_taxonomy_contract(library_file):
             continue
 
         actual = {
-            "variables": {
-                item["id"]
-                for item in model.get("variables", [])
-            },
-            "ports": {
-                item["id"]
-                for item in model.get("ports", [])
-            },
+            "variables": {item["id"] for item in model.get("variables", [])},
+            "ports": {item["id"] for item in model.get("ports", [])},
             "constraints": {
-                item["id"]
-                for item in model.get("binding-constraints", [])
+                item["id"] for item in model.get("binding-constraints", [])
             },
-            "extra_outputs": {
-                item["id"]
-                for item in model.get("extra-outputs", [])
-            },
-            "properties": {
-                item["id"]
-                for item in model.get("properties", [])
-            },
-            "parameters": {
-                item["id"]
-                for item in model.get("parameters", [])
-            },
+            "extra_outputs": {item["id"] for item in model.get("extra-outputs", [])},
+            "properties": {item["id"] for item in model.get("properties", [])},
+            "parameters": {item["id"] for item in model.get("parameters", [])},
         }
 
         for field in actual:

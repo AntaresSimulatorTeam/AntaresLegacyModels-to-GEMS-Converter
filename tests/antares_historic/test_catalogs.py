@@ -17,20 +17,11 @@ def build_taxonomy_index(taxonomy):
     categories = {}
 
     for category in taxonomy["taxonomy"]["categories"]:
-        ids = {
-            variable["id"]
-            for variable in category.get("variables", [])
-        }
+        ids = {variable["id"] for variable in category.get("variables", [])}
 
-        ids.update(
-            output["id"]
-            for output in category.get("extra-outputs", [])
-        )
+        ids.update(output["id"] for output in category.get("extra-outputs", []))
 
-        properties = {
-            prop["id"]
-            for prop in category.get("properties", [])
-        }
+        properties = {prop["id"] for prop in category.get("properties", [])}
 
         categories[category["id"]] = {
             "ids": ids,
@@ -57,6 +48,7 @@ def is_declared_output(category_id, output_id, taxonomy_index):
 
     return False
 
+
 def has_property(category_id, property_id, taxonomy_index):
     current = category_id
 
@@ -72,6 +64,7 @@ def has_property(category_id, property_id, taxonomy_index):
         current = category["parent"]
 
     return False
+
 
 def load_taxonomy_by_id(taxonomy_id):
     for path in TAXONOMIES_DIR.glob("*.yml"):
@@ -121,7 +114,7 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
                     f"references output-id '{output_id}' "
                     f"not declared in category '{category}' "
                 )
-        
+
         breakdowns = metric.get("breakdown", [])
 
         for breakdown in breakdowns:
