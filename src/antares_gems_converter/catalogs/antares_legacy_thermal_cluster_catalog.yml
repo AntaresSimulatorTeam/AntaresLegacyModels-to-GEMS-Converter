@@ -2,14 +2,14 @@ catalog:
   
   id: antares_thermal_cluster_metrics
 
-  taxonomy: my_taxonomy
+  taxonomy: antares_legacy_taxonomy
 
   location:
     taxonomy-category: dispatchable_production
 
   metrics-definition: 
 
-  - id: DTG.BY.PLANT
+  - id: MWh
     terms:
       - taxonomy-category: dispatchable_production
         output-id: generation
@@ -19,17 +19,17 @@ catalog:
     breakdown:
       - key: plant
 
-  - id: MIN.DTG.BY.PLANT
+  - id: MIN.GEN.MWh
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: min_generation_level
+        output-id: min_gen_power
         location-ports: null
     terms-operator: sum
     time-operator: sum
     breakdown:
       - key: plant
 
-  - id: PROFIT.BY.PLANT
+  - id: Profit.Euro
     terms:
       - taxonomy-category: dispatchable_production
         output-id: profit 
@@ -39,20 +39,20 @@ catalog:
     breakdown:
       - key: plant
 
-  - id: NODU.BY.PLANT 
+  - id: NODU
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: nb_units_on
+        output-id: actual_num_units_on
         location-ports: null
     terms-operator: sum
     time-operator: sum
     breakdown:
       - key: plant
 
-  - id: NP.COST.BY.PLANT 
+  - id: NP.Cost.Euro 
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: non_proportional_cost
+        output-id: non_prop_cost
         location-ports: null
     terms-operator: sum
     time-operator: sum

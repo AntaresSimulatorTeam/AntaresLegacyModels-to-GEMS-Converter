@@ -1,0 +1,45 @@
+catalog:
+
+  # TO DO : this catalog should be improved, correctness of the Metrics should be checked
+  # Remark for the case of CONG.FEE.ABS : We will probably need a new operator in the GEMS grammar: using ports exporting extra-outputs to other components.
+  
+  id: antares_sts_metrics
+
+  taxonomy: antares_legacy_taxonomy
+
+  location:
+    taxonomy-category: short_term_storage
+
+  metrics-definition: 
+
+  - id: P.injection.MW
+    terms:
+      - taxonomy-category: short_term_storage
+        output-id: injection_power
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+
+  - id: P.withdrawal.MW
+    terms:
+      - taxonomy-category: short_term_storage
+        output-id: withdrawal_power
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+
+  - id: Levels.MWh
+    terms:
+      - taxonomy-category: short_term_storage
+        output-id: level
+        location-ports: null
+    terms-operator: avg
+    time-operator: avg
+  
+  - id: CashFlow.Euro
+    terms:
+      - taxonomy-category: short_term_storage
+        output-id: profit
+        location-ports: null
+    terms-operator: avg
+    time-operator: avg

@@ -5,17 +5,25 @@ catalog:
   
   id: antares_link_metrics
 
-  taxonomy: my_taxonomy
+  taxonomy: antares_legacy_taxonomy
 
   location:
     taxonomy-category: link
 
   metrics-definition: 
 
-  - id: FLOW LIN.
+  - id: FLOW.LIN
     terms:
       - taxonomy-category: link
         output-id: flow
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: UCAP.LIN
+    terms:
+      - taxonomy-category: link
+        output-id: abs_flow
         location-ports: null 
     terms-operator: sum
     time-operator: sum
@@ -36,7 +44,7 @@ catalog:
     terms-operator: sum
     time-operator: sum
 
-  - id: MRG.COST
+  - id: MARG.COST
     terms:
       - taxonomy-category: link
         output-id: capacity_shadow_price
@@ -60,10 +68,20 @@ catalog:
     terms-operator: sum
     time-operator: sum
 
-  - id: HURD.COST
+  - id: HURDLE.COST
     terms:
       - taxonomy-category: link
-        output-id: proportional_cost
+        output-id: prop_cost
         location-ports: null 
     terms-operator: sum
     time-operator: sum
+
+  - id: LOOP.FLOW
+    terms:
+      - taxonomy-category: link
+        output-id: actual_loop_flow
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  # - id: FLOW.QUAD # à déprécier 

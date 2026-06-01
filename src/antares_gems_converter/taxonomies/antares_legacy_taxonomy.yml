@@ -27,97 +27,117 @@ taxonomy:
         - id: price
         - id: imbalance_cost
         - id: is_loss_of_load
-        - id: near_loss_of_load
+        - id: is_near_loss_of_load
+        - id: loss_of_load_probability
       properties:
         - id: carrier
 
     - id: production
-      parameters:
-        - id: total_p_max
       ports:
         - id: balance_port
       properties:
         - id: carrier
         - id: technology
-      extra-outputs:
-        - id: profit
 
     - id: dispatchable_production
       parent-category: production
       variables: # just an example of how to use variables in a category
         - id: generation
       extra-outputs:
-        - id: proportional_cost
-        - id: non_proportional_cost
-        - id: nb_units_on
-        - id: co2_emissions
-        - id: p_max_cluster
-        - id: min_generation_level
+        - id: prop_cost
+        - id: non_prop_cost
+        - id: actual_num_units_on
+        - id: cluster_availability
+        - id: min_gen_power
         - id: up_margin
-        - id: down_margin
+        - id: co2_emissions
+        - id: nh3_emissions
+        - id: so2_emissions
+        - id: nox_emissions
+        - id: pm2_5_emissions
+        - id: pm5_emissions
+        - id: pm10_emissions
+        - id: nmvoc_emissions
+        - id: op1_emissions
+        - id: op2_emissions
+        - id: op3_emissions
+        - id: op4_emissions
+        - id: op5_emissions
+        - id: profit
       properties:
         - id: plant
 
-    - id: fatal_production
+    - id: fatal_generation
       parent-category: production
       parameters:
         - id: generation
+      extra-outputs:
+        - id: minus_generation
+        - id: actual_generation
+    
+    - id: renewable_fatal_production
+      parent-category: fatal_generation
 
-    - id: hydro_production
-      # TODO: confirm whether hydro_production should inherit from production
-      
+    - id: miscellaneous_fatal_production
+      parent-category: fatal_generation 
+
+    - id: pumped_storage_plant_fatal_production
+      parent-category: fatal_generation
+
+    - id: rest_of_world
+      parent-category: fatal_generation  
 
     - id: consumption
       extra-outputs:
-        - id: effective_load
+        - id: actual_load
       ports:
         - id: balance_port
       properties:
         - id: carrier
 
     - id: fatal_consumption
-      parent-category: consumption     
-
-    - id: flexible_consumption
       parent-category: consumption
-      parameters:
-        - id: min_load
-        - id: max_load
-      
 
     - id: storage
       ports:
-        - id: injection_port
-      extra-outputs:
-        - id: p_injection
-        - id: p_withdrawal
+        - id: balance_port
+      variables:
+        - id: injection_power
+        - id: withdrawal_power
         - id: level
+    
+    - id: long_term_storage
+      parent-category: storage
+      variables:
+        - id: overflow
+      extra-outputs:
+        - id: actual_inflows
+        - id: percent_level
+    
+    - id: short_term_storage
+      parent-category: storage
       properties:
         - id: group
-
+      extra-outputs:
+        - id: profit
 
     - id: link
       ports:
         - id: out_port
         - id: in_port
-      extra-outputs:
+      variables:
         - id: flow
+      extra-outputs:
+        - id: abs_flow
         - id: congestion_fee_abs
         - id: congestion_fee_alg
         - id: capacity_shadow_price
         - id: is_congested_direct
         - id: is_congested_indirect
-        - id: proportional_cost
-
-    - id: converter
-      ports:
-        - id: out_port
-        - id: in_port
-
-
-    - id: rest_of_world
-      ports:
-        - id: balance_port
+        - id: prop_cost
+        - id: minus_out_port
+        - id: minus_in_port
+        - id: actual_loop_flow
 
     - id: coupling_models
 

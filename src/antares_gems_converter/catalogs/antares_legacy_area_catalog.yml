@@ -12,7 +12,7 @@ catalog:
   
   id: antares_area_metrics
 
-  taxonomy: my_taxonomy
+  taxonomy: antares_legacy_taxonomy
 
   location:
     taxonomy-category: balance
@@ -25,12 +25,11 @@ catalog:
         output-id: imbalance_cost
         location-ports: null 
       - taxonomy-category: dispatchable_production
-        output-id: proportional_cost
+        output-id: prop_cost
         location-ports: balance_port
       - taxonomy-category: dispatchable_production
-        output-id: non_proportional_cost
+        output-id: non_prop_cost
         location-ports: balance_port
-      #[TODO] : add hydro cost if possible
     terms-operator: sum
     time-operator: sum
 
@@ -38,10 +37,10 @@ catalog:
   - id: OP.COST
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: proportional_cost
+        output-id: prop_cost
         location-ports: balance_port
       - taxonomy-category: dispatchable_production
-        output-id: non_proportional_cost
+        output-id: non_prop_cost
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
@@ -61,11 +60,127 @@ catalog:
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
+  
+  - id: NH3.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: nh3_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: SO2.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: so2_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: NOX.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: nox_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: PM2_5.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: pm2_5_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: PM5.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: pm5_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: PM10.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: pm10_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: NMVOC.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: nmvoc_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+
+  - id: OP1.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: op1_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: OP2.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: op2_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: OP3.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: op3_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+
+  - id: OP4.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: op4_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: OP5.EMIS
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: op5_emissions
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
 
   - id: LOAD
     terms:
-      - taxonomy-category: consumption
-        output-id: effective_load
+      - taxonomy-category: fatal_consumption
+        output-id: actual_load
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: RES.LOAD
+    terms:
+      - taxonomy-category: fatal_consumption
+        output-id: actual_load
+        location-ports: balance_port
+      - taxonomy-category: renewable_fatal_production
+        output-id: minus_generation
+        location-ports: balance_port
+      - taxonomy-category: rest_of_world
+        output-id: minus_generation
+        location-ports: balance_port
+      - taxonomy-category: pumped_storage_plant_fatal_production
+        output-id: minus_generation
+        location-ports: balance_port
+      - taxonomy-category: miscellaneous_fatal_production
+        output-id: minus_generation
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
@@ -73,7 +188,7 @@ catalog:
   - id: DTG.BY.TECHNOLOGY
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: balance_port.flow
+        output-id: generation
         location-ports: balance_port
     terms-operator: sum
     breakdown:
@@ -83,18 +198,18 @@ catalog:
   - id: BALANCE
     terms:
       - taxonomy-category: link
-        output-id: out_port.flow
+        output-id: minus_out_port
         location-ports: out_port
       - taxonomy-category: link
-        output-id: in_port.flow
+        output-id: minus_in_port
         location-ports: in_port
     terms-operator: sum
     time-operator: sum
 
   - id: RES.GENERATION
     terms:
-      - taxonomy-category: fatal_production
-        output-id: balance_port.flow
+      - taxonomy-category: renewable_fatal_production
+        output-id: actual_generation
         location-ports: balance_port
     breakdown:
       - key: technology
@@ -103,9 +218,9 @@ catalog:
 
   - id: STS.INJECTION
     terms:
-      - taxonomy-category: storage
-        output-id: p_injection 
-        location-ports: injection_port
+      - taxonomy-category: short_term_storage
+        output-id: injection_power
+        location-ports: balance_port
     breakdown:
       - key: group
     terms-operator: sum
@@ -113,9 +228,9 @@ catalog:
 
   - id: STS.WITHDRAWAL
     terms:
-      - taxonomy-category: storage
-        output-id: p_withdrawal
-        location-ports: injection_port
+      - taxonomy-category: short_term_storage
+        output-id: withdrawal_power
+        location-ports: balance_port
     breakdown:
       - key: group
     terms-operator: sum
@@ -123,39 +238,9 @@ catalog:
 
   - id: STS.LEVEL
     terms:
-      - taxonomy-category: storage
+      - taxonomy-category: short_term_storage
         output-id: level
-        location-ports: injection_port
-    breakdown:
-      - key: group
-    terms-operator: avg
-    time-operator: avg
-
-  - id: STS.INJECTION
-    terms:
-      - taxonomy-category: storage
-        output-id: p_injection
-        location-ports: injection_port
-    breakdown:
-      - key: group
-    terms-operator: sum
-    time-operator: sum
-
-  - id: STS.WITHDRAWAL
-    terms:
-      - taxonomy-category: storage
-        output-id: p_withdrawal
-        location-ports: injection_port
-    breakdown:
-      - key: group
-    terms-operator: sum
-    time-operator: sum
-
-  - id: STS.LEVEL
-    terms:
-      - taxonomy-category: storage
-        output-id: level
-        location-ports: injection_port
+        location-ports: balance_port
     breakdown:
       - key: group
     terms-operator: avg
@@ -177,26 +262,26 @@ catalog:
     terms-operator: sum
     time-operator: sum
 
-  - id: NODU.BY.AREA 
+  - id: NODU 
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: nb_units_on
+        output-id: actual_num_units_on
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
 
-  - id: NP.COST.BY.AREA 
+  - id: NP.COST 
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: non_proportional_cost
+        output-id: non_prop_cost
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
 
-  - id: AVL.DTG # Can i directly use parameters?
+  - id: AVL.DTG
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: p_max_cluster
+        output-id: cluster_availability
         location-ports: balance_port
     terms-operator: sum
     time-operator: sum
@@ -220,15 +305,15 @@ catalog:
   - id: LOLP
     terms:
       - taxonomy-category: balance
-        output-id: is_loss_of_load
+        output-id: loss_of_load_probability
         location-ports: null
     terms-operator: sum
     time-operator: avg
 
-  - id: NP.CAP 
+  - id: NPCAP.HOURS 
     terms:
       - taxonomy-category: balance
-        output-id: near_loss_of_load
+        output-id: is_near_loss_of_load
         location-ports: null
     terms-operator: sum
     time-operator: sum
@@ -236,68 +321,71 @@ catalog:
   - id: ROW.BAL
     terms:
       - taxonomy-category: rest_of_world
-        output-id: balance_port.flow
-        location-ports: null
+        output-id: actual_generation
+        location-ports: balance_port
     terms-operator: sum
     time-operator: sum
 
   - id: MISC.NDG 
     terms:
-      - taxonomy-category: fatal_production
-        output-id: generation
-        location-ports: null
+      - taxonomy-category: miscellaneous_fatal_production
+        output-id: actual_generation
+        location-ports: balance_port
+    breakdown:
+      - key: technology
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: PSP 
+    terms:
+      - taxonomy-category: pumped_storage_plant_fatal_production
+        output-id: actual_generation
+        location-ports: balance_port
     breakdown:
       - key: technology
     terms-operator: sum
     time-operator: sum
 
-
-######################################### [TODO] MAX.MRG REMAINS  #########################################
-
-
-#  - id: MAX.MRG # Calulation from hour to hour can differ for this metric max-mrg-utilis.cpp in Simulator 
-
-
-
-
-######################################### [TODO] HYDRO PART REMAINS  #########################################
-
-  - id: H.STOR #TO DO : correct/confirm this one
+  - id: H.STOR
     terms:
-      - taxonomy-category: hydro_production
-        output-id: hydro_generation
-        location-ports: null
+      - taxonomy-category: long_term_storage
+        output-id: withdrawal_power
+        location-ports: balance_port
     terms-operator: sum
     time-operator: sum
 
-  - id: H.PUMP #TO DO : correct/confirm this one
+  - id: H.PUMP
     terms:
-      - taxonomy-category: hydro_production
-        output-id: hydro_pump
-        location-ports: null
+      - taxonomy-category: long_term_storage
+        output-id: injection_power
+        location-ports: balance_port
     terms-operator: sum
     time-operator: sum
 
-  - id: H.OVFL #TO DO : correct/confirm this one
+  - id: H.OVFL
     terms:
-      - taxonomy-category: hydro_production
-        output-id: hydro_overflow
-        location-ports: null
+      - taxonomy-category: long_term_storage
+        output-id: overflow
+        location-ports: balance_port
     terms-operator: sum
     time-operator: sum
-
-  - id: H.VAL #TO DO : correct/confirm this one
+  
+  - id: H.INFL
     terms:
-      - taxonomy-category: hydro_production
-        output-id: hydro_value
-        location-ports: null
+      - taxonomy-category: long_term_storage
+        output-id: actual_inflows
+        location-ports: balance_port
     terms-operator: sum
     time-operator: sum
-
-  - id: H.COST #TO DO : correct/confirm this one
+  
+  - id: H.LEV
     terms:
-      - taxonomy-category: hydro_production
-        output-id: hydro_cost
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
+      - taxonomy-category: long_term_storage
+        output-id: percent_level
+        location-ports: balance_port
+    terms-operator: avg
+    time-operator: avg
+  
+  # - id: MAX.MRG # TODO : traat as a postreatment. Calulation from hour to hour can differ for this metric max-mrg-utilis.cpp in Simulator, there is an algorithm to compute this metric.
+  # - id: H.VAL # TODO : depreciate this metric
+  # - id: H.COST # TODO : depreciate this metric
