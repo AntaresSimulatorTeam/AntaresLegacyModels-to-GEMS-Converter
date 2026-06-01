@@ -34,8 +34,8 @@ MODIFICATION_RATIO = 1.2
 # Testing Timeseries parameters
 ## capacity_direct [OK : test_direct_capacity]
 ## capacity_indirect [OK : test_indirect_capacity]
-## hurdle_cost_direct [OK : TODO ref to test in main branch]
-## hurdle_cost_indirect [OK : TODO ref to test in main branch]
+## hurdle_cost_direct [OK : test_hurdle_cost_direct]
+## hurdle_cost_indirect [OK : test_hurdle_cost_indirect]
 ## Impedance [TODO]
 ## Loopflow [TODO]
 ## Pshift Min [TODO]
@@ -316,6 +316,67 @@ def test_hurdle_cost_indirect(
             link_capacity_indirect,
             hurdle_cost_direct=link_hurdle_cost_direct,
             hurdle_cost_indirect=hurdle_cost_indirect_perturbated,
+        )
+        perturbed_study_path = auto_generated_studies_path / perturbed_study_name
+        rel_gap = first_optim_relgap(
+            antares_exec_folder,
+            perturbed_study_path,
+            converted_study_path,
+            LINK_TEST_SOLVER,
+        )
+        assert rel_gap > 10 * LINK_TEST_REL_ACCURACY
+
+
+def test_loop_flow(
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    loop_flow = 100.0
+    capacity_direct, capacity_indirect, hurdle_cost_direct, hurdle_cost_indirect = 200.0, 200.0, 1, 1
+    study_name = f"link_test_study_{str(int(100*time()))}"
+    load1_time_serie_file = LOAD_FILES_DIR / "load_matrix_1.txt"
+    load2_time_serie_file = LOAD_FILES_DIR / "load_matrix_2.txt"
+    link_capacity_direct = capacity_direct * np.ones((8760, 1))
+    link_capacity_indirect = capacity_indirect * np.ones((8760, 1))
+    link_hurdle_cost_direct = hurdle_cost_direct * np.ones((8760, 1))
+    link_hurdle_cost_indirect = hurdle_cost_indirect * np.ones((8760, 1))
+    link_loop_flow = loop_flow * np.ones((8760, 1))
+
+    createLinkTestAntaresStudy(
+        study_name,
+        auto_generated_studies_path,
+        load1_time_serie_file,
+        load2_time_serie_file,
+        link_capacity_direct,
+        link_capacity_indirect,
+        hurdle_cost_direct=link_hurdle_cost_direct,
+        hurdle_cost_indirect=link_hurdle_cost_indirect,
+        loop_flow=link_loop_flow,
+    )
+
+    original_study_path, converted_study_path = convert_study(
+        auto_generated_studies_path, study_name, ["link"]
+    )
+    rel_gap = first_optim_relgap(
+        antares_exec_folder, original_study_path, converted_study_path, LINK_TEST_SOLVER
+    )
+    assert rel_gap < LINK_TEST_REL_ACCURACY
+
+    for modification in [MODIFICATION_RATIO, 1 / MODIFICATION_RATIO]:
+        perturbed_study_name = f"link_test_study_{str(int(100*time()))}"
+        loop_flow_perturbated = (
+            loop_flow * modification * np.ones((8760, 1))
+        )
+        createLinkTestAntaresStudy(
+            perturbed_study_name,
+            auto_generated_studies_path,
+            load1_time_serie_file,
+            load2_time_serie_file,
+            link_capacity_direct,
+            link_capacity_indirect,
+            hurdle_cost_direct=link_hurdle_cost_direct,
+            hurdle_cost_indirect=link_hurdle_cost_indirect,
+            loop_flow=loop_flow_perturbated,
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
         rel_gap = first_optim_relgap(

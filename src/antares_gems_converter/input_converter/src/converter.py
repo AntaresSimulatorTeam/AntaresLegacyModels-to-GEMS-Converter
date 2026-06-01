@@ -138,7 +138,7 @@ class AntaresStudyConverter:
                         model=f"{lib_id}.area",
                         parameters=[
                             ComponentParameterSchema(
-                                id="ens_cost",
+                                id="unsupplied_energy_cost",
                                 time_dependent=False,
                                 scenario_dependent=False,
                                 value=area.properties.energy_cost_unsupplied,
