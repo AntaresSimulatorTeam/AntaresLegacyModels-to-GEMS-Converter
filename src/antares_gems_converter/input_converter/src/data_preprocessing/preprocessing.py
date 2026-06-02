@@ -177,8 +177,8 @@ class ModelConversionPreprocessor:
             return True
         value_content.check_validity()
         time_series: pd.DataFrame = getattr(
-            self.study.get_areas()[value_content.object_properties.area],
-            MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],
+            self.study.get_areas()[value_content.object_properties.area],  # type: ignore
+            MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],  # type: ignore
         )()
         if getattr(value_content, "column", None) is not None:
             time_series: pd.Series = time_series.iloc[:, value_content.column]  # type: ignore

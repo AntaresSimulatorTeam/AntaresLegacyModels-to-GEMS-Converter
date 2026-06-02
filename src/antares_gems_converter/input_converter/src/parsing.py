@@ -130,6 +130,7 @@ class ObjectProperties(ModifiedBaseModel):
             field=field,
         )
 
+
 ALLOWED_TYPES: list = [
     "binding_constraint",
     "thermal",
@@ -140,6 +141,7 @@ ALLOWED_TYPES: list = [
     "wind",
     "misc_gen",
 ]
+
 
 class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
@@ -159,16 +161,12 @@ class ConversionValue(ModifiedBaseModel):
             operation=self.operation,
             constant=self.constant,
         )
-    
+
     def check_validity(self) -> bool:
         if not self.object_properties:
-            raise ValueError(
-                f"Object properties from {self} must not be None"
-            )
+            raise ValueError(f"Object properties from {self} must not be None")
         if self.object_properties.type not in ALLOWED_TYPES:
-            raise ValueError(
-                f"Unknown value type: {self.object_properties.type}"
-            )
+            raise ValueError(f"Unknown value type: {self.object_properties.type}")
         return True
 
 
@@ -273,7 +271,10 @@ class ConversionTemplate(ModifiedBaseModel):
     def resolve_template(
         self, template_pattern: str, value: str
     ) -> "ConversionTemplate":
-        components = [component.resolve_template(template_pattern, value) for component in self.components]
+        components = [
+            component.resolve_template(template_pattern, value)
+            for component in self.components
+        ]
         connections = []
         area_connections = []
         legacy_objects_to_delete = []

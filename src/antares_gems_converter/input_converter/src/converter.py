@@ -217,7 +217,7 @@ class AntaresStudyConverter:
         area_connections: list,
         mp: ModelConversionPreprocessor,
     ) -> None:
-        for component in resolved_conversion_template.components:
+        for comp in resolved_conversion_template.components:
             parameters = [
                 ComponentParameterSchema(
                     id=param.id,
@@ -226,19 +226,21 @@ class AntaresStudyConverter:
                     value=mp.convert_param_value(
                         param.id,
                         param.value,
-                        component.id,
+                        comp.id,
                     ),
                 )
-                for param in component.parameters
+                for param in comp.parameters
             ]
-            scenario_group = getattr(resolved_conversion_template, "scenario_group", None)
+            scenario_group = getattr(
+                resolved_conversion_template, "scenario_group", None
+            )
             kwargs = {}
             if scenario_group is not None:
                 kwargs["scenario_group"] = scenario_group
 
             components.append(
                 ComponentSchema(
-                    id=(component.id).replace(" ", "_"),
+                    id=(comp.id).replace(" ", "_"),
                     model=resolved_conversion_template.model,
                     parameters=parameters,
                     **kwargs,
@@ -369,7 +371,8 @@ class AntaresStudyConverter:
                                 model_preprocessor.check_timeseries_validity(
                                     param.value
                                 )
-                                for component in area_resolved_template.components for param in component.parameters
+                                for component in area_resolved_template.components
+                                for param in component.parameters
                             ):
                                 self._iterate_through_model(
                                     area_resolved_template,
