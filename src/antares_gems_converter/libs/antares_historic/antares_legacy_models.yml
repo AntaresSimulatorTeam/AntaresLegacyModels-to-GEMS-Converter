@@ -224,7 +224,7 @@ library:
       properties:
         - id: carrier
     
-    - id: misc_generation
+    - id: miscellaneous_generation
       taxonomy-category: miscellaneous_fatal_production
       parameters:
         - id: generation
@@ -366,7 +366,7 @@ library:
         - id: profit
           expression: (sum_connections(balance_port.price) - generation_cost)* max(generation - cluster_min_gen_modulation * num_units * max_power_per_unit, 0)
 
-    - id: short-term-storage
+    - id: short_term_storage
       taxonomy-category: short_term_storage
       parameters:
         - id: reservoir_capacity
@@ -445,22 +445,22 @@ library:
       properties:
         - id: group
     
-    - id: long-term-storage
+    - id: long_term_storage
       taxonomy-category: long_term_storage
       parameters:
         - id: reservoir_capacity
           time-dependent: false
           scenario-dependent: false
-        - id: pumping_nominal_capacity
+        - id: nominal_pumping_capacity
           time-dependent: true
           scenario-dependent: true
-        - id: generation_nominal_capacity
+        - id: nominal_generation_capacity
           time-dependent: true
           scenario-dependent: true
         - id: minimum_generation
           time-dependent: true
           scenario-dependent: true
-        - id: efficiency_pumping
+        - id: pumping_efficiency
           time-dependent: false
           scenario-dependent: false
         - id: lower_rule_curve
@@ -481,11 +481,11 @@ library:
       variables:
         - id: injection_power
           lower-bound: 0
-          upper-bound: pumping_nominal_capacity
+          upper-bound: nominal_pumping_capacity
           variable-type: continuous
         - id: withdrawal_power
           lower-bound: minimum_generation
-          upper-bound: generation_nominal_capacity
+          upper-bound: nominal_generation_capacity
           variable-type: continuous
         - id: overflow
           lower-bound: 0
@@ -504,9 +504,9 @@ library:
           definition: withdrawal_power - injection_power
       constraints:
         - id: level_equation
-          expression: level = level[t-1] + efficiency_pumping * injection_power + inflows - withdrawal_power - overflow
+          expression: level = level[t-1] + pumping_efficiency * injection_power + inflows - withdrawal_power - overflow
         - id: initial_level_equation
-          expression: level[0] = initial_and_final_level[0] * reservoir_capacity + efficiency_pumping * injection_power[0] + inflows[0] - withdrawal_power[0] - overflow[0]
+          expression: level[0] = initial_and_final_level[0] * reservoir_capacity + pumping_efficiency * injection_power[0] + inflows[0] - withdrawal_power[0] - overflow[0]
         - id: final_level_equation
           expression: initial_and_final_level[167] * reservoir_capacity = level[167]
       objective-contributions:

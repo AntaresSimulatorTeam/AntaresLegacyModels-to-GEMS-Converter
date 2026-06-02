@@ -154,7 +154,7 @@ template:
 
 ## GEMS Model Libraries
 
-- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short-term-storage`. These mirror the implicit models in the Antares solver.
+- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
 
 Both use the `flow` port-type with a single `flow` field for power balance connections.
