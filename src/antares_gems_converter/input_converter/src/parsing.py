@@ -11,7 +11,7 @@
 # This file is part of the Antares project.
 
 from dataclasses import dataclass, field
-from typing import Optional, TextIO, Union, List
+from typing import Optional, TextIO, Union
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -143,7 +143,7 @@ ALLOWED_TYPES: list = [
 
 class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
-    column: Optional[List[int]] = None
+    column: Optional[int] = None
     operation: Optional[Operation] = None
     constant: Optional[float] = None
 
@@ -262,7 +262,7 @@ class ConversionTemplate(ModifiedBaseModel):
     model: str
     generator_version_compatibility: Optional[str] = None
     template_parameters: list[TemplateParameter] = Field(default_factory=list)
-    component: ComponentConversionConfig
+    components: list[ComponentConversionConfig]
     connections: list[PortConnectionConversionConfig] = Field(default_factory=list)
     area_connections: list[AreaConnectionConversionConfig] = Field(default_factory=list)
     legacy_objects_to_delete: list[ReferencedLegacyObjects] = Field(
@@ -273,7 +273,7 @@ class ConversionTemplate(ModifiedBaseModel):
     def resolve_template(
         self, template_pattern: str, value: str
     ) -> "ConversionTemplate":
-        component = self.component.resolve_template(template_pattern, value)
+        components = [component.resolve_template(template_pattern, value) for component in self.components]
         connections = []
         area_connections = []
         legacy_objects_to_delete = []
@@ -292,7 +292,7 @@ class ConversionTemplate(ModifiedBaseModel):
             model=self.model,
             generator_version_compatibility=self.generator_version_compatibility,
             template_parameters=self.template_parameters,
-            component=component,
+            components=components,
             connections=connections,
             area_connections=area_connections,
             legacy_objects_to_delete=legacy_objects_to_delete,

@@ -20,26 +20,26 @@ template:
       description: "Area identifier for the solar component"
       # exclude:
 
-  component:
-    id: solar_${area}
-    parameters:
-      - id: nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: unit_count
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: generation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: solar
-            area: ${area}
+  components:
+    - id: solar_${area}
+      parameters:
+        - id: nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: unit_count
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: solar
+              area: ${area}
 
   # For full modeler mode
   connections:

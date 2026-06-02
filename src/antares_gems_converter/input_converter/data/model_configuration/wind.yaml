@@ -21,26 +21,26 @@ template:
       description: "Area identifier for the wind component"
       # exclude:
 
-  component:
-    id: wind_${area}
-    parameters:
-      - id: nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: unit_count
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: generation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: wind
-            area: ${area}
+  components:
+    - id: wind_${area}
+      parameters:
+        - id: nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: unit_count
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: wind
+              area: ${area}
 
   # For full modeler mode
   connections:

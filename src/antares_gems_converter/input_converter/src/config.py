@@ -34,6 +34,7 @@ MATRIX_TYPES_TO_SET_METHOD = {
     "load": "set_load",
     "solar": "set_solar",
     "wind": "set_wind",
+    "misc_gen": "set_misc_gen",
 }
 
 
@@ -99,11 +100,9 @@ MODEL_NAME_TO_FILE_NAME = {
     "thermal": "thermal.yaml",
     "wind": "wind.yaml",
     "misc_gen": "misc_gen.yaml",
-    "row_balance": "row_balance.yaml",
-    "psp": "psp.yaml",
 }
 
-MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "rest_of_world", "psp"]
+MATRIX_TYPES = ["load", "solar", "wind", "misc_gen"]
 CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
 AREA_TYPES = ["area"]

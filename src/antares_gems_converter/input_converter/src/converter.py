@@ -217,32 +217,33 @@ class AntaresStudyConverter:
         area_connections: list,
         mp: ModelConversionPreprocessor,
     ) -> None:
-        parameters = [
-            ComponentParameterSchema(
-                id=param.id,
-                time_dependent=bool(param.time_dependent),
-                scenario_dependent=bool(param.scenario_dependent),
-                value=mp.convert_param_value(
-                    param.id,
-                    param.value,
-                    resolved_conversion_template.component.id,
-                ),
-            )
-            for param in resolved_conversion_template.component.parameters
-        ]
-        scenario_group = getattr(resolved_conversion_template, "scenario_group", None)
-        kwargs = {}
-        if scenario_group is not None:
-            kwargs["scenario_group"] = scenario_group
+        for component in resolved_conversion_template.components:
+            parameters = [
+                ComponentParameterSchema(
+                    id=param.id,
+                    time_dependent=bool(param.time_dependent),
+                    scenario_dependent=bool(param.scenario_dependent),
+                    value=mp.convert_param_value(
+                        param.id,
+                        param.value,
+                        component.id,
+                    ),
+                )
+                for param in component.parameters
+            ]
+            scenario_group = getattr(resolved_conversion_template, "scenario_group", None)
+            kwargs = {}
+            if scenario_group is not None:
+                kwargs["scenario_group"] = scenario_group
 
-        components.append(
-            ComponentSchema(
-                id=(resolved_conversion_template.component.id).replace(" ", "_"),
-                model=resolved_conversion_template.model,
-                parameters=parameters,
-                **kwargs,
+            components.append(
+                ComponentSchema(
+                    id=(component.id).replace(" ", "_"),
+                    model=resolved_conversion_template.model,
+                    parameters=parameters,
+                    **kwargs,
+                )
             )
-        )
 
         if self.mode == ConversionMode.HYBRID:
             for area_connection in resolved_conversion_template.area_connections:
@@ -368,7 +369,7 @@ class AntaresStudyConverter:
                                 model_preprocessor.check_timeseries_validity(
                                     param.value
                                 )
-                                for param in area_resolved_template.component.parameters
+                                for component in area_resolved_template.components for param in component.parameters
                             ):
                                 self._iterate_through_model(
                                     area_resolved_template,

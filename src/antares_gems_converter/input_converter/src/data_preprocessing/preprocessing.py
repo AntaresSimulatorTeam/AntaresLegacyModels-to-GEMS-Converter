@@ -145,7 +145,7 @@ class ModelConversionPreprocessor:
                 return data
 
         if getattr(obj, "column", None) is not None:
-            time_series: pd.Series = time_series[obj.column].sum(axis=1)  # type: ignore
+            time_series: pd.Series = time_series.iloc[:, obj.column]  # type: ignore
 
             if getattr(obj, "operation") and obj.operation is not None:
                 parameter_value: Union[
@@ -181,5 +181,5 @@ class ModelConversionPreprocessor:
             MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],
         )()
         if getattr(value_content, "column", None) is not None:
-            time_series: pd.Series = time_series[value_content.column].sum(axis=1)  # type: ignore
+            time_series: pd.Series = time_series.iloc[:, value_content.column]  # type: ignore
         return check_dataframe_validity(time_series)

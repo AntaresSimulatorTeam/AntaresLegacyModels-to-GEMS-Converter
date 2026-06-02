@@ -14,47 +14,156 @@
 template:
   name: misc_gen
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares_legacy_models.misc_generation
+  model: antares_legacy_models.miscellaneous_fatal_generation
   template-parameters:
     - name: area
-      description: "Area identifier for the load component"
-      # exclude:
 
-  component:
-    id: misc_gen_${area}
-    parameters:
-      - id: generation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: misc_gen
-            area: ${area}
-          column: 
-            - 0
-            - 1
-            - 2
-            - 3
-            - 4
-            - 5
-            # - 6
-            # - 7
+  components:
+    - id: chp_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 0
+    - id: biomass_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 1
+    - id: biogas_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 2
+    - id: waste_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 3
+    - id: geothermal_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 4
+    - id: other_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 5
+    - id: psp_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 6
+    - id: rest_of_world_${area}
+      parameters:
+        - id: generation
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 7
 
   # For full modeler mode
   connections:
-    - component1: misc_gen_${area}
+    - component1: chp_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: biomass_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: biogas_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: waste_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: geothermal_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: other_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: psp_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: rest_of_world_${area}
       port1: balance_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: misc_gen_${area}
+    - component: chp_${area}
       port: balance_port
       area: ${area}
+    - component: biomass_${area}
+      port: balance_port
+      area: ${area}
+    - component: biogas_${area}
+      port: balance_port
+      area: ${area}
+    - component: waste_${area}
+      port: balance_port
+      area: ${area}
+    - component: geothermal_${area}
+      port: balance_port
+      area: ${area}
+    - component: other_${area}
+      port: balance_port
+      area: ${area}
+    - component: psp_${area}
+      port: balance_port
+      area: ${area}
+    - component: rest_of_world_${area}
+      port: balance_port
+      area: ${area}    
 
   legacy-objects-to-delete:
-    - id: legacy_loads
+    - id: legacy_misc_gen
       object-properties:
         type: misc_gen
         area: ${area}

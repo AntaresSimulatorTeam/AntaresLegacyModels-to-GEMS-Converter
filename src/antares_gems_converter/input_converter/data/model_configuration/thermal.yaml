@@ -20,110 +20,109 @@ template:
       cluster-type: thermal
       # exclude:
 
-  component:
-    id: ${area}_${thermal}
-    parameters:
-      - id: minimum_generation_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: prepro_modulation_matrix 
-          column: 
-            - 3
-      - id: p_max_cluster
-        scenario-dependent: true
-        time-dependent: true
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: thermal_series
-      - id: p_min_unit
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_stable_power
-      - id: p_max_unit
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: nominal_capacity
-      - id: generation_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: marginal_cost
-      - id: startup_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: startup_cost
-      - id: fixed_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: fixed_cost
-      - id: d_min_up
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_up_time
-      - id: d_min_down
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_down_time
-      - id: unit_count
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: unit_count
-      - id: spinning
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: spinning
+  components:
+    - id: ${area}_${thermal}
+      parameters:
+        - id: minimum_generation_modulation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: prepro_modulation_matrix 
+            column: 3
+        - id: p_max_cluster
+          scenario-dependent: true
+          time-dependent: true
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: thermal_series
+        - id: p_min_unit
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_stable_power
+        - id: p_max_unit
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: nominal_capacity
+        - id: generation_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: marginal_cost
+        - id: startup_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: startup_cost
+        - id: fixed_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: fixed_cost
+        - id: d_min_up
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_up_time
+        - id: d_min_down
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_down_time
+        - id: unit_count
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: unit_count
+        - id: spinning
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: spinning
 
   # For full modeler mode
   connections:
