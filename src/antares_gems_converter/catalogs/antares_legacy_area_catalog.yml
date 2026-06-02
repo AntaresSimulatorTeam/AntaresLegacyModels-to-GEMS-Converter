@@ -173,12 +173,6 @@ catalog:
       - taxonomy-category: renewable_fatal_production
         output-id: minus_generation
         location-ports: balance_port
-      - taxonomy-category: rest_of_world
-        output-id: minus_generation
-        location-ports: balance_port
-      - taxonomy-category: pumped_storage_plant_fatal_production
-        output-id: minus_generation
-        location-ports: balance_port
       - taxonomy-category: miscellaneous_fatal_production
         output-id: minus_generation
         location-ports: balance_port
@@ -320,9 +314,12 @@ catalog:
 
   - id: ROW.BAL
     terms:
-      - taxonomy-category: rest_of_world
+      - taxonomy-category: miscellaneous_fatal_production
         output-id: actual_generation
         location-ports: balance_port
+    filter: 
+      technology: 
+      - rest_of_world
     terms-operator: sum
     time-operator: sum
 
@@ -331,14 +328,25 @@ catalog:
       - taxonomy-category: miscellaneous_fatal_production
         output-id: actual_generation
         location-ports: balance_port
+    filter: 
+      technology: 
+      - combined_heat_power
+      - biomass
+      - biogas
+      - waste
+      - geothermal
+      - other_fatal_production
     terms-operator: sum
     time-operator: sum
   
   - id: PSP 
     terms:
-      - taxonomy-category: pumped_storage_plant_fatal_production
+      - taxonomy-category: miscellaneous_fatal_production
         output-id: actual_generation
         location-ports: balance_port
+    filter: 
+      technology: 
+      - pumped_storage_plant
     terms-operator: sum
     time-operator: sum
 

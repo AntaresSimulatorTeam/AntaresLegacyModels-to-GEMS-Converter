@@ -77,13 +77,9 @@ taxonomy:
         - id: technology
 
     - id: miscellaneous_fatal_production
-      parent-category: fatal_generation 
-
-    - id: pumped_storage_plant_fatal_production
       parent-category: fatal_generation
-
-    - id: rest_of_world
-      parent-category: fatal_generation  
+      properties:
+        - id: technology 
 
     - id: consumption
       extra-outputs:

@@ -182,48 +182,6 @@ library:
         - id: carrier
         - id: technology
     
-    - id: rest_of_world
-      taxonomy-category: rest_of_world
-      parameters:
-        - id: generation
-          time-dependent: true
-          scenario-dependent: true
-      ports:
-        - id: balance_port
-          type: flow
-      port-field-definitions:
-        - port: balance_port
-          field: flow
-          definition: generation
-      extra-outputs:
-        - id: minus_generation
-          expression: -generation
-        - id: actual_generation
-          expression: generation
-      properties:
-        - id: carrier
-
-    - id: pumped_storage_plant
-      taxonomy-category: pumped_storage_plant_fatal_production
-      parameters:
-        - id: generation
-          time-dependent: true
-          scenario-dependent: true
-      ports:
-        - id: balance_port
-          type: flow
-      port-field-definitions:
-        - port: balance_port
-          field: flow
-          definition: generation
-      extra-outputs:
-        - id: minus_generation
-          expression: -generation
-        - id: actual_generation
-          expression: generation
-      properties:
-        - id: carrier
-    
     - id: miscellaneous_generation
       taxonomy-category: miscellaneous_fatal_production
       parameters:
@@ -244,6 +202,7 @@ library:
           expression: generation
       properties:
         - id: carrier
+        - id: technology
 
     - id: thermal
       taxonomy-category: dispatchable_production
