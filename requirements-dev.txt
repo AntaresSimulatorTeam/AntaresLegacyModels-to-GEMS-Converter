@@ -145,7 +145,7 @@ numexpr==2.14.1
     # via
     #   -r requirements.txt
     #   linopy
-numpy==1.26.4
+numpy==2.2.0
     # via
     #   -r requirements.txt
     #   antares-craft

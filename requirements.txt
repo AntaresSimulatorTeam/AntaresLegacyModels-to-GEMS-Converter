@@ -75,7 +75,7 @@ locket==1.0.0
     # via partd
 numexpr==2.14.1
     # via linopy
-numpy==1.26.4
+numpy==2.2.0
     # via
     #   -r requirements.in
     #   antares-craft
