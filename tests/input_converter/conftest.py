@@ -242,6 +242,17 @@ def fr_load(local_study_with_hydro, request: pytest.FixtureRequest) -> Study:
 
 
 @pytest.fixture
+def fr_misc_gen(local_study_with_hydro, request: pytest.FixtureRequest) -> Study:
+    """
+    return a study object with a misc gen object that has custom parameters
+    """
+    command = request.param if hasattr(request, "param") else DEFAULT_SERIES_CONFIG
+    series_df = command[0] if isinstance(command, tuple) else command
+    local_study_with_hydro.get_areas()["fr"].set_misc_gen(series_df)
+    return local_study_with_hydro
+
+
+@pytest.fixture
 def local_study_w_areas_for_battery(local_study) -> Study:
     """
     Create an empty study

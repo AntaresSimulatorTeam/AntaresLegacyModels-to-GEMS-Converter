@@ -40,6 +40,7 @@ from gems.study.parsing import (
 )
 from gems.study.resolve_components import resolve_system
 from tests.input_converter.conftest import create_dataframe_from_constant
+import numpy as np
 
 RESOURCES_FOLDER = (
     Path(__file__).parents[2]
@@ -66,6 +67,8 @@ LIB_PATHS = [
     "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",
 ]
 MODEL_LIST_WITH_BASE = [str(Path(os.getcwd()) / suffix) for suffix in LIB_PATHS]
+DATAFRAME_MISC_GEN_CONFIG = pd.DataFrame(np.zeros((3, 8), dtype=int))
+DATAFRAME_MISC_GEN_CONFIG.iloc[:, 1] = 1
 
 
 class TestConverter:
@@ -640,7 +643,7 @@ class TestConverter:
         solar_fr_connection = next(
             (conn for conn in solar_connections if conn.component1 == "solar_fr"), None
         )
-        solar_timeseries = "generation_fr"
+        solar_timeseries = "generation_solar_fr"
         expected_solar_connection = PortConnectionsSchema(
             component1="solar_fr",
             port1="balance_port",
@@ -698,7 +701,7 @@ class TestConverter:
             (conn for conn in load_connections if conn.component1 == "load_fr"), None
         )
 
-        load_timeseries = "load_fr"
+        load_timeseries = "load_load_fr"
         expected_load_connection = PortConnectionsSchema(
             component1="load_fr",
             port1="balance_port",
@@ -774,7 +777,7 @@ class TestConverter:
                     id="generation",
                     time_dependent=True,
                     scenario_dependent=True,
-                    value="generation_fr",
+                    value="generation_wind_fr",
                 ),
             ],
         )
@@ -827,6 +830,140 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert wind_components == []
+
+    @pytest.mark.parametrize(
+        "fr_misc_gen",
+        [create_dataframe_from_constant(lines=8760, columns=8)],
+        indirect=True,
+    )
+    def test_convert_misc_gen_to_components_from_study(self, fr_misc_gen: Study):
+        converter = self._init_converter_from_study(fr_misc_gen, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "misc_gen.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            misc_gen_components,
+            misc_gen_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+
+        expected_misc_gen_connections = [
+            PortConnectionsSchema(
+                component1=f"{generation_type}_fr",
+                port1="balance_port",
+                component2="fr",
+                port2="balance_port",
+            )
+            for generation_type in [
+                "chp",
+                "biomass",
+                "biogas",
+                "waste",
+                "geothermal",
+                "other",
+                "psp",
+                "rest_of_world",
+            ]
+        ]
+        expected_misc_gen_components = [
+            ComponentSchema(
+                id=f"{generation_type}_fr",
+                model="antares_legacy_models.miscellaneous_fatal_generation",
+                parameters=[
+                    ComponentParameterSchema(
+                        id="generation",
+                        time_dependent=True,
+                        scenario_dependent=False,
+                        value=f"generation_{generation_type}_fr",
+                    )
+                ],
+            )
+            for generation_type in [
+                "chp",
+                "biomass",
+                "biogas",
+                "waste",
+                "geothermal",
+                "other",
+                "psp",
+                "rest_of_world",
+            ]
+        ]
+        assert misc_gen_connections == expected_misc_gen_connections
+        assert misc_gen_components == expected_misc_gen_components
+
+    @pytest.mark.parametrize(
+        "fr_misc_gen",
+        [
+            pd.DataFrame(),  # DataFrame empty
+        ],
+        indirect=True,
+    )
+    def test_convert_misc_gen_to_components_empty_file(
+        self,
+        fr_misc_gen: object,
+    ):
+        converter = self._init_converter_from_study(fr_misc_gen, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "misc_gen.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            misc_gen_components,
+            misc_gen_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+        assert misc_gen_components == []
+        assert misc_gen_connections == []
+
+    @pytest.mark.parametrize(
+        "fr_misc_gen",
+        [DATAFRAME_MISC_GEN_CONFIG],
+        indirect=True,
+    )
+    def test_convert_misc_gen_to_components_zero_values(self, fr_misc_gen: int):
+        converter = self._init_converter_from_study(fr_misc_gen, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "misc_gen.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            misc_gen_components,
+            misc_gen_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+
+        expected_misc_gen_connections = [
+            PortConnectionsSchema(
+                component1=f"biomass_fr",
+                port1="balance_port",
+                component2="fr",
+                port2="balance_port",
+            )
+        ]
+        expected_misc_gen_components = [
+            ComponentSchema(
+                id=f"biomass_fr",
+                model="antares_legacy_models.miscellaneous_fatal_generation",
+                parameters=[
+                    ComponentParameterSchema(
+                        id="generation",
+                        time_dependent=True,
+                        scenario_dependent=False,
+                        value=f"generation_biomass_fr",
+                    )
+                ],
+            )
+        ]
+        assert misc_gen_connections == expected_misc_gen_connections
+        assert misc_gen_components == expected_misc_gen_components
 
     def test_convert_links_to_component(self, local_study_w_links: Study, lib_id: str):
         # This test is on the inner function _convert_model_to_component_list, no need to pass a model_list to the converter constructor
@@ -1136,26 +1273,21 @@ class TestConverter:
         ) = converter._convert_model_to_component_list(bc_data)
 
         output_path = converter.output_folder
-        path1 = (
-            output_path / "input" / "data-series" / "marginal_cost_fr_z_batteries.tsv"
-        )
+        path1 = output_path / "input" / "data-series" / "marginal_cost_battery_fr.tsv"
         path2 = (
             output_path
             / "input"
             / "data-series"
-            / "p_max_injection_modulation_fr_z_batteries.tsv"
+            / "p_max_injection_modulation_battery_fr.tsv"
         )
         path3 = (
             output_path
             / "input"
             / "data-series"
-            / "p_max_withdrawal_modulation_fr_fr_batteries_inj.tsv"
+            / "p_max_withdrawal_modulation_battery_fr.tsv"
         )
         path4 = (
-            output_path
-            / "input"
-            / "data-series"
-            / "upper_rule_curve_z_batteries_z_batteries_batteries_fr_1.tsv"
+            output_path / "input" / "data-series" / "upper_rule_curve_battery_fr.tsv"
         )
         assert check_file_exists(path1)
         assert check_file_exists(path2)

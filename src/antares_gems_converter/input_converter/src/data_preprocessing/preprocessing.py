@@ -35,15 +35,13 @@ class ModelConversionPreprocessor:
         self.file_path = Path(".")
 
     def calculate_matrix_data_values(
-        self, obj: ConversionValue, type_resource: str, component_id: str
+        self, obj: ConversionValue, type_resource: str
     ) -> pd.DataFrame:
         if not obj.object_properties or not obj.object_properties.area:
             raise ValueError(
                 f"Object properties and its area from {obj} must not be None"
             )
         area: str = obj.object_properties.area
-        self.file_path = Path(f"{component_id}_{self.param_id}.tsv")
-        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return getattr(
             self.study.get_areas()[area], MATRIX_TYPES_TO_GET_METHOD[type_resource]
         )()
@@ -60,10 +58,6 @@ class ModelConversionPreprocessor:
         link_id = obj.object_properties.link
 
         link: Link = self.study.get_links()[link_id]
-        self.file_path = Path(
-            f"{self.param_id}_{link.area_from_id}_{link.area_to_id}.tsv"
-        )
-        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return getattr(link, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field])()
 
     def calculate_cluster_data_values(
@@ -95,10 +89,6 @@ class ModelConversionPreprocessor:
             if type_resource == "thermal":
                 self.preprocessed_values[self.param_id] = value
             return value
-        self.file_path = Path(
-            f"{self.param_id}_{area}_{obj.object_properties.cluster}.tsv"
-        )
-        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return time_series
 
     def calculate_binding_constraint_data_values(
@@ -128,10 +118,12 @@ class ModelConversionPreprocessor:
             raise ValueError(f"Object properties {obj} must not be None")
         type_resource: str = obj.object_properties.type
         time_series: pd.DataFrame = pd.DataFrame()
+
+        self.file_path = Path(f"{self.param_id}_{component_id.replace(' / ','_')}.tsv")
+        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
+
         if type_resource in ["load", "wind", "solar", "misc_gen"]:
-            time_series = self.calculate_matrix_data_values(
-                obj, type_resource, component_id
-            )
+            time_series = self.calculate_matrix_data_values(obj, type_resource)
         elif type_resource == "binding_constraint":
             # TODO No timeseries linked to binding constraints for the moment
             return self.calculate_binding_constraint_data_values(obj)  # type: ignore

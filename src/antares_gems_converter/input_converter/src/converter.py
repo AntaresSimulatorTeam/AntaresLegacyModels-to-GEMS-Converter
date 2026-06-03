@@ -12,7 +12,7 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
@@ -217,7 +217,15 @@ class AntaresStudyConverter:
         area_connections: list,
         mp: ModelConversionPreprocessor,
     ) -> None:
+        components_connections_to_avoid: List[str] = []
         for comp in resolved_conversion_template.components:
+            if resolved_conversion_template.name in MATRIX_TYPES:
+                if not all(
+                    mp.check_timeseries_validity(param.value)
+                    for param in comp.parameters
+                ):
+                    components_connections_to_avoid.append(comp.id)
+                    continue
             parameters = [
                 ComponentParameterSchema(
                     id=param.id,
@@ -250,55 +258,61 @@ class AntaresStudyConverter:
         if self.mode == ConversionMode.HYBRID:
             for area_connection in resolved_conversion_template.area_connections:
                 # TODO: Improve logic
-                if "." in area_connection.component:
-                    component_parts = area_connection.component.split(".")
-                    component_value = getattr(
-                        self.study.get_links()[component_parts[0]], component_parts[1]
+                if area_connection.component not in components_connections_to_avoid:
+                    if "." in area_connection.component:
+                        component_parts = area_connection.component.split(".")
+                        component_value = getattr(
+                            self.study.get_links()[component_parts[0]],
+                            component_parts[1],
+                        )
+                    else:
+                        component_value = area_connection.component
+                    component_value = component_value.replace(" ", "_")
+                    if "." in area_connection.area:
+                        area_parts = area_connection.area.split(".")
+                        area_value = getattr(
+                            self.study.get_links()[area_parts[0]], area_parts[1]
+                        )
+                    else:
+                        area_value = area_connection.area
+                    area_value = area_value.replace(" ", "_")
+                    area_connections.append(
+                        AreaConnectionsSchema(
+                            component=component_value,
+                            port=area_connection.port,
+                            area=area_value,
+                        )
                     )
-                else:
-                    component_value = area_connection.component
-                component_value = component_value.replace(" ", "_")
-                if "." in area_connection.area:
-                    area_parts = area_connection.area.split(".")
-                    area_value = getattr(
-                        self.study.get_links()[area_parts[0]], area_parts[1]
-                    )
-                else:
-                    area_value = area_connection.area
-                area_value = area_value.replace(" ", "_")
-                area_connections.append(
-                    AreaConnectionsSchema(
-                        component=component_value,
-                        port=area_connection.port,
-                        area=area_value,
-                    )
-                )
             # TODO : Simplify usage, use directly legacy_objectis_to_delete
             for item in resolved_conversion_template.legacy_objects_to_delete:
                 self.legacy_objects.append(item.object_properties)
         else:
             for connection in resolved_conversion_template.connections:
                 # TODO: Factorize logic with previous connections
-                treated_components = []
-                for component in [connection.component1, connection.component2]:
-                    if "." in component:
-                        component_parts = component.split(".")
-                        component_value = getattr(
-                            self.study.get_links()[component_parts[0]],
-                            component_parts[1],
-                        )
-                    else:
-                        component_value = component
-                    treated_components.append(component_value.replace(" ", "_"))
+                if (
+                    connection.component1 not in components_connections_to_avoid
+                    and connection.component2 not in components_connections_to_avoid
+                ):
+                    treated_components = []
+                    for component in [connection.component1, connection.component2]:
+                        if "." in component:
+                            component_parts = component.split(".")
+                            component_value = getattr(
+                                self.study.get_links()[component_parts[0]],
+                                component_parts[1],
+                            )
+                        else:
+                            component_value = component
+                        treated_components.append(component_value.replace(" ", "_"))
 
-                connections.append(
-                    PortConnectionsSchema(
-                        component1=treated_components[0],
-                        port1=connection.port1,
-                        component2=treated_components[1],
-                        port2=connection.port2,
+                    connections.append(
+                        PortConnectionsSchema(
+                            component1=treated_components[0],
+                            port1=connection.port1,
+                            component2=treated_components[1],
+                            port2=connection.port2,
+                        )
                     )
-                )
 
     def _convert_model_to_component_list(
         self,
@@ -365,22 +379,6 @@ class AntaresStudyConverter:
                                         area_connections,
                                         model_preprocessor,
                                     )
-
-                        elif conversion_template.name in MATRIX_TYPES:
-                            if all(
-                                model_preprocessor.check_timeseries_validity(
-                                    param.value
-                                )
-                                for component in area_resolved_template.components
-                                for param in component.parameters
-                            ):
-                                self._iterate_through_model(
-                                    area_resolved_template,
-                                    components,
-                                    connections,
-                                    area_connections,
-                                    model_preprocessor,
-                                )
                         else:
                             self._iterate_through_model(
                                 area_resolved_template,

@@ -255,6 +255,49 @@ def createSTSTestAntaresStudy(
     addHybridBehavior(parent_dir_path / study_name)
 
 
+def createMiscGenTestAntaresStudy(
+    study_name: str,
+    parent_dir_path: Path,
+    load_time_serie_file: Path,
+    misc_gen: pd.DataFrame,
+) -> None:
+    study = create_study_local(
+        study_name=study_name,
+        version=ANTARES_VERSION_CREATED_STUDIES,
+        parent_directory=parent_dir_path,
+    )
+    load_timeserie = pd.read_csv(load_time_serie_file)
+    area = study.create_area(
+        area_name="unique", properties=AreaProperties(energy_cost_unsupplied=20000)
+    )
+    area.set_load(load_timeserie)
+    area.set_misc_gen(misc_gen)
+    cluster1 = area.create_thermal_cluster(
+        "prod",
+        ThermalClusterProperties(
+            unit_count=2,
+            nominal_capacity=150,
+            marginal_cost=10,
+            market_bid_cost=10,
+            group=ThermalClusterGroup.NUCLEAR,
+        ),
+    )
+    cluster1.set_series(pd.DataFrame(data=150 * np.ones((8760, 1))))
+
+    cluster2 = area.create_thermal_cluster(
+        "prod2",
+        ThermalClusterProperties(
+            unit_count=1,
+            nominal_capacity=200,
+            marginal_cost=20,
+            market_bid_cost=20,
+            group=ThermalClusterGroup.NUCLEAR,
+        ),
+    )
+    cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
+    addHybridBehavior(parent_dir_path / study_name)
+
+
 def random_availability_ratio(seed: int = 1000) -> np.ndarray:
     np.random.seed(seed)  # for reproducibility
     raw = np.random.random((8760, 1))
