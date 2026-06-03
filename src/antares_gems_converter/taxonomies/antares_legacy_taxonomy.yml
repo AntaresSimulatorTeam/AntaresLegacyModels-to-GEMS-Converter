@@ -106,6 +106,12 @@ taxonomy:
         - id: actual_inflows
         - id: level_percentage
     
+    - id: long_term_storage_with_watervalues
+      parent-category: long_term_storage
+      extra-outputs:
+        - id: hydro_shadow_price
+        - id: bellman_value
+    
     - id: short_term_storage
       parent-category: storage
       extra-outputs:

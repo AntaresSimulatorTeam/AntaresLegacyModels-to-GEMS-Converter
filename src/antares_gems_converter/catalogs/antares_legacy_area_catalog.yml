@@ -379,7 +379,22 @@ catalog:
         location-ports: balance_port
     terms-operator: avg
     time-operator: avg
+
+  - id: H.VAL # WARNING : metric different from the one in Antares
+    terms:
+      - taxonomy-category: long_term_storage_with_watervalues
+        output-id: hydro_shadow_price
+        location-ports: balance_port
+    terms-operator: avg
+    time-operator: avg
+
+  - id: H.COST # WARNING : metric different from the one in Antares
+    terms:
+      - taxonomy-category: long_term_storage_with_watervalues
+        output-id: bellman_value
+        location-ports: balance_port
+    terms-operator: sum
+    time-operator: sum
   
   # - id: MAX.MRG # TODO : traat as a postreatment. Calulation from hour to hour can differ for this metric max-mrg-utilis.cpp in Simulator, there is an algorithm to compute this metric.
-  # - id: H.VAL # TODO : depreciate this metric
-  # - id: H.COST # TODO : depreciate this metric
+  
