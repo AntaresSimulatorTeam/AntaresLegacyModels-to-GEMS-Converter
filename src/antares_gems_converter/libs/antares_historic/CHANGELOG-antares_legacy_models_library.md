@@ -14,7 +14,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 Renaming to match naming conventions. 
 
-New extra-outputs to be able to reproduce lecagy output metrics.
+New extra-outputs to be able to reproduce legacy output metrics.
 
 New parameter on link model : loop flow. 
 

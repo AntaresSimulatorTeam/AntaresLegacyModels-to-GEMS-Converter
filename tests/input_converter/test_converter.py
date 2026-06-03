@@ -537,13 +537,13 @@ class TestConverter:
                 ]
                 + [
                     ComponentParameterSchema(
-                        id=polluant,
+                        id=pollutant,
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0,
                     )
-                    for polluant in [
+                    for pollutant in [
                         "co2_emissions_rate",
                         "nh3_emissions_rate",
                         "so2_emissions_rate",

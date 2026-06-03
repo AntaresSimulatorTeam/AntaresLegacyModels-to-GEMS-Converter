@@ -1,13 +1,3 @@
-# Such a file for "Business Metrics" definitions should be modified only by expert user in a text editor. No API/GUI is needed.
-# In "secure mode", a user can only refer to "Business Metrics Definition files" that are registered as "safe" in a reference repo.
-# In "free mode", a user can refer to "Business Metrics Definitions files" that are freely modified
-
-############################    Columns of a Business View   #######################################
-
-# metric_id | metric_location | breakdown_property | view_date | scenario_id | metric_value |
-
-####################################################################################################
-
 catalog:
   
   id: antares_area_metrics
@@ -385,7 +375,7 @@ catalog:
   - id: H.LEV
     terms:
       - taxonomy-category: long_term_storage
-        output-id: level percentage
+        output-id: level_percentage
         location-ports: balance_port
     terms-operator: avg
     time-operator: avg

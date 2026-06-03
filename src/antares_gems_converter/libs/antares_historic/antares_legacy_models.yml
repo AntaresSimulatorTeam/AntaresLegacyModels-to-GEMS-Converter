@@ -12,7 +12,7 @@
 library:
   id: antares_legacy_models
   description: Antares historic model library
-  version: "1.0.0"
+  version: "1.1.0"
   taxonomy: antares_legacy_taxonomy
 
   port-types:
@@ -231,12 +231,12 @@ library:
         - id: op5_emissions_rate
       variables:
         - id: generation_power
-          lower-bound: min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation / max_power_per_unit)), cluster_min_gen_modulation * num_units * max_power_per_unit) # real expression before simplification : min(upper-bound(generation),cluster_min_gen_modulation * num_units * max_power_per_unit) = min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation*(1-spinning/100) / (max_power_per_unit*(1-spinning/100)))), cluster_min_gen_modulation * num_units * max_power_per_unit)
+          lower-bound: min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation / max_power_per_unit)), cluster_min_gen_modulation * num_units * max_power_per_unit) # real expression before simplification : min(upper-bound(generation_power),cluster_min_gen_modulation * num_units * max_power_per_unit) = min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation*(1-spinning/100) / (max_power_per_unit*(1-spinning/100)))), cluster_min_gen_modulation * num_units * max_power_per_unit)
           upper-bound: max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation / max_power_per_unit)) # real expression before simplification : max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation*(1-spinning/100) / (max_power_per_unit*(1-spinning/100))))
           variable-type: continuous
         - id: num_units_on
-          lower-bound: ceil(min(cluster_max_generation/max_power_per_unit, cluster_min_gen_modulation * num_units * max_power_per_unit/(max_power_per_unit*(1-spinning/100)))) # real expression before simplification : ceil(lower-bound(generation)/(max_power_per_unit*(1-spinning/100))) = ceil(min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation / max_power_per_unit)), cluster_min_gen_modulation * num_units * max_power_per_unit)/(max_power_per_unit*(1-spinning/100)))
-          upper-bound: ceil(cluster_max_generation/max_power_per_unit) # real expression before simplification : ceil(upper-bound(generation)/(max_power_per_unit*(1-spinning/100))) = ceil(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation*(1-spinning/100) / (max_power_per_unit*(1-spinning/100))))/(max_power_per_unit*(1-spinning/100)))
+          lower-bound: ceil(min(cluster_max_generation/max_power_per_unit, cluster_min_gen_modulation * num_units * max_power_per_unit/(max_power_per_unit*(1-spinning/100)))) # real expression before simplification : ceil(lower-bound(generation_power)/(max_power_per_unit*(1-spinning/100))) = ceil(min(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation / max_power_per_unit)), cluster_min_gen_modulation * num_units * max_power_per_unit)/(max_power_per_unit*(1-spinning/100)))
+          upper-bound: ceil(cluster_max_generation/max_power_per_unit) # real expression before simplification : ceil(upper-bound(generation_power)/(max_power_per_unit*(1-spinning/100))) = ceil(max(cluster_max_generation*(1-spinning/100), min_power_per_unit * ceil(cluster_max_generation*(1-spinning/100) / (max_power_per_unit*(1-spinning/100))))/(max_power_per_unit*(1-spinning/100)))
           variable-type: continuous #integer
         - id: num_units_starting
           lower-bound: 0
@@ -386,7 +386,7 @@ library:
           definition: withdrawal_power - injection_power
       constraints:
         - id: initial_level_constraint
-          expression: level[167] = initial_level * reservoir_capacity
+          expression: level[167] = initial_level * reservoir_capacity # 167 = last timestep of the week (168h - 1); enforces end-of-week level target
         - id: level_equation
           expression: level = level[t-1] + injection_efficiency * injection_power - withdrawal_efficiency * withdrawal_power + inflows
       objective-contributions:
@@ -461,12 +461,12 @@ library:
         - id: initial_level_equation
           expression: level[0] = initial_and_final_level[0] * reservoir_capacity + pumping_efficiency * injection_power[0] + inflows[0] - withdrawal_power[0] - overflow[0]
         - id: final_level_equation
-          expression: initial_and_final_level[167] * reservoir_capacity = level[167]
+          expression: initial_and_final_level[167] * reservoir_capacity = level[167] # 167 = last timestep of the week (168h - 1)
       objective-contributions:
         - id: objective
           expression: sum(overflow_cost * overflow)
       extra-outputs:
-        - id: level percentage
+        - id: level_percentage
           expression: level/reservoir_capacity*100
         - id: actual_inflows
           expression: floor(inflows+0.5)

@@ -104,7 +104,7 @@ taxonomy:
         - id: overflow
       extra-outputs:
         - id: actual_inflows
-        - id: level percentage
+        - id: level_percentage
     
     - id: short_term_storage
       parent-category: storage
