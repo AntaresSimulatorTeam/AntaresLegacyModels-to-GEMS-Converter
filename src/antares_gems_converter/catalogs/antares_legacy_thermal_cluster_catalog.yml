@@ -9,17 +9,17 @@ catalog:
 
   metrics-definition: 
 
-  - id: MWh
+  - id: GENERATION
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: generation
+        output-id: generation_power
         location-ports: null
     terms-operator: sum
     time-operator: sum
     breakdown:
       - key: plant
 
-  - id: MIN.GEN.MWh
+  - id: MIN.GEN
     terms:
       - taxonomy-category: dispatchable_production
         output-id: min_gen_power
@@ -29,7 +29,7 @@ catalog:
     breakdown:
       - key: plant
 
-  - id: Profit.Euro
+  - id: PROFIT
     terms:
       - taxonomy-category: dispatchable_production
         output-id: profit 
@@ -49,7 +49,7 @@ catalog:
     breakdown:
       - key: plant
 
-  - id: NP.Cost.Euro 
+  - id: NP.COST
     terms:
       - taxonomy-category: dispatchable_production
         output-id: non_prop_cost

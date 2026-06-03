@@ -12,7 +12,7 @@ catalog:
 
   metrics-definition: 
 
-  - id: P.injection.MW
+  - id: P.INJECTION
     terms:
       - taxonomy-category: short_term_storage
         output-id: injection_power
@@ -20,7 +20,7 @@ catalog:
     terms-operator: sum
     time-operator: sum
 
-  - id: P.withdrawal.MW
+  - id: P.WITHDRAWAL
     terms:
       - taxonomy-category: short_term_storage
         output-id: withdrawal_power
@@ -28,7 +28,7 @@ catalog:
     terms-operator: sum
     time-operator: sum
 
-  - id: Levels.MWh
+  - id: LEVELS
     terms:
       - taxonomy-category: short_term_storage
         output-id: level
@@ -36,7 +36,7 @@ catalog:
     terms-operator: avg
     time-operator: avg
   
-  - id: CashFlow.Euro
+  - id: CASHFLOW
     terms:
       - taxonomy-category: short_term_storage
         output-id: profit

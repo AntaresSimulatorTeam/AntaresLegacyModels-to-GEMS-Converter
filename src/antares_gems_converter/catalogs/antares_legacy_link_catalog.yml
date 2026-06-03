@@ -31,7 +31,7 @@ catalog:
   - id: CONG.FEE.ABS
     terms:
       - taxonomy-category: link
-        output-id: congestion_fee_abs
+        output-id: abs_congestion_fee
         location-ports: null 
     terms-operator: sum
     time-operator: sum
@@ -39,7 +39,7 @@ catalog:
   - id: CONG.FEE.ALG
     terms:
       - taxonomy-category: link
-        output-id: congestion_fee_alg
+        output-id: alg_congestion_fee
         location-ports: null 
     terms-operator: sum
     time-operator: sum
@@ -55,7 +55,7 @@ catalog:
   - id: CONG.PROB.DIR
     terms:
       - taxonomy-category: link
-        output-id: is_congested_direct
+        output-id: is_directly_congested
         location-ports: null 
     terms-operator: sum
     time-operator: sum
@@ -63,7 +63,7 @@ catalog:
   - id: CONG.PROB.INDIR
     terms:
       - taxonomy-category: link
-        output-id: is_congested_indirect
+        output-id: is_indirectly_congested
         location-ports: null 
     terms-operator: sum
     time-operator: sum

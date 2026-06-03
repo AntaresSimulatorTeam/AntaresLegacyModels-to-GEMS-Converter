@@ -182,7 +182,7 @@ catalog:
   - id: DTG.BY.TECHNOLOGY
     terms:
       - taxonomy-category: dispatchable_production
-        output-id: generation
+        output-id: generation_power
         location-ports: balance_port
     terms-operator: sum
     breakdown:
@@ -192,10 +192,10 @@ catalog:
   - id: BALANCE
     terms:
       - taxonomy-category: link
-        output-id: minus_out_port
+        output-id: minus_flow
         location-ports: out_port
       - taxonomy-category: link
-        output-id: minus_in_port
+        output-id: flow
         location-ports: in_port
     terms-operator: sum
     time-operator: sum
@@ -385,7 +385,7 @@ catalog:
   - id: H.LEV
     terms:
       - taxonomy-category: long_term_storage
-        output-id: percent_level
+        output-id: level percentage
         location-ports: balance_port
     terms-operator: avg
     time-operator: avg

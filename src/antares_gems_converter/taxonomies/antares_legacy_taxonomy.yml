@@ -37,7 +37,7 @@ taxonomy:
     - id: dispatchable_production
       parent-category: production
       variables: 
-        - id: generation
+        - id: generation_power
       extra-outputs:
         - id: prop_cost
         - id: non_prop_cost
@@ -66,7 +66,7 @@ taxonomy:
     - id: fatal_generation
       parent-category: production
       parameters:
-        - id: generation
+        - id: generation_power
       extra-outputs:
         - id: minus_generation
         - id: actual_generation
@@ -104,7 +104,7 @@ taxonomy:
         - id: overflow
       extra-outputs:
         - id: actual_inflows
-        - id: percent_level
+        - id: level percentage
     
     - id: short_term_storage
       parent-category: storage
@@ -121,14 +121,13 @@ taxonomy:
         - id: flow
       extra-outputs:
         - id: abs_flow
-        - id: congestion_fee_abs
-        - id: congestion_fee_alg
+        - id: abs_congestion_fee
+        - id: alg_congestion_fee
         - id: capacity_shadow_price
-        - id: is_congested_direct
-        - id: is_congested_indirect
+        - id: is_directly_congested
+        - id: is_indirectly_congested
         - id: prop_cost
-        - id: minus_out_port
-        - id: minus_in_port
+        - id: minus_flow
         - id: actual_loop_flow
 
     - id: coupling_models
