@@ -8,7 +8,7 @@ annotated-types==0.7.0
     # via pydantic
 antares-craft==0.14.0
     # via -r requirements.in
-antares-study-version==1.0.15
+antares-study-version==1.0.20
     # via antares-craft
 antares-timeseries-generation==0.1.9
     # via antares-craft
