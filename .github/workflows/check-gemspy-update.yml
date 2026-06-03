@@ -24,7 +24,7 @@ jobs:
       - name: Read current GemsPy version
         id: current
         run: |
-          VERSION=$(grep '^gemspy==' requirements.txt | cut -d'=' -f3)
+          VERSION=$(grep -oP 'gemspy==\K[0-9.]+' pyproject.toml)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Current version: $VERSION"
 

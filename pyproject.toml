@@ -10,20 +10,20 @@ license = {text = "MPL-2.0"}
 requires-python = ">=3.10"
 dependencies = [
     "gemspy==0.1.0",
-    "numpy",
-    "PyYAML>=6.0",
-    "pydantic",
-    "antares_craft==0.14.0",
-    "pandas",
+    "antares_craft==0.3.0",
+    "numpy==1.26.4",
+    "pandas==2.2.3",
+    "pydantic==2.11.10",
+    "PyYAML==6.0.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov",
-    "mypy",
-    "types-pyyaml",
-    "black~=23.7.0",
+    "pytest==9.0.3",
+    "pytest-cov==7.1.0",
+    "mypy==2.1.0",
+    "types-pyyaml==6.0.12",
+    "black==23.7.0",
 ]
 
 
