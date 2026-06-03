@@ -59,8 +59,6 @@ library:
           expression: spillage_cost * spilled_energy + unsupplied_energy_cost * unsupplied_energy
         - id: is_loss_of_load
           expression: unsupplied_energy >= 0.5
-        - id: loss_of_load_probability
-          expression: 100*(unsupplied_energy >= 0.5)
         - id: is_near_loss_of_load
           expression: dual(balance) >= unsupplied_energy_cost - 5
       properties:
@@ -142,9 +140,9 @@ library:
         - id: capacity_shadow_price
           expression: max(dual(flow_decomposition),-dual(flow_decomposition))
         - id: is_directly_congested
-          expression: (direct_flow >= direct_capacity - loop_flow)*100
+          expression: (direct_flow >= direct_capacity - loop_flow)
         - id: is_indirectly_congested
-          expression: (indirect_flow >= indirect_capacity + loop_flow)*100
+          expression: (indirect_flow >= indirect_capacity + loop_flow)
         - id: prop_cost
           expression: direct_hurdle_cost * direct_flow + indirect_hurdle_cost * indirect_flow
         - id: abs_flow

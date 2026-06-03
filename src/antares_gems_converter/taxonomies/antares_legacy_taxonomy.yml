@@ -28,7 +28,6 @@ taxonomy:
         - id: imbalance_cost
         - id: is_loss_of_load
         - id: is_near_loss_of_load
-        - id: loss_of_load_probability
 
     - id: production
       ports:

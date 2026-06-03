@@ -289,9 +289,9 @@ catalog:
   - id: LOLP
     terms:
       - taxonomy-category: balance
-        output-id: loss_of_load_probability
+        output-id: is_loss_of_load
         location-ports: null
-    terms-operator: sum
+    terms-operator: avg
     time-operator: avg
 
   - id: NPCAP.HOURS 
