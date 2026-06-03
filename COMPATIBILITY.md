@@ -4,7 +4,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Converter | Antares-Simulator | antares-craft | GemsPy | Notes |
 |-----------|-------------------|---------------|--------|-------|
-| 0.1.0     | 10.0.0            | 0.3.0         | 0.1.0  | Adapt to GemsPy 0.1.0 (massive refactoring: rename Input* classes to *Schema) |
+| 0.1.0     | 10.1.0            | 0.14.0        | 0.1.0  | antares-craft 0.14.0 (numpy 2.x) GemsPy 0.1.0 (massive refactoring: rename Input* classes to *Schema) |
 | 0.0.1     | 10.0.0            | 0.3.0         | 0.0.2  | Initial release |
 
 ## Versioning Policy
@@ -31,7 +31,11 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Package | Pinned version |
 |---------|----------------|
-| numpy | 1.26.4 |
+| antares-craft | 0.14.0 |
+| antares-study-version | 1.0.20 |
+| antares-timeseries-generation | 0.1.9 |
+| gemspy | 0.1.0 |
+| numpy | 2.2.6 |
 | pandas | 2.2.3 |
 | pydantic | 2.11.10 |
 | PyYAML | 6.0.3 |
@@ -52,6 +56,6 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 |-----------|----------------|--------------|
 | Converter | 0.1.0 | `pyproject.toml` |
 | Antares Legacy Models Library | 1.0.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
-| Antares-Simulator | 10.0.0 | `dependencies.json` |
-| antares-craft | 0.3.0 | `pyproject.toml` |
+| Antares-Simulator | 10.1.0 | `dependencies.json` |
+| antares-craft | 0.14.0 | `pyproject.toml` |
 | GemsPy | 0.1.0 | `pyproject.toml` |

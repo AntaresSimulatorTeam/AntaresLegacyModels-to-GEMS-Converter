@@ -165,7 +165,7 @@ Both use the `flow` port-type with a single `flow` field for power balance conne
 
 ### Prerequisites
 
-- Python >= 3.10 (CI uses 3.12)
+- Python >= 3.11 (CI uses 3.12)
 - E2E tests in `tests/antares_historic/` require the Antares Simulator binary (version defined in `dependencies.json`). CI downloads it automatically.
 
 ### Commands

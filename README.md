@@ -17,7 +17,7 @@ This tool automates the translation of Antares Simulator studies into valid GEMS
 
 ## Installation
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.10+ (CI uses 3.12). Python library versions are pinned in `pyproject.toml` and locked in `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+ (CI uses 3.12). Python library versions are pinned in `pyproject.toml` and locked in `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
 
 ```bash
 git clone https://github.com/AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter.git

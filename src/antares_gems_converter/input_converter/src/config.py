@@ -23,7 +23,7 @@ TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD = {
 STUDY_LEVEL_DELETION = {
     "area": "delete_area",
     "link": "delete_link",
-    "binding_constraint": "delete_binding_constraint",
+    "binding_constraint": "delete_binding_constraints",
 }
 STUDY_LEVEL_GET = {
     "area": "get_areas",
