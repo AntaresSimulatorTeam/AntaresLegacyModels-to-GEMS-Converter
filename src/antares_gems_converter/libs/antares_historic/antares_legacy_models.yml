@@ -133,7 +133,6 @@ library:
         - id: flow_decomposition
           expression: flow = direct_flow + loop_flow - indirect_flow
       extra-outputs:
-
         - id: minus_flow
           expression: -flow
         - id: abs_congestion_fee
@@ -141,7 +140,7 @@ library:
         - id: alg_congestion_fee
           expression: flow * (sum_connections(out_port.price)-sum_connections(in_port.price))
         - id: capacity_shadow_price
-          expression: max(dual(direct_indirect_flow),-dual(direct_indirect_flow))
+          expression: max(dual(flow_decomposition),-dual(flow_decomposition))
         - id: is_directly_congested
           expression: (direct_flow >= direct_capacity - loop_flow)*100
         - id: is_indirectly_congested
