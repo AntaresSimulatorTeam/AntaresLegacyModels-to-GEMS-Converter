@@ -10,7 +10,7 @@ antares-craft==0.14.0
     # via -r requirements.in
 antares-study-version==1.0.15
     # via antares-craft
-antares-timeseries-generation==0.1.7
+antares-timeseries-generation==0.1.9
     # via antares-craft
 antlr4-python3-runtime==4.13.2
     # via gemspy

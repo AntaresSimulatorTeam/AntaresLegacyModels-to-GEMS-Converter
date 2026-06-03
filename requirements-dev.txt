@@ -14,7 +14,7 @@ antares-study-version==1.0.15
     # via
     #   -r requirements.txt
     #   antares-craft
-antares-timeseries-generation==0.1.7
+antares-timeseries-generation==0.1.9
     # via
     #   -r requirements.txt
     #   antares-craft
