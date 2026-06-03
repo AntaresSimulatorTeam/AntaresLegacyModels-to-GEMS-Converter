@@ -21,7 +21,7 @@ template:
   components:
     - id: chp_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -31,7 +31,7 @@ template:
             column: 0
     - id: biomass_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -41,7 +41,7 @@ template:
             column: 1
     - id: biogas_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -51,7 +51,7 @@ template:
             column: 2
     - id: waste_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -61,7 +61,7 @@ template:
             column: 3
     - id: geothermal_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -71,7 +71,7 @@ template:
             column: 4
     - id: other_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -81,7 +81,7 @@ template:
             column: 5
     - id: psp_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:
@@ -91,7 +91,7 @@ template:
             column: 6
     - id: rest_of_world_${area}
       parameters:
-        - id: generation
+        - id: generation_power
           time-dependent: true
           scenario-dependent: false
           value:

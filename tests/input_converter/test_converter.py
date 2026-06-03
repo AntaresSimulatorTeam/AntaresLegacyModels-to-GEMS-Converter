@@ -874,10 +874,10 @@ class TestConverter:
                 model="antares_legacy_models.miscellaneous_fatal_generation",
                 parameters=[
                     ComponentParameterSchema(
-                        id="generation",
+                        id="generation_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"generation_{generation_type}_fr",
+                        value=f"generation_power_{generation_type}_fr",
                     )
                 ],
             )
@@ -954,10 +954,10 @@ class TestConverter:
                 model="antares_legacy_models.miscellaneous_fatal_generation",
                 parameters=[
                     ComponentParameterSchema(
-                        id="generation",
+                        id="generation_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"generation_biomass_fr",
+                        value=f"generation_power_biomass_fr",
                     )
                 ],
             )
