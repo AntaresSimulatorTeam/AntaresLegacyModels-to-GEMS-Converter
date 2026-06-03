@@ -120,22 +120,22 @@ template:
         - id: <identifier>
           object-properties: { type: ..., area: ... }
 
-  component:
-    id: <id-with-${variable}-placeholders>
-    parameters:
-      - id: <param_id>
-        time-dependent: true|false
-        scenario-dependent: true|false
-        value:
-          constant: <number>            # OR object-properties reference below
-          object-properties:
-            type: thermal|link|load|solar|wind|st_storage|binding_constraint
-            area: ${area}
-            cluster: ${thermal}         # for cluster types
-            field: <antares_craft_field>
-          column: <int>                 # optional: extract specific column from matrix
-          operation:                    # optional: transform after extraction
-            type: max                   # OR multiply_by: <value> OR divide_by: <param_ref>
+  components:
+    - id: <id-with-${variable}-placeholders>
+      parameters:
+        - id: <param_id>
+          time-dependent: true|false
+          scenario-dependent: true|false
+          value:
+            constant: <number>            # OR object-properties reference below
+            object-properties:
+              type: thermal|link|load|solar|wind|st_storage|binding_constraint
+              area: ${area}
+              cluster: ${thermal}         # for cluster types
+              field: <antares_craft_field>
+            column: <int>                 # optional: extract specific column from matrix
+            operation:                    # optional: transform after extraction
+              type: max                   # OR multiply_by: <value> OR divide_by: <param_ref>
 
   connections: [...]          # FULL mode: port-to-port
   area-connections: [...]     # HYBRID mode: port-to-area
@@ -154,7 +154,7 @@ template:
 
 ## GEMS Model Libraries
 
-- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short-term-storage`. These mirror the implicit models in the Antares solver.
+- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short-term-storage`, `miscellaneous_fatal_generation`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
 
 Both use the `flow` port-type with a single `flow` field for power balance connections.

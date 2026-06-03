@@ -10,6 +10,12 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.0.0] — 2026-06
+
+New supported model types: misc gen (miscellaneous fatal production).
+
+---
+
 ## [1.0.0] — 2026-04-19
 
 Initial baseline release.
