@@ -10,13 +10,27 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [1.1.1]
+
+Renamed taxonomy categories to use `generation` in place of `production`:
+
+- `dispatchable_production` → `dispatchable_generation`
+- `renewable_fatal_production` → `renewable_fatal_generation`
+- `miscellaneous_fatal_production` → `miscellaneous_fatal_generation`
+- Parent category `production` → `generation`
+
+Updated the `thermal`, `renewable`, and `miscellaneous_generation` models accordingly.
+Catalog files (`antares_legacy_area_catalog.yml`, `antares_legacy_thermal_cluster_catalog.yml`) and the taxonomy (`antares_legacy_taxonomy.yml`) updated consistently.
+
+---
+
 ## [1.1.0]
 
-Renaming to match naming conventions. 
+Renaming to match naming conventions.
 
 New extra-outputs to be able to reproduce legacy output metrics.
 
-New parameter on link model : loop flow. 
+New parameter on link model : loop flow.
 
 ---
 
