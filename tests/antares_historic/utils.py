@@ -199,7 +199,7 @@ STS_TIMESERIES_SETTER_MAP = {
     "cost_injection": "set_cost_injection",
     "cost_withdrawal": "set_cost_withdrawal",
     "cost_level": "set_cost_level",
-    "pmax_injection": "update_pmax_injection",
+    "pmax_injection": "set_pmax_injection",
     "pmax_withdrawal": "set_pmax_withdrawal",
     "lower_rule_curve": "set_lower_rule_curve",
     "upper_rule_curve": "set_upper_rule_curve",

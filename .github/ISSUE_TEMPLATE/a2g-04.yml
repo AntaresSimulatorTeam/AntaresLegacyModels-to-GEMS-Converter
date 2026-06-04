@@ -89,7 +89,7 @@ body:
 
         ### Step 4 — Implementation
         - [ ] Converter code updated to align with new GemsPy API
-        - [ ] `requirements.txt` / `requirements.in` updated to new GemsPy version
+        - [ ] `pyproject.toml` / `uv.lock` updated to new GemsPy version
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation

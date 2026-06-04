@@ -89,7 +89,7 @@ body:
 
         ### Step 4 — Implementation
         - [ ] Converter code updated to align with new antares-craft API
-        - [ ] `requirements.txt` / `requirements.in` updated to new antares-craft version
+        - [ ] `pyproject.toml` / `uv.lock` updated to new antares-craft version
         - [ ] Backward compatibility maintained unless explicitly intended as breaking
 
         ### Step 5 — Testing & Validation
@@ -104,7 +104,7 @@ body:
         - [ ] PR reviewed; documentation changes included
 
         ### Step 8 — Versioning
-        - [ ] `requirements.in` / `requirements.txt` updated to new antares-craft version
+        - [ ] `pyproject.toml` / `uv.lock` updated to new antares-craft version
         - [ ] `pyproject.toml` version bumped (Minor)
 
         ### Step 9 — Supporting Files
