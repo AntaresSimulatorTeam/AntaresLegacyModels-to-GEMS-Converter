@@ -664,7 +664,7 @@ class TestConverter:
         solar_fr_connection = next(
             (conn for conn in solar_connections if conn.component1 == "solar_fr"), None
         )
-        solar_timeseries = "generation_power_fr"
+        solar_timeseries = "available_power_fr"
         expected_solar_connection = PortConnectionsSchema(
             component1="solar_fr",
             port1="balance_port",
@@ -692,7 +692,7 @@ class TestConverter:
                     scenario_group=None,
                 ),
                 ComponentParameterSchema(
-                    id="generation_power",
+                    id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
                     value=f"{solar_timeseries}",
@@ -795,10 +795,10 @@ class TestConverter:
                     value=1.0,
                 ),
                 ComponentParameterSchema(
-                    id="generation_power",
+                    id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
-                    value="generation_power_fr",
+                    value="available_power_fr",
                 ),
             ],
         )

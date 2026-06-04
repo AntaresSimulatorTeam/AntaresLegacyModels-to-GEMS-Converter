@@ -12,7 +12,7 @@
 
 taxonomy:
   id: antares_legacy_taxonomy
-  description: GEMS taxonomy configuration. 
+  description: GEMS taxonomy configuration for Antares Legacy Models.
   categories:
 
     - id: balance
@@ -65,10 +65,10 @@ taxonomy:
     - id: fatal_generation
       parent-category: production
       parameters:
-        - id: generation_power
+        - id: available_power
       extra-outputs:
         - id: minus_generation
-        - id: actual_generation
+        - id: generation_power
     
     - id: renewable_fatal_production
       parent-category: fatal_generation

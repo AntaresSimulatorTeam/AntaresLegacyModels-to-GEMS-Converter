@@ -34,7 +34,7 @@ template:
         scenario-dependent: false
         value:
           constant: 1
-      - id: generation_power
+      - id: available_power
         time-dependent: true
         scenario-dependent: true
         value:
