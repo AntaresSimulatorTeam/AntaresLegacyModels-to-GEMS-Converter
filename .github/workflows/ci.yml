@@ -6,8 +6,8 @@ on:
       - "**"
 
 jobs:
-  code-quality:
-    name: Code Quality
+  ci:
+    name: CI
     runs-on: ubuntu-22.04
 
     steps:
@@ -16,6 +16,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
@@ -31,9 +33,40 @@ jobs:
       - name: Check formatting
         run: uv run black --check --diff src/
 
-  tests:
-    name: Tests
-    needs: code-quality
-    uses: ./.github/workflows/run-tests.yml
-    with:
-      artifact_name: test-failures
+      - name: Resolve Antares version
+        id: resolve_version
+        run: |
+          VERSION=$(jq -r '.antares_simulator_version' dependencies.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Download Antares release
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          ARCHIVE="antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          echo "Downloading Antares v${VERSION}..."
+          curl -L -f -o "${ARCHIVE}" \
+            "https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${VERSION}/${ARCHIVE}"
+
+      - name: Extract Antares binaries
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          tar -xzf "antares-${VERSION}-Ubuntu-22.04.tar.gz"
+
+      - name: Run tests
+        run: uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failures
+          path: |
+            **/*.log
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          VERSION="${{ steps.resolve_version.outputs.version }}"
+          rm -f "antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          rm -rf "antares-${VERSION}-Ubuntu-22.04"
