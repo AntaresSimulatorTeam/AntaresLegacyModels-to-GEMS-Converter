@@ -110,6 +110,47 @@ class ModelConversionPreprocessor:
             return obj.operation.execute(term.weight)
         else:
             return term.weight
+    
+    def calculate_hydro_data_values(
+        self, obj: ConversionValue
+    ) -> Union[Any, pd.DataFrame]:
+        if (
+            not obj.object_properties
+            or not obj.object_properties.area
+            or not obj.object_properties.field
+        ):
+            raise ValueError(
+                f"Object properties, its area, and field from {obj} must not be None"
+            )
+        area: str = obj.object_properties.area
+        if area not in self.study.get_areas():
+            raise KeyError(f"Area {area} is not found in the study")
+        hydro = getattr(self.study.get_areas()[area], "hydro")
+        if obj.object_properties.field in TIMESERIES_NAME_TO_METHOD:
+            time_series = getattr(
+                hydro, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field]
+            )()
+            if obj.object_properties.field in ["maxpower", "reservoir_levels"]:
+                time_series = (
+                    time_series.loc[time_series.index.repeat(24)]
+                    .copy()
+                    .reset_index(drop=True)
+                )
+            elif obj.object_properties.field in ["mingen", "mod_inflows"]:
+                time_series = (
+                    time_series.loc[time_series.index.repeat(24)]
+                    .copy()
+                    .reset_index(drop=True)
+                    / 24
+                )
+        else:
+            hydro_properties = getattr(hydro, "properties")
+            field_name = obj.object_properties.field
+            value = getattr(hydro_properties, field_name)
+            return value
+        self.file_path = Path(f"{self.param_id}_{area}_hydro.tsv")
+        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
+        return time_series
 
     def calculate_value(
         self, obj: ConversionValue, component_id: str
@@ -131,6 +172,12 @@ class ModelConversionPreprocessor:
             time_series = self.calculate_link_data_values(obj)
         elif type_resource in ["st_storage", "thermal", "renewable"]:
             data = self.calculate_cluster_data_values(type_resource, obj)
+            if isinstance(data, pd.DataFrame):
+                time_series = data
+            else:
+                return data
+        elif type_resource in ["hydro"]:
+            data = self.calculate_hydro_data_values(obj)
             if isinstance(data, pd.DataFrame):
                 time_series = data
             else:
@@ -168,10 +215,26 @@ class ModelConversionPreprocessor:
         if value_content.constant is not None:
             return True
         value_content.check_validity()
-        time_series: pd.DataFrame = getattr(
-            self.study.get_areas()[value_content.object_properties.area],  # type: ignore
-            MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],  # type: ignore
-        )()
+        if value_content.object_properties.type in [
+            "load",
+            "wind",
+            "solar",
+            "misc_gen",
+        ]:
+            time_series: pd.DataFrame = getattr(
+                self.study.get_areas()[value_content.object_properties.area],  # type: ignore
+                MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],  # type: ignore
+            )()
+        elif value_content.object_properties.type in ["hydro"]:
+            if value_content.object_properties.field in TIMESERIES_NAME_TO_METHOD:
+                hydro = getattr(
+                    self.study.get_areas()[value_content.object_properties.area],
+                    "hydro",
+                )
+                time_series = getattr(
+                    hydro,
+                    TIMESERIES_NAME_TO_METHOD[value_content.object_properties.field],
+                )()
         if getattr(value_content, "column", None) is not None:
             time_series: pd.Series = time_series.iloc[:, value_content.column]  # type: ignore
         return check_dataframe_validity(time_series)

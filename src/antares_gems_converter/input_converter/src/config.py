@@ -63,6 +63,11 @@ TIMESERIES_NAME_TO_METHOD = {
     "cost_level": "get_cost_level",
     "cost_variation_injection": "get_cost_variation_injection",
     "cost_variation_withdrawal": "get_cost_variation_withdrawal",
+    "maxpower": "get_maxpower",
+    "mingen": "get_mingen",
+    "reservoir_levels": "get_reservoir",
+    "mod_inflows": "get_mod_series",
+    "ror": "get_ror_series",
 }
 TEMPLATE_CLUSTER_TYPE_TO_CLUSTER_PATH = {
     "thermal": "thermal",
@@ -100,9 +105,11 @@ MODEL_NAME_TO_FILE_NAME = {
     "thermal": "thermal.yaml",
     "wind": "wind.yaml",
     "misc_gen": "misc_gen.yaml",
+    "hydro": "hydro.yaml",
+    "ror": "ror.yaml",
 }
 
-MATRIX_TYPES = ["load", "solar", "wind", "misc_gen"]
+MATRIX_TYPES = ["load", "solar", "wind", "misc_gen","ror"]
 CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
 AREA_TYPES = ["area"]

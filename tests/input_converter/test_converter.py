@@ -871,13 +871,13 @@ class TestConverter:
         expected_misc_gen_components = [
             ComponentSchema(
                 id=f"{generation_type}_fr",
-                model="antares_legacy_models.miscellaneous_fatal_generation",
+                model="antares_legacy_models.miscellaneous_generation",
                 parameters=[
                     ComponentParameterSchema(
-                        id="generation_power",
+                        id="available_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"generation_power_{generation_type}_fr",
+                        value=f"available_power_{generation_type}_fr",
                     )
                 ],
             )
@@ -951,13 +951,13 @@ class TestConverter:
         expected_misc_gen_components = [
             ComponentSchema(
                 id=f"biomass_fr",
-                model="antares_legacy_models.miscellaneous_fatal_generation",
+                model="antares_legacy_models.miscellaneous_generation",
                 parameters=[
                     ComponentParameterSchema(
-                        id="generation_power",
+                        id="available_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"generation_power_biomass_fr",
+                        value=f"available_power_biomass_fr",
                     )
                 ],
             )

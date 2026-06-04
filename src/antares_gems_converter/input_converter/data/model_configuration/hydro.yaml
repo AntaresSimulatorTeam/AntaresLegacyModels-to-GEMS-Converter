@@ -1,0 +1,129 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+template:
+  name: lt_storage
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: antares_legacy_models.long_term_storage
+  template-parameters:
+    - name: area
+      description: "Area identifier for the component"
+      # exclude:
+
+  component:
+    id: lt_storage_${area}
+    parameters:
+      - id: reservoir_capacity
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: reservoir_capacity
+      - id: nominal_pumping_capacity
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: maxpower
+          column: 2
+      - id: nominal_generation_capacity
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: maxpower
+          column: 0
+      - id: minimum_generation
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: mingen
+      - id: pumping_efficiency
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: pumping_efficiency
+      - id: lower_rule_curve
+        time-dependent: true
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: reservoir_levels
+          column: 0
+      - id: upper_rule_curve
+        time-dependent: true
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: reservoir_levels
+          column: 2
+      - id: inflows
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: mod_inflows
+      - id: initial_and_final_level
+        time-dependent: true
+        scenario-dependent: true
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: reservoir_levels
+          column: 0
+      - id: overflow_cost
+        time-dependent: false
+        scenario-dependent: false
+        value:
+          object-properties:
+            type: hydro
+            area: ${area}
+            field: overflow_spilled_cost_difference
+
+  # For full modeler mode
+  connections:
+    - component1: lt_storage_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+
+  # For hybrid mode
+  area-connections:
+    - component: lt_storage_${area}
+      port: balance_port
+      area: ${area}
+
+  legacy-objects-to-delete:
+    - id: legacy_st_storages
+      object-properties:
+        type: hydro
+        area: ${area}

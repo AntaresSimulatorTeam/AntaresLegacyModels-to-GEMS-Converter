@@ -122,10 +122,9 @@ library:
           field: flow
           definition: generation
 
-    - id: miscellaneous_fatal_generation
-      taxonomy-category: miscellaneous_fatal_production
+    - id: miscellaneous_generation
       parameters:
-        - id: generation_power
+        - id: available_power
           time-dependent: true
           scenario-dependent: true
       ports:
@@ -134,12 +133,12 @@ library:
       port-field-definitions:
         - port: balance_port
           field: flow
-          definition: generation_power
+          definition: available_power
       extra-outputs:
         - id: minus_generation
-          expression: -generation_power
-        - id: actual_generation
-          expression: generation_power
+          expression: -available_power
+        - id: generation_power
+          expression: available_power
       properties:
         - id: carrier
         - id: technology
@@ -276,3 +275,75 @@ library:
       objective-contributions:
         - id: objective
           expression: sum(cost_injection * p_injection + cost_withdrawal * p_withdrawal + cost_level * level)
+    
+    - id: long_term_storage
+      parameters:
+        - id: reservoir_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: nominal_pumping_capacity
+          time-dependent: true
+          scenario-dependent: true
+        - id: nominal_generation_capacity
+          time-dependent: true
+          scenario-dependent: true
+        - id: minimum_generation
+          time-dependent: true
+          scenario-dependent: true
+        - id: pumping_efficiency
+          time-dependent: false
+          scenario-dependent: false
+        - id: lower_rule_curve
+          time-dependent: true
+          scenario-dependent: true
+        - id: upper_rule_curve
+          time-dependent: true
+          scenario-dependent: true
+        - id: inflows
+          time-dependent: true
+          scenario-dependent: true
+        - id: initial_and_final_level
+          time-dependent: true
+          scenario-dependent: true
+        - id: overflow_cost
+          time-dependent: true
+          scenario-dependent: true
+      variables:
+        - id: injection_power
+          lower-bound: 0
+          upper-bound: nominal_pumping_capacity
+          variable-type: continuous
+        - id: withdrawal_power
+          lower-bound: minimum_generation
+          upper-bound: nominal_generation_capacity
+          variable-type: continuous
+        - id: overflow
+          lower-bound: 0
+          upper-bound: inflows
+          variable-type: continuous
+        - id: level
+          lower-bound: 0
+          upper-bound: reservoir_capacity
+          variable-type: continuous
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: withdrawal_power - injection_power
+      constraints:
+        - id: level_equation
+          expression: level = level[t-1] + pumping_efficiency * injection_power + inflows - withdrawal_power - overflow
+        - id: initial_level_equation
+          expression: level[0] = initial_and_final_level[0] * reservoir_capacity + pumping_efficiency * injection_power[0] + inflows[0] - withdrawal_power[0] - overflow[0]
+        - id: final_level_equation
+          expression: initial_and_final_level[167] * reservoir_capacity = level[167] # 167 = last timestep of the week (168h - 1)
+      objective-contributions:
+        - id: objective
+          expression: sum(overflow_cost * overflow)
+      extra-outputs:
+        - id: level_percentage
+          expression: level/reservoir_capacity*100
+        - id: actual_inflows
+          expression: floor(inflows+0.5)
