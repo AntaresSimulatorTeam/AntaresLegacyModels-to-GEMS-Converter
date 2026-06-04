@@ -1,0 +1,60 @@
+catalog:
+  
+  id: antares_thermal_cluster_metrics
+
+  taxonomy: antares_legacy_taxonomy
+
+  location:
+    taxonomy-category: dispatchable_production
+
+  metrics-definition: 
+
+  - id: GENERATION
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: generation_power
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+    breakdown:
+      - key: plant
+
+  - id: MIN.GEN
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: min_gen_power
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+    breakdown:
+      - key: plant
+
+  - id: PROFIT
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: profit 
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+    breakdown:
+      - key: plant
+
+  - id: NODU
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: actual_num_units_on
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+    breakdown:
+      - key: plant
+
+  - id: NP.COST
+    terms:
+      - taxonomy-category: dispatchable_production
+        output-id: non_prop_cost
+        location-ports: null
+    terms-operator: sum
+    time-operator: sum
+    breakdown:
+      - key: plant

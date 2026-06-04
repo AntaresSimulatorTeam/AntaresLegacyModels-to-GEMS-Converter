@@ -28,12 +28,12 @@ template:
         scenario-dependent: false
         value:
           constant: 1
-      - id: unit_count
+      - id: num_units
         time-dependent: false
         scenario-dependent: false
         value:
           constant: 1
-      - id: generation
+      - id: available_power
         time-dependent: true
         scenario-dependent: true
         value:

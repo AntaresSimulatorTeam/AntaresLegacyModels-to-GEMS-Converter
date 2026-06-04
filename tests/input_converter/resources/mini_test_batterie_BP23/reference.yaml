@@ -53,19 +53,19 @@ system:
     - id: fr_fr_nuclear_epr
       model: antares_legacy_models.thermal
       parameters:
-        - id: minimum_generation_modulation
+        - id: cluster_min_gen_modulation
           scenario-dependent: true
           time-dependent: true
-          value: minimum_generation_modulation_fr_fr_nuclear_epr
-        - id: p_max_cluster
+          value: cluster_min_gen_modulation_fr_fr_nuclear_epr
+        - id: cluster_max_generation
           scenario-dependent: true
           time-dependent: true
-          value: p_max_cluster_fr_fr_nuclear_epr
-        - id: p_min_unit
+          value: cluster_max_generation_fr_fr_nuclear_epr
+        - id: min_power_per_unit
           scenario-dependent: false
           time-dependent: false
           value: 1130.25
-        - id: p_max_unit
+        - id: max_power_per_unit
           scenario-dependent: false
           time-dependent: false
           value: 5000.0
@@ -81,15 +81,15 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 0.0
-        - id: d_min_up
+        - id: min_up_duration
           scenario-dependent: false
           time-dependent: false
           value: 24.0
-        - id: d_min_down
+        - id: min_down_duration
           scenario-dependent: false
           time-dependent: false
           value: 24.0
-        - id: unit_count
+        - id: num_units
           scenario-dependent: false
           time-dependent: false
           value: 1.0
@@ -97,10 +97,62 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 1.0
+        - id: co2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: nh3_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: so2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: nox_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: pm2_5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: pm5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: pm10_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: nmvoc_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: op1_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: op2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: op3_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: op4_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+        - id: op5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
     - id: fr
       model: antares_legacy_models.area
       parameters:
-        - id: ens_cost
+        - id: unsupplied_energy_cost
           scenario-dependent: false
           time-dependent: false
           value: 4000.0
