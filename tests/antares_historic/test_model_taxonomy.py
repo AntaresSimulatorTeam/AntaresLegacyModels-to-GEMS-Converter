@@ -12,6 +12,7 @@ def load_yaml(path):
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
+
 # TODO : remove this test once it will be implemented in GEMSPy
 def load_taxonomy_by_id(taxonomy_id):
     for path in TAXONOMIES_DIR.glob("*.yml"):

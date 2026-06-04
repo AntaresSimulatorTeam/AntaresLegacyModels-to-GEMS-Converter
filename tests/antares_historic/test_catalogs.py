@@ -12,7 +12,8 @@ def load_yaml(path):
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-# This test will be in GEMS view builder but we keep it here for now for ease of development when working on metrics definition. 
+
+# This test will be in GEMS view builder but we keep it here for now for ease of development when working on metrics definition.
 def build_taxonomy_index(taxonomy):
     categories = {}
 

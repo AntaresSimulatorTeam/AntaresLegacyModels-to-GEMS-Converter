@@ -177,7 +177,7 @@ library:
     - id: miscellaneous_generation
       taxonomy-category: miscellaneous_fatal_production
       parameters:
-        - id: generation_power
+        - id: available_power
           time-dependent: true
           scenario-dependent: true
       ports:
@@ -186,12 +186,12 @@ library:
       port-field-definitions:
         - port: balance_port
           field: flow
-          definition: generation_power
+          definition: available_power
       extra-outputs:
         - id: minus_generation
-          expression: -generation_power
-        - id: actual_generation
-          expression: generation_power
+          expression: -available_power
+        - id: generation_power
+          expression: available_power
       properties:
         - id: carrier
         - id: technology
