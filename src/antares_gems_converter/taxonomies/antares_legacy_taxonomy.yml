@@ -29,12 +29,12 @@ taxonomy:
         - id: is_loss_of_load
         - id: is_near_loss_of_load
 
-    - id: production
+    - id: generation
       ports:
         - id: balance_port
 
-    - id: dispatchable_production
-      parent-category: production
+    - id: dispatchable_generation
+      parent-category: generation
       variables: 
         - id: generation_power
       extra-outputs:
@@ -63,19 +63,19 @@ taxonomy:
         - id: plant
 
     - id: fatal_generation
-      parent-category: production
+      parent-category: generation
       parameters:
         - id: available_power
       extra-outputs:
         - id: minus_generation
         - id: generation_power
     
-    - id: renewable_fatal_production
+    - id: renewable_fatal_generation
       parent-category: fatal_generation
       properties:
         - id: technology
 
-    - id: miscellaneous_fatal_production
+    - id: miscellaneous_fatal_generation
       parent-category: fatal_generation
       properties:
         - id: technology 
