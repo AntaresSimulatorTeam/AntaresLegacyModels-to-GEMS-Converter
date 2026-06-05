@@ -139,7 +139,7 @@ class AntaresStudyConverter:
                         model=f"{lib_id}.area",
                         parameters=[
                             ComponentParameterSchema(
-                                id="ens_cost",
+                                id="unsupplied_energy_cost",
                                 time_dependent=False,
                                 scenario_dependent=False,
                                 value=area.properties.energy_cost_unsupplied,
@@ -167,11 +167,14 @@ class AntaresStudyConverter:
                         id = legacy_component.binding_constraint_id
                     else:
                         continue
-                    getattr(self.study, STUDY_LEVEL_DELETION[legacy_component.type])(
-                        getattr(self.study, STUDY_LEVEL_GET[legacy_component.type])()[
-                            id
-                        ]
-                    )
+                    target = getattr(
+                        self.study, STUDY_LEVEL_GET[legacy_component.type]
+                    )()[id]
+                    delete_method = STUDY_LEVEL_DELETION[legacy_component.type]
+                    if legacy_component.type == "binding_constraint":
+                        getattr(self.study, delete_method)([target])
+                    else:
+                        getattr(self.study, delete_method)(target)
                 elif (
                     legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
                     and legacy_component.area is not None

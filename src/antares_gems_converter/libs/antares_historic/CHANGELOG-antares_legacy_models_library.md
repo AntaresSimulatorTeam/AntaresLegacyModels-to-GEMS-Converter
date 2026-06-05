@@ -16,6 +16,16 @@ New supported model types: misc gen (miscellaneous fatal production).
 
 ---
 
+## [1.1.0]
+
+Renaming to match naming conventions. 
+
+New extra-outputs to be able to reproduce legacy output metrics.
+
+New parameter on link model : loop flow. 
+
+---
+
 ## [1.0.0] — 2026-04-19
 
 Initial baseline release.

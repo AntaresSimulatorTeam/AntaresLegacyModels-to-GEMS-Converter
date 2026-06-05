@@ -1,0 +1,87 @@
+catalog:
+
+  # TO DO : this catalog should be improved, correctness of the Metrics should be checked
+  # Remark for the case of CONG.FEE.ABS : We will probably need a new operator in the GEMS grammar: using ports exporting extra-outputs to other components.
+  
+  id: antares_link_metrics
+
+  taxonomy: antares_legacy_taxonomy
+
+  location:
+    taxonomy-category: link
+
+  metrics-definition: 
+
+  - id: FLOW.LIN
+    terms:
+      - taxonomy-category: link
+        output-id: flow
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+  
+  - id: UCAP.LIN
+    terms:
+      - taxonomy-category: link
+        output-id: abs_flow
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: CONG.FEE.ABS
+    terms:
+      - taxonomy-category: link
+        output-id: abs_congestion_fee
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: CONG.FEE.ALG
+    terms:
+      - taxonomy-category: link
+        output-id: alg_congestion_fee
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: MARG.COST
+    terms:
+      - taxonomy-category: link
+        output-id: capacity_shadow_price
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: CONG.PROB.DIR
+    terms:
+      - taxonomy-category: link
+        output-id: is_directly_congested
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: CONG.PROB.INDIR
+    terms:
+      - taxonomy-category: link
+        output-id: is_indirectly_congested
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: HURDLE.COST
+    terms:
+      - taxonomy-category: link
+        output-id: prop_cost
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  - id: LOOP.FLOW
+    terms:
+      - taxonomy-category: link
+        output-id: actual_loop_flow
+        location-ports: null 
+    terms-operator: sum
+    time-operator: sum
+
+  # - id: FLOW.QUAD # à déprécier 

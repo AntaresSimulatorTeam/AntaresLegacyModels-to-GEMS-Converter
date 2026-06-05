@@ -154,7 +154,7 @@ template:
 
 ## GEMS Model Libraries
 
-- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short-term-storage`, `miscellaneous_fatal_generation`. These mirror the implicit models in the Antares solver.
+- **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_fatal_generation`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
 
 Both use the `flow` port-type with a single `flow` field for power balance connections.
@@ -165,32 +165,31 @@ Both use the `flow` port-type with a single `flow` field for power balance conne
 
 ### Prerequisites
 
-- Python >= 3.10 (CI uses 3.12)
+- Python >= 3.11 (CI uses 3.12)
 - E2E tests in `tests/antares_historic/` require the Antares Simulator binary (version defined in `dependencies.json`). CI downloads it automatically.
 
 ### Commands
 
 ```bash
-pip install -e .
-pip install -r requirements-dev.txt
+uv sync --group dev
 
 # Run all tests
-pytest
+uv run pytest
 
 # Run a specific test
-pytest tests/input_converter/test_converter.py::TestConverter::test_thermal_model_conversion
+uv run pytest tests/input_converter/test_converter.py::TestConverter::test_thermal_model_conversion
 
 # Run one test file
-pytest tests/antares_historic/test_thermal_model.py
+uv run pytest tests/antares_historic/test_thermal_model.py
 
 # Type checking
-mypy src/
+uv run mypy src/
 
 # Formatting check
-black --check --diff .
+uv run black --check --diff src/
 
 # Coverage
-pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=html
+uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=html
 ```
 
 ### Test Architecture
@@ -210,7 +209,7 @@ pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=html
 
 Runs on every push to any branch:
 
-1. Install deps (`pip install -e . && pip install -r requirements-dev.txt`)
+1. Install deps (`uv sync --group dev`)
 2. Type checking: `mypy src/`
 3. Format checking: `black --check --diff` (Black 23.7.x)
 4. Download and extract Antares Simulator binary (version from `dependencies.json`)
@@ -272,6 +271,8 @@ Runs on every push to any branch:
 ---
 
 ## Key Dependencies
+
+Pinned Python library versions are listed in `pyproject.toml` and `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
 
 | Package | Purpose |
 |---------|---------|
