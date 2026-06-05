@@ -110,7 +110,7 @@ class ModelConversionPreprocessor:
             return obj.operation.execute(term.weight)
         else:
             return term.weight
-    
+
     def calculate_hydro_data_values(
         self, obj: ConversionValue
     ) -> Union[Any, pd.DataFrame]:
@@ -148,8 +148,6 @@ class ModelConversionPreprocessor:
             field_name = obj.object_properties.field
             value = getattr(hydro_properties, field_name)
             return value
-        self.file_path = Path(f"{self.param_id}_{area}_hydro.tsv")
-        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
         return time_series
 
     def calculate_value(
@@ -215,7 +213,7 @@ class ModelConversionPreprocessor:
         if value_content.constant is not None:
             return True
         value_content.check_validity()
-        if value_content.object_properties.type in [
+        if value_content.object_properties.type in [  # type: ignore
             "load",
             "wind",
             "solar",
@@ -225,15 +223,15 @@ class ModelConversionPreprocessor:
                 self.study.get_areas()[value_content.object_properties.area],  # type: ignore
                 MATRIX_TYPES_TO_GET_METHOD[value_content.object_properties.type],  # type: ignore
             )()
-        elif value_content.object_properties.type in ["hydro"]:
-            if value_content.object_properties.field in TIMESERIES_NAME_TO_METHOD:
+        elif value_content.object_properties.type in ["hydro"]:  # type: ignore
+            if value_content.object_properties.field is not None and value_content.object_properties.field in TIMESERIES_NAME_TO_METHOD:  # type: ignore
                 hydro = getattr(
-                    self.study.get_areas()[value_content.object_properties.area],
+                    self.study.get_areas()[value_content.object_properties.area],  # type: ignore
                     "hydro",
                 )
                 time_series = getattr(
                     hydro,
-                    TIMESERIES_NAME_TO_METHOD[value_content.object_properties.field],
+                    TIMESERIES_NAME_TO_METHOD[value_content.object_properties.field],  # type: ignore
                 )()
         if getattr(value_content, "column", None) is not None:
             time_series: pd.Series = time_series.iloc[:, value_content.column]  # type: ignore

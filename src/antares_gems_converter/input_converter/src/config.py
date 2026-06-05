@@ -37,6 +37,10 @@ MATRIX_TYPES_TO_SET_METHOD = {
     "misc_gen": "set_misc_gen",
 }
 
+HYDRO_TYPE_TO_SET_METHOD = {
+    "ror": "set_ror_series",
+}
+
 
 MATRIX_TYPES_TO_GET_METHOD = {
     "load": "get_load_matrix",
@@ -109,7 +113,7 @@ MODEL_NAME_TO_FILE_NAME = {
     "ror": "ror.yaml",
 }
 
-MATRIX_TYPES = ["load", "solar", "wind", "misc_gen","ror"]
+MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "ror"]
 CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
 AREA_TYPES = ["area"]

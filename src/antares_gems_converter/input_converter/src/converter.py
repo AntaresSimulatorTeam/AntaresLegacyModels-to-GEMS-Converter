@@ -28,6 +28,7 @@ from antares_gems_converter.input_converter.src.config import (
     STUDY_LEVEL_GET,
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
+    HYDRO_TYPE_TO_SET_METHOD,
 )
 from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
     ConversionMode,
@@ -193,7 +194,17 @@ class AntaresStudyConverter:
                         self.areas[legacy_component.area],
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
-
+                elif (
+                    legacy_component.type == "hydro"
+                    and legacy_component.area is not None
+                    and legacy_component.field is not None
+                ):
+                    getattr(
+                        self.areas[legacy_component.area].hydro,
+                        HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
+                    )(pd.DataFrame())
+                else:
+                    raise NotImplementedError
             except ReferencedObjectDeletionNotAllowed:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"

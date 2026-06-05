@@ -20,27 +20,27 @@ template:
       description: "Area identifier for the solar component"
       # exclude:
 
-  component:
-    id: ror_${area}
-    parameters:
-      - id: nominal_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: num_units
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          constant: 1
-      - id: generation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: ror
+  components:
+    - id: ror_${area}
+      parameters:
+        - id: nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: unit_count
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            constant: 1
+        - id: generation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: ror
 
   # For full modeler mode
   connections:
@@ -56,7 +56,8 @@ template:
       area: ${area}
 
   legacy-objects-to-delete:
-    - id: legacy_solar
+    - id: legacy_ror
       object-properties:
-        type: ror
+        type: hydro
         area: ${area}
+        field: ror

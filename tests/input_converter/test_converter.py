@@ -965,6 +965,109 @@ class TestConverter:
         assert misc_gen_connections == expected_misc_gen_connections
         assert misc_gen_components == expected_misc_gen_components
 
+    @pytest.mark.parametrize(
+        "fr_ror",
+        [DATAFRAME_PREPRO_SERIES],
+        indirect=True,
+    )
+    def test_convert_ror_to_component_from_study(self, fr_ror: Study):
+        converter = self._init_converter_from_study(fr_ror, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "ror.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            ror_components,
+            ror_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+        ror_fr_component = next(
+            (comp for comp in ror_components if comp.id == "ror_fr"), None
+        )
+        ror_fr_connection = next(
+            (conn for conn in ror_connections if conn.component1 == "ror_fr"), None
+        )
+
+        expected_ror_connection = PortConnectionsSchema(
+            component1="ror_fr",
+            port1="balance_port",
+            component2="fr",
+            port2="balance_port",
+        )
+        expected_ror_component = ComponentSchema(
+            id="ror_fr",
+            model="antares_legacy_models.renewable",
+            scenario_group=None,
+            parameters=[
+                ComponentParameterSchema(
+                    id="nominal_capacity",
+                    time_dependent=False,
+                    scenario_dependent=False,
+                    value=1.0,
+                ),
+                ComponentParameterSchema(
+                    id="num_units",
+                    time_dependent=False,
+                    scenario_dependent=False,
+                    value=1.0,
+                ),
+                ComponentParameterSchema(
+                    id="generation",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    value="generation_ror_fr",
+                ),
+            ],
+        )
+        assert ror_fr_connection == expected_ror_connection
+        assert ror_fr_component.model_dump() == expected_ror_component.model_dump()
+
+    @pytest.mark.parametrize(
+        "fr_ror",
+        [
+            pd.DataFrame(),  # DataFrame empty
+        ],
+        indirect=True,
+    )
+    def test_convert_ror_to_component_empty_file(self, fr_ror: object):
+        converter = self._init_converter_from_study(fr_ror, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "ror.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            ror_components,
+            _,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+        assert ror_components == []
+
+    @pytest.mark.parametrize(
+        "fr_ror",
+        [
+            pd.DataFrame([0, 0, 0]),  # DataFrame full of 0
+        ],
+        indirect=True,
+    )
+    def test_convert_ror_to_component_zero_values(self, fr_ror: object):
+        converter = self._init_converter_from_study(fr_ror, model_list=[])
+
+        path_load = RESOURCES_FOLDER / "ror.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            ror_components,
+            _,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+        assert ror_components == []
+
     def test_convert_links_to_component(self, local_study_w_links: Study, lib_id: str):
         # This test is on the inner function _convert_model_to_component_list, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_study(local_study_w_links, model_list=[])

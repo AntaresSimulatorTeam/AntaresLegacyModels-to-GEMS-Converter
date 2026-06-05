@@ -140,7 +140,7 @@ ALLOWED_TYPES: list = [
     "solar",
     "wind",
     "misc_gen",
-    "hydro"
+    "hydro",
 ]
 
 
