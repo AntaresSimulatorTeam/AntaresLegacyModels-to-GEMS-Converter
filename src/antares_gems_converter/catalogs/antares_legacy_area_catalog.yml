@@ -14,10 +14,10 @@ catalog:
       - taxonomy-category: balance
         output-id: imbalance_cost
         location-ports: null 
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: prop_cost
         location-ports: balance_port
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: non_prop_cost
         location-ports: balance_port
     terms-operator: sum
@@ -26,10 +26,10 @@ catalog:
 
   - id: OP.COST
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: prop_cost
         location-ports: balance_port
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: non_prop_cost
         location-ports: balance_port
     terms-operator: sum
@@ -45,7 +45,7 @@ catalog:
 
   - id: CO2.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: co2_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -53,7 +53,7 @@ catalog:
   
   - id: NH3.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: nh3_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -61,7 +61,7 @@ catalog:
   
   - id: SO2.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: so2_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -69,7 +69,7 @@ catalog:
   
   - id: NOX.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: nox_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -77,7 +77,7 @@ catalog:
   
   - id: PM2_5.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: pm2_5_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -85,7 +85,7 @@ catalog:
   
   - id: PM5.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: pm5_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -93,7 +93,7 @@ catalog:
   
   - id: PM10.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: pm10_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -101,7 +101,7 @@ catalog:
   
   - id: NMVOC.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: nmvoc_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -109,7 +109,7 @@ catalog:
 
   - id: OP1.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: op1_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -117,7 +117,7 @@ catalog:
   
   - id: OP2.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: op2_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -125,7 +125,7 @@ catalog:
   
   - id: OP3.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: op3_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -133,7 +133,7 @@ catalog:
 
   - id: OP4.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: op4_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -141,7 +141,7 @@ catalog:
   
   - id: OP5.EMIS
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: op5_emissions
         location-ports: balance_port
     terms-operator: sum
@@ -160,10 +160,10 @@ catalog:
       - taxonomy-category: fatal_consumption
         output-id: actual_load
         location-ports: balance_port
-      - taxonomy-category: renewable_fatal_production
+      - taxonomy-category: renewable_fatal_generation
         output-id: minus_generation
         location-ports: balance_port
-      - taxonomy-category: miscellaneous_fatal_production
+      - taxonomy-category: miscellaneous_fatal_generation
         output-id: minus_generation
         location-ports: balance_port
     terms-operator: sum
@@ -171,7 +171,7 @@ catalog:
 
   - id: DTG.BY.TECHNOLOGY
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: generation_power
         location-ports: balance_port
     terms-operator: sum
@@ -192,7 +192,7 @@ catalog:
 
   - id: RES.GENERATION
     terms:
-      - taxonomy-category: renewable_fatal_production
+      - taxonomy-category: renewable_fatal_generation
         output-id: generation_power
         location-ports: balance_port
     breakdown:
@@ -248,7 +248,7 @@ catalog:
 
   - id: NODU 
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: actual_num_units_on
         location-ports: balance_port
     terms-operator: sum
@@ -256,7 +256,7 @@ catalog:
 
   - id: NP.COST 
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: non_prop_cost
         location-ports: balance_port
     terms-operator: sum
@@ -264,7 +264,7 @@ catalog:
 
   - id: AVL.DTG
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: cluster_availability
         location-ports: balance_port
     terms-operator: sum
@@ -272,7 +272,7 @@ catalog:
 
   - id: DTG.MRG
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: up_margin
         location-ports: balance_port
     terms-operator: sum
@@ -304,7 +304,7 @@ catalog:
 
   - id: ROW.BAL
     terms:
-      - taxonomy-category: miscellaneous_fatal_production
+      - taxonomy-category: miscellaneous_fatal_generation
         output-id: generation_power
         location-ports: balance_port
     filter: 
@@ -314,7 +314,7 @@ catalog:
 
   - id: MISC.NDG 
     terms:
-      - taxonomy-category: miscellaneous_fatal_production
+      - taxonomy-category: miscellaneous_fatal_generation
         output-id: generation_power
         location-ports: balance_port
     filter: 
@@ -324,7 +324,7 @@ catalog:
   
   - id: PSP 
     terms:
-      - taxonomy-category: miscellaneous_fatal_production
+      - taxonomy-category: miscellaneous_fatal_generation
         output-id: generation_power
         location-ports: balance_port
     filter: 

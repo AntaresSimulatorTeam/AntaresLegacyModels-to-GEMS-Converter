@@ -12,7 +12,7 @@
 library:
   id: antares_legacy_models
   description: Antares historic model library
-  version: "1.1.0"
+  version: "2.0.0"
   taxonomy: antares_legacy_taxonomy
 
   port-types:
@@ -151,7 +151,7 @@ library:
           expression: loop_flow
 
     - id: renewable
-      taxonomy-category: renewable_fatal_production
+      taxonomy-category: renewable_fatal_generation
       parameters:
         - id: nominal_capacity
         - id: num_units
@@ -175,7 +175,7 @@ library:
         - id: technology
     
     - id: miscellaneous_generation
-      taxonomy-category: miscellaneous_fatal_production
+      taxonomy-category: miscellaneous_fatal_generation
       parameters:
         - id: available_power
           time-dependent: true
@@ -197,7 +197,7 @@ library:
         - id: technology
 
     - id: thermal
-      taxonomy-category: dispatchable_production
+      taxonomy-category: dispatchable_generation
       parameters:
         - id: cluster_min_gen_modulation # Timeseries used to define the minimum generation of the cluster by cluster_min_gen_modulation * num_units * max_power_per_unit, this cannot exceed the maximum generation power cluster_max_generation (after being increased by min_power_per_unit). 
           scenario-dependent: true

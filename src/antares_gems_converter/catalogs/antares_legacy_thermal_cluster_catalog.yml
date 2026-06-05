@@ -5,13 +5,13 @@ catalog:
   taxonomy: antares_legacy_taxonomy
 
   location:
-    taxonomy-category: dispatchable_production
+    taxonomy-category: dispatchable_generation
 
   metrics-definition: 
 
   - id: GENERATION
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: generation_power
         location-ports: null
     terms-operator: sum
@@ -21,7 +21,7 @@ catalog:
 
   - id: MIN.GEN
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: min_gen_power
         location-ports: null
     terms-operator: sum
@@ -31,7 +31,7 @@ catalog:
 
   - id: PROFIT
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: profit 
         location-ports: null
     terms-operator: sum
@@ -41,7 +41,7 @@ catalog:
 
   - id: NODU
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: actual_num_units_on
         location-ports: null
     terms-operator: sum
@@ -51,7 +51,7 @@ catalog:
 
   - id: NP.COST
     terms:
-      - taxonomy-category: dispatchable_production
+      - taxonomy-category: dispatchable_generation
         output-id: non_prop_cost
         location-ports: null
     terms-operator: sum
