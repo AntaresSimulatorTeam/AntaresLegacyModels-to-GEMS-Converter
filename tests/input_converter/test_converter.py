@@ -568,6 +568,118 @@ class TestConverter:
         assert thermals_components == expected_thermals_components
         assert thermals_connections == expected_thermals_connections
 
+    def test_convert_hydro_to_component(
+        self,
+        local_study_with_hydro: Study,
+    ):
+        converter = self._init_converter_from_study(
+            local_study_with_hydro, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "hydro.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            hydro_components,
+            hydro_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+
+        hydro_fr_component = next(
+            (comp for comp in hydro_components if comp.id == "lt_storage_fr"), None
+        )
+        hydro_fr_connection = next(
+            (conn for conn in hydro_connections if conn.component1 == "lt_storage_fr"),
+            None,
+        )
+
+        expected_hydro_connection = PortConnectionsSchema(
+            component1="lt_storage_fr",
+            port1="balance_port",
+            component2="fr",
+            port2="balance_port",
+        )
+        expected_hydro_component = ComponentSchema(
+            id="lt_storage_fr",
+            model="antares_legacy_models.long_term_storage",
+            scenario_group=None,
+            parameters=[
+                ComponentParameterSchema(
+                    id="reservoir_capacity",
+                    time_dependent=False,
+                    scenario_dependent=False,
+                    scenario_group=None,
+                    value=1000,
+                ),
+                ComponentParameterSchema(
+                    id="nominal_pumping_capacity",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    scenario_group=None,
+                    value="nominal_pumping_capacity_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="nominal_generation_capacity",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    scenario_group=None,
+                    value="nominal_generation_capacity_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="minimum_generation",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    scenario_group=None,
+                    value="minimum_generation_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="pumping_efficiency",
+                    time_dependent=False,
+                    scenario_dependent=False,
+                    scenario_group=None,
+                    value=0.75,
+                ),
+                ComponentParameterSchema(
+                    id="lower_rule_curve",
+                    time_dependent=True,
+                    scenario_dependent=False,
+                    scenario_group=None,
+                    value="lower_rule_curve_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="upper_rule_curve",
+                    time_dependent=True,
+                    scenario_dependent=False,
+                    scenario_group=None,
+                    value="upper_rule_curve_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="inflows",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    scenario_group=None,
+                    value="inflows_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="initial_and_final_level",
+                    time_dependent=True,
+                    scenario_dependent=True,
+                    scenario_group=None,
+                    value="initial_and_final_level_lt_storage_fr",
+                ),
+                ComponentParameterSchema(
+                    id="overflow_cost",
+                    time_dependent=False,
+                    scenario_dependent=False,
+                    scenario_group=None,
+                    value=0,
+                ),
+            ],
+        )
+        assert hydro_fr_connection == expected_hydro_connection
+        assert hydro_fr_component.model_dump() == expected_hydro_component.model_dump()
+
     def test_convert_load_to_component_from_path(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 

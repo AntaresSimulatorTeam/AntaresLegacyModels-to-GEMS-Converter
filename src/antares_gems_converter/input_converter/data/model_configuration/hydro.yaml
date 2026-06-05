@@ -20,94 +20,94 @@ template:
       description: "Area identifier for the component"
       # exclude:
 
-  component:
-    id: lt_storage_${area}
-    parameters:
-      - id: reservoir_capacity
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: reservoir_capacity
-      - id: nominal_pumping_capacity
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: maxpower
-          column: 2
-      - id: nominal_generation_capacity
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: maxpower
-          column: 0
-      - id: minimum_generation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: mingen
-      - id: pumping_efficiency
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: pumping_efficiency
-      - id: lower_rule_curve
-        time-dependent: true
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: reservoir_levels
-          column: 0
-      - id: upper_rule_curve
-        time-dependent: true
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: reservoir_levels
-          column: 2
-      - id: inflows
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: mod_inflows
-      - id: initial_and_final_level
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: reservoir_levels
-          column: 0
-      - id: overflow_cost
-        time-dependent: false
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: hydro
-            area: ${area}
-            field: overflow_spilled_cost_difference
+  components:
+    - id: lt_storage_${area}
+      parameters:
+        - id: reservoir_capacity
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: reservoir_capacity
+        - id: nominal_pumping_capacity
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: maxpower
+            column: 2
+        - id: nominal_generation_capacity
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: maxpower
+            column: 0
+        - id: minimum_generation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: mingen
+        - id: pumping_efficiency
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: pumping_efficiency
+        - id: lower_rule_curve
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: reservoir_levels
+            column: 0
+        - id: upper_rule_curve
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: reservoir_levels
+            column: 2
+        - id: inflows
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: mod_inflows
+        - id: initial_and_final_level
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: reservoir_levels
+            column: 0
+        - id: overflow_cost
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: overflow_spilled_cost_difference
 
   # For full modeler mode
   connections:
@@ -123,7 +123,24 @@ template:
       area: ${area}
 
   legacy-objects-to-delete:
-    - id: legacy_st_storages
+    - id: legacy_lt_storage_inflow
       object-properties:
         type: hydro
         area: ${area}
+        field: mod_inflows
+    - id: legacy_lt_storage_maxpower
+      object-properties:
+        type: hydro
+        area: ${area}
+        field: maxpower
+    - id: legacy_lt_storage_maxpower
+      object-properties:
+        type: hydro
+        area: ${area}
+        field: reservoir
+    - id: legacy_lt_storage_maxpower
+      object-properties:
+        type: hydro
+        area: ${area}
+        field: mingen
+

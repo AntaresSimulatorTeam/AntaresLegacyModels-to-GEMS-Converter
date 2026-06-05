@@ -136,7 +136,7 @@ class ModelConversionPreprocessor:
                     .copy()
                     .reset_index(drop=True)
                 )
-            elif obj.object_properties.field in ["mingen", "mod_inflows"]:
+            elif obj.object_properties.field in ["mod_inflows"]:
                 time_series = (
                     time_series.loc[time_series.index.repeat(24)]
                     .copy()

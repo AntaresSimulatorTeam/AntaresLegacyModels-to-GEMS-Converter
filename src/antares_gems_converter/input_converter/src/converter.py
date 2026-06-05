@@ -18,6 +18,7 @@ import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study, read_study_local
+from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
     LINK_TYPES,
@@ -202,10 +203,13 @@ class AntaresStudyConverter:
                     and legacy_component.area is not None
                     and legacy_component.field is not None
                 ):
-                    getattr(
-                        self.areas[legacy_component.area].hydro,
-                        HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
-                    )(pd.DataFrame())
+                    if legacy_component.field in HYDRO_TYPE_TO_SET_METHOD:
+                        getattr(
+                            self.areas[legacy_component.area].hydro,
+                            HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
+                        )(pd.DataFrame())
+                    else :
+                        self.areas[legacy_component.area].hydro.update_properties(HydroPropertiesUpdate(**{legacy_component.field: False}))
                 else:
                     raise NotImplementedError
             except ReferencedObjectDeletionNotAllowed:

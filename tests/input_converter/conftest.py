@@ -194,7 +194,7 @@ def local_study_with_hydro(local_study_with_st_storage) -> Study:
     Create a short term storage
     Create an hydro cluster
     """
-    hydro_properties = HydroProperties()
+    hydro_properties = HydroProperties(reservoir=True,reservoir_capacity=1000,pumping_efficiency=0.75, overflow_spilled_cost_difference=0)
     local_study_with_st_storage.get_areas()["fr"].hydro.update_properties(
         hydro_properties
     )

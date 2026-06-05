@@ -120,7 +120,7 @@ def createThermalTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
     area = _create_area_with_base_clusters(study, load_timeserie)
     cluster3 = area.create_thermal_cluster("prod3", marg_cluster_properties)
     cluster3.set_series(marg_cluster_data_frame)
@@ -146,8 +146,8 @@ def createLinkTestAntaresStudy(
         parent_directory=parent_dir_path,
     )
     load_timeseries = [
-        pd.read_csv(load1_time_serie_file),
-        pd.read_csv(load2_time_serie_file),
+        pd.read_csv(load1_time_serie_file, header=None),
+        pd.read_csv(load2_time_serie_file, header=None),
     ]
     area_list = [
         _create_area_with_base_clusters(study, load_timeseries[i], area_name=area_name)
@@ -206,7 +206,7 @@ def createSTSTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
     area = _create_area_with_base_clusters(
         study,
         load_timeserie,
@@ -232,7 +232,7 @@ def createMiscGenTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
     area = _create_area_with_base_clusters(study, load_timeserie)
     area.set_misc_gen(misc_gen)
     addHybridBehavior(parent_dir_path / study_name)
@@ -243,16 +243,44 @@ def createHydroTestAntaresStudy(
     parent_dir_path: Path,
     load_time_serie_file: Path,
     ror_timeseries: Optional[pd.DataFrame] = None,
+    maxpower: Optional[pd.DataFrame] = None,
+    minimum_generation: Optional[pd.DataFrame] = None,
+    inflows: Optional[pd.DataFrame] = None,
+    hydro_properties: Optional[HydroPropertiesUpdate] = None
 ) -> None:
     study = create_study_local(
         study_name=study_name,
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
     area = _create_area_with_base_clusters(study, load_timeserie)
+
     if ror_timeseries is not None:
         area.hydro.set_ror_series(ror_timeseries)
+
+    if maxpower is None:
+        maxpower = pd.DataFrame(np.zeros((365,4)))
+        maxpower.loc[:,0] = 100
+        maxpower.loc[:,1] = 24
+        maxpower.loc[:,2] = 100
+        maxpower.loc[:,3] = 24
+    area.hydro.set_maxpower(maxpower)
+
+
+    if minimum_generation is not None:
+        area.hydro.set_mingen(minimum_generation)
+
+    reservoir = pd.DataFrame(np.ones((365,3))*0.5)
+    area.hydro.set_reservoir(reservoir)
+
+    if inflows is not None:
+        area.hydro.set_mod_series(inflows)
+
+    area.hydro.update_properties(HydroPropertiesUpdate(reservoir=True,reservoir_capacity=1000,pumping_efficiency=0.75, overflow_spilled_cost_difference=0))
+    if hydro_properties is not None:
+        area.hydro.update_properties(hydro_properties)
+  
     addHybridBehavior(parent_dir_path / study_name)
 
 

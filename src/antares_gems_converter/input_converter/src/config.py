@@ -39,6 +39,9 @@ MATRIX_TYPES_TO_SET_METHOD = {
 
 HYDRO_TYPE_TO_SET_METHOD = {
     "ror": "set_ror_series",
+    "maxpower": "set_maxpower",
+    "mod_inflows": "set_mod_series",
+    "mingen": "set_mingen",
 }
 
 
