@@ -133,12 +133,12 @@ template:
         type: hydro
         area: ${area}
         field: maxpower
-    - id: legacy_lt_storage_maxpower
+    - id: legacy_lt_storage_reservoir
       object-properties:
         type: hydro
         area: ${area}
         field: reservoir
-    - id: legacy_lt_storage_maxpower
+    - id: legacy_lt_storage_mingen
       object-properties:
         type: hydro
         area: ${area}

@@ -15,7 +15,7 @@ from antares.craft import HydroPropertiesUpdate
 ## TESTING PROCEDURE FOR GEMS MODEL REPRESENTING ANTARES v9.3 "HYDRO" : CONSTANT DATA  ##
 
 LOAD_FILES_DIR = Path("tests/antares_historic/data")
-TEST_REL_ACCURACY = 5e-6 # this is high beacause there is noise on pumping and turbining variables in Antares that we can't reproduce
+TEST_REL_ACCURACY = 5e-6  # this is high beacause there is noise on pumping and turbining variables in Antares that we can't reproduce
 TEST_SOLVER = "highs"
 MODIFICATION_RATIO = 1.2
 
@@ -111,7 +111,9 @@ def test_reservoir_capacity(
         study_name_base,
         auto_generated_studies_path,
         load_time_serie_file,
-        hydro_properties=HydroPropertiesUpdate(reservoir_capacity=base_reservoir_capacity),
+        hydro_properties=HydroPropertiesUpdate(
+            reservoir_capacity=base_reservoir_capacity
+        ),
     )
     original_study_path, converted_study_path = convert_study(
         auto_generated_studies_path, study_name_base, ["hydro"]
@@ -127,7 +129,9 @@ def test_reservoir_capacity(
             perturbed_study_name,
             auto_generated_studies_path,
             load_time_serie_file,
-            hydro_properties=HydroPropertiesUpdate(reservoir_capacity=base_reservoir_capacity * perturbation),
+            hydro_properties=HydroPropertiesUpdate(
+                reservoir_capacity=base_reservoir_capacity * perturbation
+            ),
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
         rel_gap = first_optim_relgap(
@@ -149,7 +153,9 @@ def test_pumping_efficiency(
         study_name_base,
         auto_generated_studies_path,
         load_time_serie_file,
-        hydro_properties=HydroPropertiesUpdate(pumping_efficiency=base_pumping_efficiency),
+        hydro_properties=HydroPropertiesUpdate(
+            pumping_efficiency=base_pumping_efficiency
+        ),
     )
     original_study_path, converted_study_path = convert_study(
         auto_generated_studies_path, study_name_base, ["hydro"]
@@ -166,7 +172,9 @@ def test_pumping_efficiency(
             perturbed_study_name,
             auto_generated_studies_path,
             load_time_serie_file,
-            hydro_properties=HydroPropertiesUpdate(pumping_efficiency=perturbed_efficiency),
+            hydro_properties=HydroPropertiesUpdate(
+                pumping_efficiency=perturbed_efficiency
+            ),
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
         rel_gap = first_optim_relgap(
@@ -188,8 +196,10 @@ def test_overflow_cost(
         study_name_base,
         auto_generated_studies_path,
         load_time_serie_file,
-        hydro_properties=HydroPropertiesUpdate(overflow_spilled_cost_difference=base_overflow_cost),
-        inflows=pd.DataFrame(np.ones((365,1))*100000)
+        hydro_properties=HydroPropertiesUpdate(
+            overflow_spilled_cost_difference=base_overflow_cost
+        ),
+        inflows=pd.DataFrame(np.ones((365, 1)) * 100000),
     )
     original_study_path, converted_study_path = convert_study(
         auto_generated_studies_path, study_name_base, ["hydro"]
@@ -205,7 +215,9 @@ def test_overflow_cost(
             perturbed_study_name,
             auto_generated_studies_path,
             load_time_serie_file,
-            hydro_properties=HydroPropertiesUpdate(overflow_spilled_cost_difference=base_overflow_cost * perturbation),
+            hydro_properties=HydroPropertiesUpdate(
+                overflow_spilled_cost_difference=base_overflow_cost * perturbation
+            ),
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
         rel_gap = first_optim_relgap(
@@ -222,13 +234,12 @@ def test_nominal_generation_and_pumping_capacity(
 ) -> None:
     load_time_serie_file = LOAD_FILES_DIR / "load_matrix_1.txt"
     np.random.seed(42)
-    maxpower = pd.DataFrame(np.zeros((365,4)))
+    maxpower = pd.DataFrame(np.zeros((365, 4)))
     base_ts = base_capacity * (0.5 + 0.5 * np.random.random((365)))
-    maxpower.loc[:,0] = base_ts
-    maxpower.loc[:,1] = 24
-    maxpower.loc[:,2] = base_ts
-    maxpower.loc[:,3] = 24
-    
+    maxpower.loc[:, 0] = base_ts
+    maxpower.loc[:, 1] = 24
+    maxpower.loc[:, 2] = base_ts
+    maxpower.loc[:, 3] = 24
 
     study_name_base = f"hydro_nomgen_base_{str(int(100*time()))}"
     createHydroTestAntaresStudy(
@@ -247,8 +258,8 @@ def test_nominal_generation_and_pumping_capacity(
 
     for perturbation in [MODIFICATION_RATIO, 1 / MODIFICATION_RATIO]:
         perturbed_study_name = f"hydro_nomgen_{str(int(100*time()))}"
-        maxpower.loc[:,0] = base_ts * perturbation
-        maxpower.loc[:,2] = base_ts * perturbation
+        maxpower.loc[:, 0] = base_ts * perturbation
+        maxpower.loc[:, 2] = base_ts * perturbation
         createHydroTestAntaresStudy(
             perturbed_study_name,
             auto_generated_studies_path,
@@ -268,13 +279,18 @@ def test_minimum_generation(
     auto_generated_studies_path: Path,
     antares_exec_folder: Path,
 ) -> None:
-    load_time_serie_file = LOAD_FILES_DIR / "constant_load.txt" # to force the result of hydro heuristic
+    load_time_serie_file = (
+        LOAD_FILES_DIR / "constant_load.txt"
+    )  # to force the result of hydro heuristic
     np.random.seed(42)
-    inflow_ts = pd.DataFrame(1500 * np.ones((365,1)))
-    inflow_ts.loc[364,0] = 0 # to force the result of hydro heuristic
-    daily_profile = 0.5 + 0.5*np.random.random((24,1))
-    mingen_ts = pd.DataFrame(np.tile(daily_profile,(365,1))/sum(daily_profile) * base_mingen * 24)
-    mingen_ts.loc[8736:8760,0] = 0 # to force the result of hydro heuristic
+    inflow_ts = pd.DataFrame(1250 * np.ones((365, 1)))
+    inflow_ts.loc[364, 0] = 0  # to force the result of hydro heuristic
+    random_daily_profile = np.random.random((24, 1))
+    actual_daily_profile = np.minimum(
+        random_daily_profile / sum(random_daily_profile) * 24 * 50, 100
+    )
+    mingen_ts = pd.DataFrame(np.tile(actual_daily_profile, (365, 1)))
+    mingen_ts.loc[8736:8760, 0] = 0  # to force the result of hydro heuristic
 
     study_name_base = f"hydro_mingen_base_{str(int(100*time()))}"
     createHydroTestAntaresStudy(
@@ -282,7 +298,7 @@ def test_minimum_generation(
         auto_generated_studies_path,
         load_time_serie_file,
         minimum_generation=mingen_ts,
-        inflows=inflow_ts
+        inflows=inflow_ts,
     )
     original_study_path, converted_study_path = convert_study(
         auto_generated_studies_path, study_name_base, ["hydro"]
@@ -294,12 +310,21 @@ def test_minimum_generation(
 
     for perturbation in [MODIFICATION_RATIO, 1 / MODIFICATION_RATIO]:
         perturbed_study_name = f"hydro_mingen_{str(int(100*time()))}"
+        perturbated_daily_profile = np.minimum(
+            random_daily_profile**perturbation
+            / sum(random_daily_profile**perturbation)
+            * 24
+            * 50,
+            100,
+        )
         createHydroTestAntaresStudy(
             perturbed_study_name,
             auto_generated_studies_path,
             load_time_serie_file,
-            minimum_generation=mingen_ts * perturbation,
-            inflows=inflow_ts
+            minimum_generation=pd.DataFrame(
+                np.tile(perturbated_daily_profile, (365, 1))
+            ),
+            inflows=inflow_ts,
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
         rel_gap = first_optim_relgap(
@@ -307,15 +332,18 @@ def test_minimum_generation(
         )
         assert rel_gap > 10 * TEST_REL_ACCURACY
 
+
 @pytest.mark.parametrize("base_inflow_level", [200])
 def test_inflows(
     base_inflow_level: float,
     auto_generated_studies_path: Path,
     antares_exec_folder: Path,
 ) -> None:
-    load_time_serie_file = LOAD_FILES_DIR / "constant_load.txt" # to force the result of hydro heuristic
+    load_time_serie_file = (
+        LOAD_FILES_DIR / "constant_load.txt"
+    )  # to force the result of hydro heuristic
     base_ts = pd.DataFrame(base_inflow_level * np.ones((365, 1)))
-    base_ts.loc[364,0] = 0 # to force the result of hydro heuristic
+    base_ts.loc[364, 0] = 0  # to force the result of hydro heuristic
 
     study_name_base = f"hydro_inflows_base_{str(int(100*time()))}"
     createHydroTestAntaresStudy(

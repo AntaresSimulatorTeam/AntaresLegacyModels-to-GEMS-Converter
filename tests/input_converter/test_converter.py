@@ -1677,7 +1677,13 @@ class TestConverter:
         output_path = tmp_path / "output"
         shutil.copytree(local_path, input_path)
         converter = self._init_converter_from_path(
-            input_path, output_path, "full", MODEL_LIST_WITH_BASE
+            input_path,
+            output_path,
+            "full",
+            MODEL_LIST_WITH_BASE,
+            model_list=[
+                model for model in MODEL_NAME_TO_FILE_NAME.keys() if model != "hydro"
+            ],
         )
         obtained_sys = converter.convert_study_to_input_system()
         with open(ref_path) as system_file:

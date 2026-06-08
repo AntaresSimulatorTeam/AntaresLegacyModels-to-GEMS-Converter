@@ -246,7 +246,7 @@ def createHydroTestAntaresStudy(
     maxpower: Optional[pd.DataFrame] = None,
     minimum_generation: Optional[pd.DataFrame] = None,
     inflows: Optional[pd.DataFrame] = None,
-    hydro_properties: Optional[HydroPropertiesUpdate] = None
+    hydro_properties: Optional[HydroPropertiesUpdate] = None,
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -260,27 +260,33 @@ def createHydroTestAntaresStudy(
         area.hydro.set_ror_series(ror_timeseries)
 
     if maxpower is None:
-        maxpower = pd.DataFrame(np.zeros((365,4)))
-        maxpower.loc[:,0] = 100
-        maxpower.loc[:,1] = 24
-        maxpower.loc[:,2] = 100
-        maxpower.loc[:,3] = 24
+        maxpower = pd.DataFrame(np.zeros((365, 4)))
+        maxpower.loc[:, 0] = 100
+        maxpower.loc[:, 1] = 24
+        maxpower.loc[:, 2] = 100
+        maxpower.loc[:, 3] = 24
     area.hydro.set_maxpower(maxpower)
-
 
     if minimum_generation is not None:
         area.hydro.set_mingen(minimum_generation)
 
-    reservoir = pd.DataFrame(np.ones((365,3))*0.5)
+    reservoir = pd.DataFrame(np.ones((365, 3)) * 0.5)
     area.hydro.set_reservoir(reservoir)
 
     if inflows is not None:
         area.hydro.set_mod_series(inflows)
 
-    area.hydro.update_properties(HydroPropertiesUpdate(reservoir=True,reservoir_capacity=1000,pumping_efficiency=0.75, overflow_spilled_cost_difference=0))
+    area.hydro.update_properties(
+        HydroPropertiesUpdate(
+            reservoir=True,
+            reservoir_capacity=5000,
+            pumping_efficiency=0.75,
+            overflow_spilled_cost_difference=0,
+        )
+    )
     if hydro_properties is not None:
         area.hydro.update_properties(hydro_properties)
-  
+
     addHybridBehavior(parent_dir_path / study_name)
 
 

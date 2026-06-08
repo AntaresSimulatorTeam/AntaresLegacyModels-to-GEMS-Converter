@@ -462,7 +462,7 @@ library:
           expression: initial_and_final_level[167] * reservoir_capacity = level[167] # 167 = last timestep of the week (168h - 1)
       objective-contributions:
         - id: objective
-          expression: sum(overflow_cost * overflow - 0.000001 * level)
+          expression: sum(overflow_cost * overflow)
       extra-outputs:
         - id: level_percentage
           expression: level/reservoir_capacity*100

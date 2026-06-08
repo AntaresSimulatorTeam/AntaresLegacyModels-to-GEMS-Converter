@@ -208,8 +208,10 @@ class AntaresStudyConverter:
                             self.areas[legacy_component.area].hydro,
                             HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
                         )(pd.DataFrame())
-                    else :
-                        self.areas[legacy_component.area].hydro.update_properties(HydroPropertiesUpdate(**{legacy_component.field: False}))
+                    else:
+                        self.areas[legacy_component.area].hydro.update_properties(
+                            HydroPropertiesUpdate(**{legacy_component.field: False})
+                        )
                 else:
                     raise NotImplementedError
             except ReferencedObjectDeletionNotAllowed:
