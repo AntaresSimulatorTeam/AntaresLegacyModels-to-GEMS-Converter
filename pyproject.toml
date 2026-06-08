@@ -12,20 +12,20 @@ dependencies = [
     "antares_craft==0.14.0",
     "antares-study-version==1.0.20",
     "antares-timeseries-generation==0.1.9",
-    "numpy==2.2.6",
-    "pandas==2.2.3",
-    "pydantic==2.11.10",
+    "numpy>=2.2.6",
+    "pandas>=2.2.3",
+    "pydantic>=2.11.10",
     "gemspy==0.1.0",
-    "PyYAML==6.0.3",
+    "PyYAML>=6.0.3",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==9.0.3",
-    "pytest-cov==7.1.0",
-    "mypy==2.1.0",
-    "types-pyyaml==6.0.12",
-    "black==23.7.0",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "mypy>=2.1.0",
+    "types-pyyaml>=6.0.12",
+    "black>=23.7.0",
 ]
 
 
