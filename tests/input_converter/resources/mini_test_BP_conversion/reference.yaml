@@ -57,7 +57,7 @@ system:
           scenario-dependent: true
           time-dependent: true
           value: fr_fr_nuclear_epr_p_min_cluster
-        - id: unit_count
+        - id: num_units
           scenario-dependent: false
           time-dependent: false
           value: 1.0
@@ -96,7 +96,7 @@ system:
     - id: fr
       model: antares_legacy_models.area
       parameters:
-        - id: ens_cost
+        - id: unsupplied_energy_cost
           scenario-dependent: false
           time-dependent: false
           value: 4000.0

@@ -118,7 +118,7 @@ class TestConverter:
                     scenario_group=None,
                     parameters=[
                         ComponentParameterSchema(
-                            id="ens_cost",
+                            id="unsupplied_energy_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
@@ -139,7 +139,7 @@ class TestConverter:
                     scenario_group=None,
                     parameters=[
                         ComponentParameterSchema(
-                            id="ens_cost",
+                            id="unsupplied_energy_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
@@ -168,7 +168,7 @@ class TestConverter:
                 model="antares_legacy_models.area",
                 parameters=[
                     ComponentParameterSchema(
-                        id="ens_cost",
+                        id="unsupplied_energy_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -188,7 +188,7 @@ class TestConverter:
                 model="antares_legacy_models.area",
                 parameters=[
                     ComponentParameterSchema(
-                        id="ens_cost",
+                        id="unsupplied_energy_cost",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -228,7 +228,7 @@ class TestConverter:
                     scenario_group=None,
                     parameters=[
                         ComponentParameterSchema(
-                            id="ens_cost",
+                            id="unsupplied_energy_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
@@ -249,7 +249,7 @@ class TestConverter:
                     scenario_group=None,
                     parameters=[
                         ComponentParameterSchema(
-                            id="ens_cost",
+                            id="unsupplied_energy_cost",
                             time_dependent=False,
                             scenario_dependent=False,
                             scenario_group=None,
@@ -291,16 +291,16 @@ class TestConverter:
 
         inflows_path = "inflows_fr_storage_1"
         lower_rule_curve_path = "lower_rule_curve_fr_storage_1"
-        pmax_injection_path = "p_max_injection_modulation_fr_storage_1"
-        pmax_withdrawal_path = "p_max_withdrawal_modulation_fr_storage_1"
+        pmax_injection_path = "max_injection_modulation_fr_storage_1"
+        pmax_withdrawal_path = "max_withdrawal_modulation_fr_storage_1"
         upper_rule_curve_path = "upper_rule_curve_fr_storage_1"
-        cost_injection_path = "cost_injection_fr_storage_1"
-        cost_withdrawal_path = "cost_withdrawal_fr_storage_1"
-        cost_level_path = "cost_level_fr_storage_1"
+        cost_injection_path = "injection_cost_fr_storage_1"
+        cost_withdrawal_path = "withdrawal_cost_fr_storage_1"
+        cost_level_path = "level_cost_fr_storage_1"
         expected_storage_connections = [
             PortConnectionsSchema(
                 component1="fr_storage_1",
-                port1="injection_port",
+                port1="balance_port",
                 component2="fr",
                 port2="balance_port",
             )
@@ -308,7 +308,7 @@ class TestConverter:
         expected_storage_component = [
             ComponentSchema(
                 id="fr_storage_1",
-                model=f"{lib_id}.short-term-storage",
+                model=f"{lib_id}.short_term_storage",
                 scenario_group=None,
                 parameters=[
                     ComponentParameterSchema(
@@ -319,28 +319,28 @@ class TestConverter:
                         value=0.0,
                     ),
                     ComponentParameterSchema(
-                        id="injection_nominal_capacity",
+                        id="nominal_injection_capacity",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=10.0,
                     ),
                     ComponentParameterSchema(
-                        id="withdrawal_nominal_capacity",
+                        id="nominal_withdrawal_capacity",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=10.0,
                     ),
                     ComponentParameterSchema(
-                        id="efficiency_injection",
+                        id="injection_efficiency",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1,
                     ),
                     ComponentParameterSchema(
-                        id="efficiency_withdrawal",
+                        id="withdrawal_efficiency",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -361,14 +361,14 @@ class TestConverter:
                         value=f"{upper_rule_curve_path}",
                     ),
                     ComponentParameterSchema(
-                        id="p_max_injection_modulation",
+                        id="max_injection_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{pmax_injection_path}",
                     ),
                     ComponentParameterSchema(
-                        id="p_max_withdrawal_modulation",
+                        id="max_withdrawal_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
@@ -389,21 +389,21 @@ class TestConverter:
                         value=0.5,
                     ),
                     ComponentParameterSchema(
-                        id="cost_injection",
+                        id="injection_cost",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{cost_injection_path}",
                     ),
                     ComponentParameterSchema(
-                        id="cost_withdrawal",
+                        id="withdrawal_cost",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{cost_withdrawal_path}",
                     ),
                     ComponentParameterSchema(
-                        id="cost_level",
+                        id="level_cost",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
@@ -458,28 +458,28 @@ class TestConverter:
                 scenario_group=None,
                 parameters=[
                     ComponentParameterSchema(
-                        id="minimum_generation_modulation",
+                        id="cluster_min_gen_modulation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="minimum_generation_modulation_fr_gaz",
+                        value="cluster_min_gen_modulation_fr_gaz",
                     ),
                     ComponentParameterSchema(
-                        id="p_max_cluster",
+                        id="cluster_max_generation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="p_max_cluster_fr_gaz",
+                        value="cluster_max_generation_fr_gaz",
                     ),
                     ComponentParameterSchema(
-                        id="p_min_unit",
+                        id="min_power_per_unit",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=0.0,
                     ),
                     ComponentParameterSchema(
-                        id="p_max_unit",
+                        id="max_power_per_unit",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -507,21 +507,21 @@ class TestConverter:
                         value=0.0,
                     ),
                     ComponentParameterSchema(
-                        id="d_min_up",
+                        id="min_up_duration",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
                     ),
                     ComponentParameterSchema(
-                        id="d_min_down",
+                        id="min_down_duration",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=1.0,
                     ),
                     ComponentParameterSchema(
-                        id="unit_count",
+                        id="num_units",
                         time_dependent=False,
                         scenario_dependent=False,
                         scenario_group=None,
@@ -534,6 +534,30 @@ class TestConverter:
                         scenario_group=None,
                         value=0,
                     ),
+                ]
+                + [
+                    ComponentParameterSchema(
+                        id=pollutant,
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0,
+                    )
+                    for pollutant in [
+                        "co2_emissions_rate",
+                        "nh3_emissions_rate",
+                        "so2_emissions_rate",
+                        "nox_emissions_rate",
+                        "pm2_5_emissions_rate",
+                        "pm5_emissions_rate",
+                        "pm10_emissions_rate",
+                        "nmvoc_emissions_rate",
+                        "op1_emissions_rate",
+                        "op2_emissions_rate",
+                        "op3_emissions_rate",
+                        "op4_emissions_rate",
+                        "op5_emissions_rate",
+                    ]
                 ],
             )
         ]
@@ -640,7 +664,7 @@ class TestConverter:
         solar_fr_connection = next(
             (conn for conn in solar_connections if conn.component1 == "solar_fr"), None
         )
-        solar_timeseries = "generation_fr"
+        solar_timeseries = "available_power_fr"
         expected_solar_connection = PortConnectionsSchema(
             component1="solar_fr",
             port1="balance_port",
@@ -661,14 +685,14 @@ class TestConverter:
                     scenario_group=None,
                 ),
                 ComponentParameterSchema(
-                    id="unit_count",
+                    id="num_units",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                     scenario_group=None,
                 ),
                 ComponentParameterSchema(
-                    id="generation",
+                    id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
                     value=f"{solar_timeseries}",
@@ -765,16 +789,16 @@ class TestConverter:
                     value=1.0,
                 ),
                 ComponentParameterSchema(
-                    id="unit_count",
+                    id="num_units",
                     time_dependent=False,
                     scenario_dependent=False,
                     value=1.0,
                 ),
                 ComponentParameterSchema(
-                    id="generation",
+                    id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
-                    value="generation_fr",
+                    value="available_power_fr",
                 ),
             ],
         )
@@ -842,18 +866,21 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        fr_it_direct_links_timeseries = "capacity_direct_fr_it"
-        fr_it_indirect_links_timeseries = "capacity_indirect_fr_it"
-        fr_it_direct_costs_timeseries = "hurdle_cost_direct_fr_it"
-        fr_it_indirect_costs_timeseries = "hurdle_cost_indirect_fr_it"
-        at_fr_direct_links_timeseries = "capacity_direct_at_fr"
-        at_fr_indirect_links_timeseries = "capacity_indirect_at_fr"
-        at_it_direct_links_timeseries = "capacity_direct_at_it"
-        at_it_indirect_links_timeseries = "capacity_indirect_at_it"
-        at_fr_direct_costs_timeseries = "hurdle_cost_direct_at_fr"
-        at_fr_indirect_costs_timeseries = "hurdle_cost_indirect_at_fr"
-        at_it_direct_costs_timeseries = "hurdle_cost_direct_at_it"
-        at_it_indirect_costs_timeseries = "hurdle_cost_indirect_at_it"
+        fr_it_direct_links_timeseries = "direct_capacity_fr_it"
+        fr_it_indirect_links_timeseries = "indirect_capacity_fr_it"
+        fr_it_direct_costs_timeseries = "direct_hurdle_cost_fr_it"
+        fr_it_indirect_costs_timeseries = "indirect_hurdle_cost_fr_it"
+        at_fr_direct_links_timeseries = "direct_capacity_at_fr"
+        at_fr_indirect_links_timeseries = "indirect_capacity_at_fr"
+        at_it_direct_links_timeseries = "direct_capacity_at_it"
+        at_it_indirect_links_timeseries = "indirect_capacity_at_it"
+        at_fr_direct_costs_timeseries = "direct_hurdle_cost_at_fr"
+        at_fr_indirect_costs_timeseries = "indirect_hurdle_cost_at_fr"
+        at_it_direct_costs_timeseries = "direct_hurdle_cost_at_it"
+        at_it_indirect_costs_timeseries = "indirect_hurdle_cost_at_it"
+        fr_it_loop_flow_timeseries = "loop_flow_fr_it"
+        at_fr_loop_flow_timeseries = "loop_flow_at_fr"
+        at_it_loop_flow_timeseries = "loop_flow_at_it"
         expected_link_component = [
             ComponentSchema(
                 id="fr_/_it",
@@ -861,32 +888,39 @@ class TestConverter:
                 scenario_group=None,
                 parameters=[
                     ComponentParameterSchema(
-                        id="capacity_direct",
+                        id="direct_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{fr_it_direct_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="capacity_indirect",
+                        id="indirect_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{fr_it_indirect_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_direct",
+                        id="direct_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{fr_it_direct_costs_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_indirect",
+                        id="indirect_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{fr_it_indirect_costs_timeseries}",
+                    ),
+                    ComponentParameterSchema(
+                        id="loop_flow",
+                        time_dependent=True,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=f"{fr_it_loop_flow_timeseries}",
                     ),
                 ],
             ),
@@ -896,32 +930,39 @@ class TestConverter:
                 scenario_group=None,
                 parameters=[
                     ComponentParameterSchema(
-                        id="capacity_direct",
+                        id="direct_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_fr_direct_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="capacity_indirect",
+                        id="indirect_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_fr_indirect_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_direct",
+                        id="direct_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_fr_direct_costs_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_indirect",
+                        id="indirect_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_fr_indirect_costs_timeseries}",
+                    ),
+                    ComponentParameterSchema(
+                        id="loop_flow",
+                        time_dependent=True,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=f"{at_fr_loop_flow_timeseries}",
                     ),
                 ],
             ),
@@ -931,32 +972,39 @@ class TestConverter:
                 scenario_group=None,
                 parameters=[
                     ComponentParameterSchema(
-                        id="capacity_direct",
+                        id="direct_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_it_direct_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="capacity_indirect",
+                        id="indirect_capacity",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
                         value=f"{at_it_indirect_links_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_direct",
+                        id="direct_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_it_direct_costs_timeseries}",
                     ),
                     ComponentParameterSchema(
-                        id="hurdle_cost_indirect",
+                        id="indirect_hurdle_cost",
                         time_dependent=True,
                         scenario_dependent=False,
                         scenario_group=None,
                         value=f"{at_it_indirect_costs_timeseries}",
+                    ),
+                    ComponentParameterSchema(
+                        id="loop_flow",
+                        time_dependent=True,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=f"{at_it_loop_flow_timeseries}",
                     ),
                 ],
             ),

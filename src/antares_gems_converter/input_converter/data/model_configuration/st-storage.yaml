@@ -14,7 +14,7 @@
 template:
   name: st_storage
   generator-version-compatibility: X.Y #TODO: find this information
-  model: antares_legacy_models.short-term-storage
+  model: antares_legacy_models.short_term_storage
   template-parameters:
     - name: area
       cluster-type: st_storage
@@ -33,7 +33,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: reservoir_capacity
-      - id: injection_nominal_capacity
+      - id: nominal_injection_capacity
         time-dependent: false
         scenario-dependent: false
         value:
@@ -42,7 +42,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: injection_nominal_capacity
-      - id: withdrawal_nominal_capacity
+      - id: nominal_withdrawal_capacity
         time-dependent: false
         scenario-dependent: false
         value:
@@ -51,7 +51,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: withdrawal_nominal_capacity
-      - id: efficiency_injection
+      - id: injection_efficiency
         time-dependent: false
         scenario-dependent: false
         value:
@@ -60,7 +60,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: efficiency
-      - id: efficiency_withdrawal
+      - id: withdrawal_efficiency
         time-dependent: false
         scenario-dependent: false
         value:
@@ -87,7 +87,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: upper_rule_curve
-      - id: p_max_injection_modulation
+      - id: max_injection_modulation
         time-dependent: true
         scenario-dependent: true
         value:
@@ -96,7 +96,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: pmax_injection
-      - id: p_max_withdrawal_modulation
+      - id: max_withdrawal_modulation
         time-dependent: true
         scenario-dependent: true
         value:
@@ -123,7 +123,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: initial_level
-      - id: cost_injection
+      - id: injection_cost
         time-dependent: true
         scenario-dependent: true
         value:
@@ -132,7 +132,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: cost_injection
-      - id: cost_withdrawal
+      - id: withdrawal_cost
         time-dependent: true
         scenario-dependent: true
         value:
@@ -141,7 +141,7 @@ template:
             area: ${area}
             cluster: ${st_storage}
             field: cost_withdrawal
-      - id: cost_level
+      - id: level_cost
         time-dependent: true
         scenario-dependent: true
         value:
@@ -154,14 +154,14 @@ template:
   # For full modeler mode
   connections:
     - component1: ${area}_${st_storage}
-      port1: injection_port
+      port1: balance_port
       component2: ${area}
       port2: balance_port
 
   # For hybrid mode
   area-connections:
     - component: ${area}_${st_storage}
-      port: injection_port
+      port: balance_port
       area: ${area}
 
   legacy-objects-to-delete:
