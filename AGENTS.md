@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents (LLMs, copilots, code assistants
 
 ## Project Overview
 
-**AntaresLegacyModels-to-GEMS-Converter** converts [Antares Simulator](https://antares-simulator.readthedocs.io/) legacy studies into the [GEMS](https://gems-energy.readthedocs.io/) format. It takes mathematical models that were historically embedded in the Antares solver code (thermal clusters, links, short-term storage, batteries, renewables, load/solar/wind) and produces explicit GEMS YAML system files and timeseries data.
+**AntaresLegacyModels-to-GEMS-Converter** converts [Antares Simulator](https://antares-simulator.readthedocs.io/) legacy studies into the [GEMS](https://gems-energy.readthedocs.io/) format. It takes mathematical models that were historically embedded in the Antares solver code (thermal clusters, links, short-term storage, batteries, renewables, load/solar/wind, hydro, misc gen) and produces explicit GEMS YAML system files and timeseries data.
 
 Repository: `AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter` — License: MPL 2.0
 
@@ -39,7 +39,8 @@ src/antares_gems_converter/
 
 -   `TEMPLATE_CLUSTER_TYPE_TO_GET/DELETE_METHOD` - maps thermal/renewable/st_storage → antares-craft area methods
 - `STUDY_LEVEL_GET/DELETION` - maps `area/link/binding_constraint` → study-level methods
-- `MATRIX_TYPES_TO_GET/SET_METHOD` - maps `load/solar/wind` → timeseries get/set methods
+- `MATRIX_TYPES_TO_GET/SET_METHOD` - maps `load/solar/wind/misc_gen` → timeseries get/set methods
+- `HYDRO_TYPE_TO_SET_METHOD` - maps hydro field names → antares-craft hydro setter methods
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
 - `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES` - categorize model types for iteration logic in the converter
@@ -129,7 +130,7 @@ template:
           value:
             constant: <number>            # OR object-properties reference below
             object-properties:
-              type: thermal|link|load|solar|wind|st_storage|binding_constraint
+              type: thermal|link|load|solar|wind|st_storage|binding_constraint|hydro
               area: ${area}
               cluster: ${thermal}         # for cluster types
               field: <antares_craft_field>
