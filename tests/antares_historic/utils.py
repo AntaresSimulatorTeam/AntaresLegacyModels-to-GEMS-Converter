@@ -79,7 +79,7 @@ def _create_area_with_base_clusters(
     cluster2_cost: int = 20,
 ):
     area = study.create_area(
-        area_name=area_name, properties=AreaProperties(energy_cost_unsupplied=20000)
+        area_name=area_name, properties=AreaProperties(energy_cost_unsupplied=20000, energy_cost_spilled=1)
     )
     area.set_load(load_timeserie)
     cluster1 = area.create_thermal_cluster(

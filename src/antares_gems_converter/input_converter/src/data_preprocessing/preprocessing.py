@@ -147,6 +147,8 @@ class ModelConversionPreprocessor:
             hydro_properties = getattr(hydro, "properties")
             field_name = obj.object_properties.field
             value = getattr(hydro_properties, field_name)
+            if field_name == "overflow_spilled_cost_difference":
+                value += self.study.get_areas()[area].properties.energy_cost_spilled
             return value
         return time_series
 

@@ -140,9 +140,9 @@ library:
         - id: capacity_shadow_price
           expression: max(dual(flow_decomposition),-dual(flow_decomposition))
         - id: is_directly_congested
-          expression: (direct_flow >= direct_capacity - loop_flow)
+          expression: (flow >= direct_capacity)
         - id: is_indirectly_congested
-          expression: (indirect_flow >= indirect_capacity + loop_flow)
+          expression: (flow <= -indirect_capacity)
         - id: prop_cost
           expression: direct_hurdle_cost * direct_flow + indirect_hurdle_cost * indirect_flow
         - id: abs_flow
@@ -463,7 +463,7 @@ library:
           expression: initial_and_final_level[167] * reservoir_capacity = level[167] # 167 = last timestep of the week (168h - 1)
       objective-contributions:
         - id: objective
-          expression: sum(overflow_cost * overflow)
+          expression: sum(overflow_cost * overflow -0.000001*level)
       extra-outputs:
         - id: level_percentage
           expression: level/reservoir_capacity*100

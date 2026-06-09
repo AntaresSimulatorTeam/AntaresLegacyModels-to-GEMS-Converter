@@ -496,6 +496,13 @@ class TestConverter:
                         value=0.0,
                     ),
                     ComponentParameterSchema(
+                        id="market_bid_cost",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0.0,
+                    ),
+                    ComponentParameterSchema(
                         id="startup_cost",
                         time_dependent=False,
                         scenario_dependent=False,
@@ -673,7 +680,7 @@ class TestConverter:
                     time_dependent=False,
                     scenario_dependent=False,
                     scenario_group=None,
-                    value=0,
+                    value=1,
                 ),
             ],
         )
