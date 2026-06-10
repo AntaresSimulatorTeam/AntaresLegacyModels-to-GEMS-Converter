@@ -182,7 +182,6 @@ def test_injection_nominal_capacity(
     sts_properties = replace(
         BASE_STS_PROPERTIES,
         injection_nominal_capacity=injection_nominal_capacity_base,
-        withdrawal_nominal_capacity=200,
     )
 
     sts_test_procedure_float_param(
@@ -204,7 +203,6 @@ def test_withdrawal_nominal_capacity(
 ) -> None:
     sts_properties = replace(
         BASE_STS_PROPERTIES,
-        injection_nominal_capacity=200,
         withdrawal_nominal_capacity=withdrawal_nominal_capacity_base,
     )
 
@@ -227,8 +225,6 @@ def test_reservoir_capacity(
 ) -> None:
     sts_properties = replace(
         BASE_STS_PROPERTIES,
-        injection_nominal_capacity=80,
-        withdrawal_nominal_capacity=80,
         reservoir_capacity=reservoir_capacity_base,
     )
 
@@ -251,9 +247,6 @@ def test_efficiency(
 ) -> None:
     sts_properties = replace(
         BASE_STS_PROPERTIES,
-        injection_nominal_capacity=80,
-        withdrawal_nominal_capacity=80,
-        reservoir_capacity=200,
         efficiency=efficiency_base,
     )
 
@@ -276,9 +269,6 @@ def test_efficiency_withdrawal(
 ) -> None:
     sts_properties = replace(
         BASE_STS_PROPERTIES,
-        injection_nominal_capacity=80,
-        withdrawal_nominal_capacity=80,
-        reservoir_capacity=200,
         efficiency_withdrawal=efficiency_withdrawal_base,
         efficiency=0.5 / MODIFICATION_RATIO,
     )
@@ -302,9 +292,6 @@ def test_initial_level(
 ) -> None:
     sts_properties = replace(
         BASE_STS_PROPERTIES,
-        injection_nominal_capacity=80,
-        withdrawal_nominal_capacity=80,
-        reservoir_capacity=250,
         initial_level=initial_level_base,
     )
 
