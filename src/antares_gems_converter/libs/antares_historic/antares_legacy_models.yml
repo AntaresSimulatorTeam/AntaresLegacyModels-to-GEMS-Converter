@@ -363,6 +363,24 @@ library:
         - id: level_cost
           time-dependent: true
           scenario-dependent: true
+        - id: is_overflow_allowed
+          time-dependent: false
+          scenario-dependent: false
+        - id: is_injection_variation_penalized
+          time-dependent: false
+          scenario-dependent: false
+        - id: is_withdrawal_variation_penalized
+          time-dependent: false
+          scenario-dependent: false
+        - id: injection_variation_penalty
+          time-dependent: true
+          scenario-dependent: true
+        - id: withdrawal_variation_penalty
+          time-dependent: true
+          scenario-dependent: true
+        - id: overflow_cost
+          time-dependent: false
+          scenario-dependent: false
       variables:
         - id: injection_power
           lower-bound: 0
@@ -376,6 +394,16 @@ library:
           lower-bound: lower_rule_curve * reservoir_capacity
           upper-bound: upper_rule_curve * reservoir_capacity
           variable-type: continuous
+        - id: overflow
+          lower-bound: 0
+          upper-bound: reservoir_capacity * is_overflow_allowed
+          variable-type: continuous
+        - id: injection_variation
+          lower-bound: 0
+          variable-type: continuous
+        - id: withdrawal_variation
+          lower-bound: 0
+          variable-type: continuous
       ports:
         - id: balance_port
           type: flow
@@ -387,10 +415,18 @@ library:
         - id: initial_level_constraint
           expression: level[167] = initial_level * reservoir_capacity # 167 = last timestep of the week (168h - 1); enforces end-of-week level target
         - id: level_equation
-          expression: level = level[t-1] + injection_efficiency * injection_power - withdrawal_efficiency * withdrawal_power + inflows
+          expression: level = level[t-1] + injection_efficiency * injection_power - withdrawal_efficiency * withdrawal_power + inflows - overflow
+        - id: up_injection_variation
+          expression: injection_variation >= injection_power[t+1] - injection_power
+        - id: down_injection_variation
+          expression: injection_variation >= injection_power - injection_power[t+1] 
+        - id: up_withdrawal_variation
+          expression: withdrawal_variation >= withdrawal_power[t+1] - withdrawal_power
+        - id: down_withdrawal_variation
+          expression: withdrawal_variation >= withdrawal_power - withdrawal_power[t+1] 
       objective-contributions:
         - id: objective
-          expression: sum(injection_cost * injection_power + withdrawal_cost * withdrawal_power + level_cost * level)
+          expression: sum(injection_cost * injection_power + withdrawal_cost * withdrawal_power + level_cost * level + injection_variation_penalty * injection_variation * is_injection_variation_penalized + withdrawal_variation_penalty * withdrawal_variation * is_withdrawal_variation_penalized + overflow_cost * overflow * is_overflow_allowed)
       extra-outputs:
         - id: profit
           expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price)+0.5)
