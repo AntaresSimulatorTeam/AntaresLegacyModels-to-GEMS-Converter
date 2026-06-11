@@ -71,7 +71,7 @@ template:
               field: efficiency_withdrawal
         - id: lower_rule_curve
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -80,7 +80,7 @@ template:
               field: lower_rule_curve
         - id: upper_rule_curve
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -89,7 +89,7 @@ template:
               field: upper_rule_curve
         - id: max_injection_modulation
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -98,7 +98,7 @@ template:
               field: pmax_injection
         - id: max_withdrawal_modulation
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -125,7 +125,7 @@ template:
               field: initial_level
         - id: injection_cost
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -134,7 +134,7 @@ template:
               field: cost_injection
         - id: withdrawal_cost
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
@@ -143,13 +143,66 @@ template:
               field: cost_withdrawal
         - id: level_cost
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: st_storage
               area: ${area}
               cluster: ${st_storage}
               field: cost_level
+        - id: is_overflow_allowed
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: allow_overflow
+        - id: is_injection_variation_penalized
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: penalize_variation_injection
+        - id: is_withdrawal_variation_penalized
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: penalize_variation_withdrawal
+        - id: injection_variation_penalty
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: cost_variation_injection
+        - id: withdrawal_variation_penalty
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: cost_variation_withdrawal
+        - id: overflow_cost
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: hydro
+              area: ${area}
+              field: overflow_spilled_cost_difference
 
   # For full modeler mode
   connections:

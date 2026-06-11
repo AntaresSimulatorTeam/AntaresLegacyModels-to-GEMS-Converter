@@ -14,7 +14,7 @@ from antares_gems_converter.input_converter.src.data_preprocessing.data_classes 
 )
 from antares_gems_converter.input_converter.src.logger import Logger
 
-ANTARES_VERSION_CREATED_STUDIES = "9.2"
+ANTARES_VERSION_CREATED_STUDIES = "9.3"
 ANTARES_LEGACY_MODELS_PATH = [
     Path("src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml")
 ]
@@ -79,7 +79,8 @@ def _create_area_with_base_clusters(
     cluster2_cost: int = 20,
 ):
     area = study.create_area(
-        area_name=area_name, properties=AreaProperties(energy_cost_unsupplied=20000)
+        area_name=area_name,
+        properties=AreaProperties(energy_cost_unsupplied=20000, energy_cost_spilled=1),
     )
     area.set_load(load_timeserie)
     cluster1 = area.create_thermal_cluster(
@@ -191,6 +192,8 @@ STS_TIMESERIES_SETTER_MAP = {
     "lower_rule_curve": "set_lower_rule_curve",
     "upper_rule_curve": "set_upper_rule_curve",
     "storage_inflows": "set_storage_inflows",
+    "cost_variation_injection": "set_cost_variation_injection",
+    "cost_variation_withdrawal": "set_cost_variation_withdrawal",
 }
 
 
@@ -213,6 +216,11 @@ def createSTSTestAntaresStudy(
         cluster1_capacity=200,
         cluster2_capacity=400,
         cluster2_cost=100,
+    )
+    area.hydro.update_properties(
+        HydroPropertiesUpdate(
+            overflow_spilled_cost_difference=-1,
+        )
     )
     cluster3 = area.create_st_storage("sts", sts_properties)
     if sts_timeseries:

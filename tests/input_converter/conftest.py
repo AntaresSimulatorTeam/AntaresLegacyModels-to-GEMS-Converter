@@ -39,7 +39,7 @@ def local_study(tmp_path) -> Study:
     Create an empty study
     """
     study_name = "studyTest"
-    study_version = "920"
+    study_version = "930"
     return create_study_local(study_name, study_version, tmp_path.absolute())
 
 
@@ -161,6 +161,7 @@ def default_storage_cluster_properties() -> STStorageProperties:
         initial_level_optim=False,
         enabled=True,
         efficiency_withdrawal=1.0,
+        allow_overflow=False,
     )
 
 
