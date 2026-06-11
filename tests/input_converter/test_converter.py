@@ -436,6 +436,10 @@ class TestConverter:
                         scenario_dependent=False,
                         value=f"withdrawal_variation_penalty_fr_storage_1",
                     ),
+                    ComponentParameterSchema(
+                        id="overflow_cost",
+                        value=2,
+                    ),
                 ],
             )
         ]
