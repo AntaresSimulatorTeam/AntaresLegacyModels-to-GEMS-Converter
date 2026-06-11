@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents (LLMs, copilots, code assistants
 
 ## Project Overview
 
-**AntaresLegacyModels-to-GEMS-Converter** converts [Antares Simulator](https://antares-simulator.readthedocs.io/) legacy studies into the [GEMS](https://gems-energy.readthedocs.io/) format. It takes mathematical models that were historically embedded in the Antares solver code (thermal clusters, links, short-term storage, batteries, renewables, load/solar/wind, hydro, misc gen) and produces explicit GEMS YAML system files and timeseries data.
+**AntaresLegacyModels-to-GEMS-Converter** converts [Antares Simulator](https://antares-simulator.readthedocs.io/) legacy studies into the [GEMS](https://gems-energy.readthedocs.io/) format. It takes mathematical models that were historically embedded in the Antares solver code (thermal clusters, links, short-term storage, batteries, renewables, load/solar/wind, hydro, misc gen, hydro, misc gen) and produces explicit GEMS YAML system files and timeseries data.
 
 Repository: `AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter` — License: MPL 2.0
 
@@ -29,7 +29,7 @@ src/antares_gems_converter/
 
 
       parsing.py - Pydantic models for YAML conversion templates
-- ConversionTemplate - top-level: model id, component, connections, legacy objects to delete
+- ConversionTemplate - top-level: model id, components, connections, legacy objects to delete
 - ParameterConversionConfig - parameter source: constant, matrix column, or object + optional operation
 - Operation - max / multiply_by / divide_by on a value or timeseries
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
@@ -58,9 +58,9 @@ src/antares_gems_converter/
       data_preprocessing/
         preprocessing.py - `ModelConversionPreprocessor`: extracts raw data from the study and converts it to GEMS parameter values
 
-- `convert_param_value()` - entry point: returns a constant directly, or delegates to `calculate_value()`
-- `calculate_value()` - dispatches by object type: matrix (load/wind/solar), binding constraint, link, or cluster
-- Each `calculate_*` method fetches the relevant timeseries/scalar from antares-craft, sets the output .tsv path, and optionally applies an `Operation`
+- `convert_param_value(id, value_content, component_id)` - entry point: returns a constant directly, or delegates to `calculate_value()`
+- `calculate_value(obj, component_id)` - dispatches by object type: matrix (load/wind/solar/misc_gen), binding constraint, link, cluster, or hydro; builds the output `.tsv` path as `{param_id}_{component_id}.tsv`
+- Each `calculate_*` method fetches the relevant timeseries/scalar from antares-craft and optionally applies an `Operation`
 - Timeseries are saved to `output/input/data-series/` as `.tsv`, scalars are returned directly
 - `check_timeseries_validity()` - checks a matrix is non-empty and non-zero before emitting a component
 
@@ -130,7 +130,7 @@ template:
           value:
             constant: <number>            # OR object-properties reference below
             object-properties:
-              type: thermal|link|load|solar|wind|st_storage|binding_constraint|hydro
+              type: thermal|link|load|solar|wind|st_storage|binding_constraint|hydro|misc_gen
               area: ${area}
               cluster: ${thermal}         # for cluster types
               field: <antares_craft_field>

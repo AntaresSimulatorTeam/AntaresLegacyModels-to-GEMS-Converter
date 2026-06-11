@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: 'test-failures'
+      run_code_quality:
+        description: 'Run mypy and black checks before tests'
+        required: false
+        type: boolean
+        default: false
     outputs:
       test_outcome:
         description: 'Outcome of the test run (success or failure)'
@@ -41,6 +46,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
@@ -49,6 +56,14 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --group dev
+
+      - name: Type checking
+        if: inputs.run_code_quality
+        run: uv run mypy src/
+
+      - name: Check formatting
+        if: inputs.run_code_quality
+        run: uv run black --check --diff src/
 
       - name: Override antares-craft version
         if: inputs.antares_craft_version != ''

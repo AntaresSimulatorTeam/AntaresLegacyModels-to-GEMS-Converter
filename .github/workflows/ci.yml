@@ -6,34 +6,9 @@ on:
       - "**"
 
 jobs:
-  code-quality:
-    name: Code Quality
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: uv sync --group dev
-
-      - name: Type checking
-        run: uv run mypy src/
-
-      - name: Check formatting
-        run: uv run black --check --diff src/
-
-  tests:
-    name: Tests
-    needs: code-quality
+  ci:
+    name: CI
     uses: ./.github/workflows/run-tests.yml
     with:
+      run_code_quality: true
       artifact_name: test-failures
