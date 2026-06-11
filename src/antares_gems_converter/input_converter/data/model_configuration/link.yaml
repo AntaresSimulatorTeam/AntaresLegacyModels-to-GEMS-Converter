@@ -20,53 +20,53 @@ template:
       # exclude:
       #   # How to identify virtual links in Antares ?
 
-  component:
-    id: ${link} # How to specify that we want to get the link_id ?
-    parameters:
-      - id: direct_capacity
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: link
-            link: ${link}
-            field: capacity_direct
-      - id: indirect_capacity
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: link
-            link: ${link}
-            field: capacity_indirect
-      - id: direct_hurdle_cost
-        time-dependent: true
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: link
-            link: ${link}
-            field: links_parameters
-          column: 0
-      - id: indirect_hurdle_cost
-        time-dependent: true
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: link
-            link: ${link}
-            field: links_parameters
-          column: 1
+  components:
+    - id: ${link} # How to specify that we want to get the link_id ?
+      parameters:
+        - id: direct_capacity
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: link
+              link: ${link}
+              field: capacity_direct
+        - id: indirect_capacity
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: link
+              link: ${link}
+              field: capacity_indirect
+        - id: direct_hurdle_cost
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: link
+              link: ${link}
+              field: links_parameters
+            column: 0
+        - id: indirect_hurdle_cost
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: link
+              link: ${link}
+              field: links_parameters
+            column: 1
         
-      - id: loop_flow
-        time-dependent: true
-        scenario-dependent: false
-        value:
-          object-properties:
-            type: link
-            link: ${link}
-            field: links_parameters
-          column: 3
+        - id: loop_flow
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: link
+              link: ${link}
+              field: links_parameters
+            column: 3
 
   # For full modeler mode
   connections:

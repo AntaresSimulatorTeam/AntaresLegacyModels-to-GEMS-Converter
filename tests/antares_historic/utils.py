@@ -69,6 +69,44 @@ def addHybridBehavior(study_path: Path) -> None:
     )
 
 
+def _create_area_with_base_clusters(
+    study,
+    load_timeserie: pd.DataFrame,
+    area_name: str = "unique",
+    cluster1_capacity: int = 150,
+    cluster1_cost: int = 10,
+    cluster2_capacity: int = 200,
+    cluster2_cost: int = 20,
+):
+    area = study.create_area(
+        area_name=area_name, properties=AreaProperties(energy_cost_unsupplied=20000)
+    )
+    area.set_load(load_timeserie)
+    cluster1 = area.create_thermal_cluster(
+        "prod",
+        ThermalClusterProperties(
+            unit_count=2,
+            nominal_capacity=cluster1_capacity,
+            marginal_cost=cluster1_cost,
+            market_bid_cost=cluster1_cost,
+            group=ThermalClusterGroup.NUCLEAR,
+        ),
+    )
+    cluster1.set_series(pd.DataFrame(data=cluster1_capacity * np.ones((8760, 1))))
+    cluster2 = area.create_thermal_cluster(
+        "prod2",
+        ThermalClusterProperties(
+            unit_count=1,
+            nominal_capacity=cluster2_capacity,
+            marginal_cost=cluster2_cost,
+            market_bid_cost=cluster2_cost,
+            group=ThermalClusterGroup.NUCLEAR,
+        ),
+    )
+    cluster2.set_series(pd.DataFrame(data=cluster2_capacity * np.ones((8760, 1))))
+    return area
+
+
 def createThermalTestAntaresStudy(
     study_name: str,
     parent_dir_path: Path,
@@ -82,34 +120,8 @@ def createThermalTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
-    area = study.create_area(
-        area_name="unique", properties=AreaProperties(energy_cost_unsupplied=20000)
-    )
-    area.set_load(load_timeserie)
-    cluster1 = area.create_thermal_cluster(
-        "prod",
-        ThermalClusterProperties(
-            unit_count=2,
-            nominal_capacity=150,
-            marginal_cost=10,
-            market_bid_cost=10,
-            group=ThermalClusterGroup.NUCLEAR,
-        ),
-    )
-    cluster1.set_series(pd.DataFrame(data=150 * np.ones((8760, 1))))
-
-    cluster2 = area.create_thermal_cluster(
-        "prod2",
-        ThermalClusterProperties(
-            unit_count=1,
-            nominal_capacity=200,
-            marginal_cost=20,
-            market_bid_cost=20,
-            group=ThermalClusterGroup.NUCLEAR,
-        ),
-    )
-    cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
+    area = _create_area_with_base_clusters(study, load_timeserie)
     cluster3 = area.create_thermal_cluster("prod3", marg_cluster_properties)
     cluster3.set_series(marg_cluster_data_frame)
     if modulation_data_frame is not None:
@@ -133,46 +145,14 @@ def createLinkTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = [
-        pd.read_csv(load1_time_serie_file),
-        pd.read_csv(load2_time_serie_file),
+    load_timeseries = [
+        pd.read_csv(load1_time_serie_file, header=None),
+        pd.read_csv(load2_time_serie_file, header=None),
     ]
-    area_list = []
-    study.create_area(
-        area_name="unique", properties=AreaProperties(energy_cost_unsupplied=20000)
-    )
-    for i in range(2):
-        area_list.append(
-            study.create_area(
-                area_name=f"area{i+1}",
-                properties=AreaProperties(energy_cost_unsupplied=20000),
-            )
-        )
-        area_list[i].set_load(load_timeserie[i])
-        cluster1 = area_list[i].create_thermal_cluster(
-            f"prod1_area{i+1}",
-            ThermalClusterProperties(
-                unit_count=1,
-                nominal_capacity=150,
-                marginal_cost=10,
-                market_bid_cost=10,
-                group=ThermalClusterGroup.NUCLEAR,
-            ),
-        )
-        cluster1.set_series(pd.DataFrame(data=150 * np.ones((8760, 1))))
-
-        cluster2 = area_list[i].create_thermal_cluster(
-            f"prod2_area{i+1}",
-            ThermalClusterProperties(
-                unit_count=1,
-                nominal_capacity=200,
-                marginal_cost=20,
-                market_bid_cost=20,
-                group=ThermalClusterGroup.NUCLEAR,
-            ),
-        )
-        cluster2.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
-
+    area_list = [
+        _create_area_with_base_clusters(study, load_timeseries[i], area_name=area_name)
+        for i, area_name in enumerate(["unique", "area2"])
+    ]
     link = study.create_link(
         area_from=area_list[0].name,
         area_to=area_list[1].name,
@@ -226,39 +206,87 @@ def createSTSTestAntaresStudy(
         version=ANTARES_VERSION_CREATED_STUDIES,
         parent_directory=parent_dir_path,
     )
-    load_timeserie = pd.read_csv(load_time_serie_file)
-    area = study.create_area(
-        area_name="unique", properties=AreaProperties(energy_cost_unsupplied=20000)
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
+    area = _create_area_with_base_clusters(
+        study,
+        load_timeserie,
+        cluster1_capacity=200,
+        cluster2_capacity=400,
+        cluster2_cost=100,
     )
-    area.set_load(load_timeserie)
-    cluster1 = area.create_thermal_cluster(
-        "prod",
-        ThermalClusterProperties(
-            unit_count=2,
-            nominal_capacity=200,
-            marginal_cost=10,
-            market_bid_cost=10,
-            group=ThermalClusterGroup.NUCLEAR,
-        ),
-    )
-    cluster1.set_series(pd.DataFrame(data=200 * np.ones((8760, 1))))
-
-    cluster2 = area.create_thermal_cluster(
-        "prod2",
-        ThermalClusterProperties(
-            unit_count=1,
-            nominal_capacity=400,
-            marginal_cost=100,
-            market_bid_cost=100,
-            group=ThermalClusterGroup.NUCLEAR,
-        ),
-    )
-    cluster2.set_series(pd.DataFrame(data=400 * np.ones((8760, 1))))
-
     cluster3 = area.create_st_storage("sts", sts_properties)
     if sts_timeseries:
         for key, df in sts_timeseries.items():
             getattr(cluster3, STS_TIMESERIES_SETTER_MAP[key])(df)
+    addHybridBehavior(parent_dir_path / study_name)
+
+
+def createMiscGenTestAntaresStudy(
+    study_name: str,
+    parent_dir_path: Path,
+    load_time_serie_file: Path,
+    misc_gen: pd.DataFrame,
+) -> None:
+    study = create_study_local(
+        study_name=study_name,
+        version=ANTARES_VERSION_CREATED_STUDIES,
+        parent_directory=parent_dir_path,
+    )
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
+    area = _create_area_with_base_clusters(study, load_timeserie)
+    area.set_misc_gen(misc_gen)
+    addHybridBehavior(parent_dir_path / study_name)
+
+
+def createHydroTestAntaresStudy(
+    study_name: str,
+    parent_dir_path: Path,
+    load_time_serie_file: Path,
+    ror_timeseries: Optional[pd.DataFrame] = None,
+    maxpower: Optional[pd.DataFrame] = None,
+    minimum_generation: Optional[pd.DataFrame] = None,
+    inflows: Optional[pd.DataFrame] = None,
+    hydro_properties: Optional[HydroPropertiesUpdate] = None,
+) -> None:
+    study = create_study_local(
+        study_name=study_name,
+        version=ANTARES_VERSION_CREATED_STUDIES,
+        parent_directory=parent_dir_path,
+    )
+    load_timeserie = pd.read_csv(load_time_serie_file, header=None)
+    area = _create_area_with_base_clusters(study, load_timeserie)
+
+    if ror_timeseries is not None:
+        area.hydro.set_ror_series(ror_timeseries)
+
+    if maxpower is None:
+        maxpower = pd.DataFrame(np.zeros((365, 4)))
+        maxpower.loc[:, 0] = 100
+        maxpower.loc[:, 1] = 24
+        maxpower.loc[:, 2] = 100
+        maxpower.loc[:, 3] = 24
+    area.hydro.set_maxpower(maxpower)
+
+    if minimum_generation is not None:
+        area.hydro.set_mingen(minimum_generation)
+
+    reservoir = pd.DataFrame(np.ones((365, 3)) * 0.5)
+    area.hydro.set_reservoir(reservoir)
+
+    if inflows is not None:
+        area.hydro.set_mod_series(inflows)
+
+    area.hydro.update_properties(
+        HydroPropertiesUpdate(
+            reservoir=True,
+            reservoir_capacity=5000,
+            pumping_efficiency=0.75,
+            overflow_spilled_cost_difference=0,
+        )
+    )
+    if hydro_properties is not None:
+        area.hydro.update_properties(hydro_properties)
+
     addHybridBehavior(parent_dir_path / study_name)
 
 

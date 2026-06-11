@@ -194,7 +194,12 @@ def local_study_with_hydro(local_study_with_st_storage) -> Study:
     Create a short term storage
     Create an hydro cluster
     """
-    hydro_properties = HydroProperties()
+    hydro_properties = HydroProperties(
+        reservoir=True,
+        reservoir_capacity=1000,
+        pumping_efficiency=0.75,
+        overflow_spilled_cost_difference=0,
+    )
     local_study_with_st_storage.get_areas()["fr"].hydro.update_properties(
         hydro_properties
     )
@@ -238,6 +243,28 @@ def fr_load(local_study_with_hydro, request: pytest.FixtureRequest) -> Study:
     command = request.param if hasattr(request, "param") else DEFAULT_SERIES_CONFIG
     series_df = command[0] if isinstance(command, tuple) else command
     local_study_with_hydro.get_areas()["fr"].set_load(series_df)
+    return local_study_with_hydro
+
+
+@pytest.fixture
+def fr_misc_gen(local_study_with_hydro, request: pytest.FixtureRequest) -> Study:
+    """
+    return a study object with a misc gen object that has custom parameters
+    """
+    command = request.param if hasattr(request, "param") else DEFAULT_SERIES_CONFIG
+    series_df = command[0] if isinstance(command, tuple) else command
+    local_study_with_hydro.get_areas()["fr"].set_misc_gen(series_df)
+    return local_study_with_hydro
+
+
+@pytest.fixture
+def fr_ror(local_study_with_hydro, request: pytest.FixtureRequest) -> Study:
+    """
+    return a study object with a ror (run-of-river) object that has custom parameters
+    """
+    command = request.param if hasattr(request, "param") else DEFAULT_SERIES_CONFIG
+    series_df = command[0] if isinstance(command, tuple) else command
+    local_study_with_hydro.get_areas()["fr"].hydro.set_ror_series(series_df)
     return local_study_with_hydro
 
 

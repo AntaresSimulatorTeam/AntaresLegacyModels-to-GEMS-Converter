@@ -20,16 +20,16 @@ template:
       description: "Area identifier for the load component"
       # exclude:
 
-  component:
-    id: load_${area}
-    parameters:
-      - id: load
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: load
-            area: ${area}
+  components:
+    - id: load_${area}
+      parameters:
+        - id: load
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: load
+              area: ${area}
 
   # For full modeler mode
   connections:

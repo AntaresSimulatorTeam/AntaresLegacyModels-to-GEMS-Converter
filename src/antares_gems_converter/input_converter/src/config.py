@@ -34,6 +34,14 @@ MATRIX_TYPES_TO_SET_METHOD = {
     "load": "set_load",
     "solar": "set_solar",
     "wind": "set_wind",
+    "misc_gen": "set_misc_gen",
+}
+
+HYDRO_TYPE_TO_SET_METHOD = {
+    "ror": "set_ror_series",
+    "maxpower": "set_maxpower",
+    "mod_inflows": "set_mod_series",
+    "mingen": "set_mingen",
 }
 
 
@@ -41,6 +49,7 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "load": "get_load_matrix",
     "solar": "get_solar_matrix",
     "wind": "get_wind_matrix",
+    "misc_gen": "get_misc_gen_matrix",
 }
 TIMESERIES_NAME_TO_METHOD = {
     "capacity_direct": "get_capacity_direct",
@@ -61,6 +70,11 @@ TIMESERIES_NAME_TO_METHOD = {
     "cost_level": "get_cost_level",
     "cost_variation_injection": "get_cost_variation_injection",
     "cost_variation_withdrawal": "get_cost_variation_withdrawal",
+    "maxpower": "get_maxpower",
+    "mingen": "get_mingen",
+    "reservoir_levels": "get_reservoir",
+    "mod_inflows": "get_mod_series",
+    "ror": "get_ror_series",
 }
 TEMPLATE_CLUSTER_TYPE_TO_CLUSTER_PATH = {
     "thermal": "thermal",
@@ -97,9 +111,12 @@ MODEL_NAME_TO_FILE_NAME = {
     "short-term-storage": "st-storage.yaml",
     "thermal": "thermal.yaml",
     "wind": "wind.yaml",
+    "misc_gen": "misc_gen.yaml",
+    "hydro": "hydro.yaml",
+    "ror": "ror.yaml",
 }
 
-MATRIX_TYPES = ["load", "solar", "wind"]
+MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "ror"]
 CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
 AREA_TYPES = ["area"]

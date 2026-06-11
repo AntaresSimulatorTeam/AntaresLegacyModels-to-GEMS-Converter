@@ -12,12 +12,13 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
 from antares.craft.model.link import Link
 from antares.craft.model.study import Study, read_study_local
+from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
     LINK_TYPES,
@@ -28,6 +29,7 @@ from antares_gems_converter.input_converter.src.config import (
     STUDY_LEVEL_GET,
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
+    HYDRO_TYPE_TO_SET_METHOD,
 )
 from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
     ConversionMode,
@@ -196,7 +198,22 @@ class AntaresStudyConverter:
                         self.areas[legacy_component.area],
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
-
+                elif (
+                    legacy_component.type == "hydro"
+                    and legacy_component.area is not None
+                    and legacy_component.field is not None
+                ):
+                    if legacy_component.field in HYDRO_TYPE_TO_SET_METHOD:
+                        getattr(
+                            self.areas[legacy_component.area].hydro,
+                            HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
+                        )(pd.DataFrame())
+                    else:
+                        self.areas[legacy_component.area].hydro.update_properties(
+                            HydroPropertiesUpdate(**{legacy_component.field: False})
+                        )
+                else:
+                    raise NotImplementedError
             except ReferencedObjectDeletionNotAllowed:
                 self.logger.warning(
                     f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
@@ -220,81 +237,102 @@ class AntaresStudyConverter:
         area_connections: list,
         mp: ModelConversionPreprocessor,
     ) -> None:
-        parameters = [
-            ComponentParameterSchema(
-                id=param.id,
-                time_dependent=bool(param.time_dependent),
-                scenario_dependent=bool(param.scenario_dependent),
-                value=mp.convert_param_value(param.id, param.value),
+        components_connections_to_avoid: List[str] = []
+        for comp in resolved_conversion_template.components:
+            if resolved_conversion_template.name in MATRIX_TYPES:
+                if not all(
+                    mp.check_timeseries_validity(param.value)
+                    for param in comp.parameters
+                ):
+                    components_connections_to_avoid.append(comp.id)
+                    continue
+            parameters = [
+                ComponentParameterSchema(
+                    id=param.id,
+                    time_dependent=bool(param.time_dependent),
+                    scenario_dependent=bool(param.scenario_dependent),
+                    value=mp.convert_param_value(
+                        param.id,
+                        param.value,
+                        comp.id,
+                    ),
+                )
+                for param in comp.parameters
+            ]
+            scenario_group = getattr(
+                resolved_conversion_template, "scenario_group", None
             )
-            for param in resolved_conversion_template.component.parameters
-        ]
-        scenario_group = getattr(resolved_conversion_template, "scenario_group", None)
-        kwargs = {}
-        if scenario_group is not None:
-            kwargs["scenario_group"] = scenario_group
+            kwargs = {}
+            if scenario_group is not None:
+                kwargs["scenario_group"] = scenario_group
 
-        components.append(
-            ComponentSchema(
-                id=(resolved_conversion_template.component.id).replace(" ", "_"),
-                model=resolved_conversion_template.model,
-                parameters=parameters,
-                **kwargs,
+            components.append(
+                ComponentSchema(
+                    id=(comp.id).replace(" ", "_"),
+                    model=resolved_conversion_template.model,
+                    parameters=parameters,
+                    **kwargs,
+                )
             )
-        )
 
         if self.mode == ConversionMode.HYBRID:
             for area_connection in resolved_conversion_template.area_connections:
                 # TODO: Improve logic
-                if "." in area_connection.component:
-                    component_parts = area_connection.component.split(".")
-                    component_value = getattr(
-                        self.study.get_links()[component_parts[0]], component_parts[1]
+                if area_connection.component not in components_connections_to_avoid:
+                    if "." in area_connection.component:
+                        component_parts = area_connection.component.split(".")
+                        component_value = getattr(
+                            self.study.get_links()[component_parts[0]],
+                            component_parts[1],
+                        )
+                    else:
+                        component_value = area_connection.component
+                    component_value = component_value.replace(" ", "_")
+                    if "." in area_connection.area:
+                        area_parts = area_connection.area.split(".")
+                        area_value = getattr(
+                            self.study.get_links()[area_parts[0]], area_parts[1]
+                        )
+                    else:
+                        area_value = area_connection.area
+                    area_value = area_value.replace(" ", "_")
+                    area_connections.append(
+                        AreaConnectionsSchema(
+                            component=component_value,
+                            port=area_connection.port,
+                            area=area_value,
+                        )
                     )
-                else:
-                    component_value = area_connection.component
-                component_value = component_value.replace(" ", "_")
-                if "." in area_connection.area:
-                    area_parts = area_connection.area.split(".")
-                    area_value = getattr(
-                        self.study.get_links()[area_parts[0]], area_parts[1]
-                    )
-                else:
-                    area_value = area_connection.area
-                area_value = area_value.replace(" ", "_")
-                area_connections.append(
-                    AreaConnectionsSchema(
-                        component=component_value,
-                        port=area_connection.port,
-                        area=area_value,
-                    )
-                )
             # TODO : Simplify usage, use directly legacy_objectis_to_delete
             for item in resolved_conversion_template.legacy_objects_to_delete:
                 self.legacy_objects.append(item.object_properties)
         else:
             for connection in resolved_conversion_template.connections:
                 # TODO: Factorize logic with previous connections
-                treated_components = []
-                for component in [connection.component1, connection.component2]:
-                    if "." in component:
-                        component_parts = component.split(".")
-                        component_value = getattr(
-                            self.study.get_links()[component_parts[0]],
-                            component_parts[1],
-                        )
-                    else:
-                        component_value = component
-                    treated_components.append(component_value.replace(" ", "_"))
+                if (
+                    connection.component1 not in components_connections_to_avoid
+                    and connection.component2 not in components_connections_to_avoid
+                ):
+                    treated_components = []
+                    for component in [connection.component1, connection.component2]:
+                        if "." in component:
+                            component_parts = component.split(".")
+                            component_value = getattr(
+                                self.study.get_links()[component_parts[0]],
+                                component_parts[1],
+                            )
+                        else:
+                            component_value = component
+                        treated_components.append(component_value.replace(" ", "_"))
 
-                connections.append(
-                    PortConnectionsSchema(
-                        component1=treated_components[0],
-                        port1=connection.port1,
-                        component2=treated_components[1],
-                        port2=connection.port2,
+                    connections.append(
+                        PortConnectionsSchema(
+                            component1=treated_components[0],
+                            port1=connection.port1,
+                            component2=treated_components[1],
+                            port2=connection.port2,
+                        )
                     )
-                )
 
     def _convert_model_to_component_list(
         self,
@@ -361,21 +399,6 @@ class AntaresStudyConverter:
                                         area_connections,
                                         model_preprocessor,
                                     )
-
-                        elif conversion_template.name in MATRIX_TYPES:
-                            if all(
-                                model_preprocessor.check_timeseries_validity(
-                                    param.value
-                                )
-                                for param in area_resolved_template.component.parameters
-                            ):
-                                self._iterate_through_model(
-                                    area_resolved_template,
-                                    components,
-                                    connections,
-                                    area_connections,
-                                    model_preprocessor,
-                                )
                         else:
                             self._iterate_through_model(
                                 area_resolved_template,

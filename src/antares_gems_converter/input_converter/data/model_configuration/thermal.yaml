@@ -20,226 +20,226 @@ template:
       cluster-type: thermal
       # exclude:
 
-  component:
-    id: ${area}_${thermal}
-    parameters:
-      - id: cluster_min_gen_modulation
-        time-dependent: true
-        scenario-dependent: true
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: prepro_modulation_matrix 
-          column: 3
-      - id: cluster_max_generation
-        scenario-dependent: true
-        time-dependent: true
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: thermal_series
-      - id: min_power_per_unit
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_stable_power
-      - id: max_power_per_unit
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: nominal_capacity
-      - id: generation_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: marginal_cost
-      - id: startup_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: startup_cost
-      - id: fixed_cost
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: fixed_cost
-      - id: min_up_duration
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_up_time
-      - id: min_down_duration
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: min_down_time
-      - id: num_units
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: unit_count
-      - id: spinning
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: spinning
-      - id: co2_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: co2
-      - id: nh3_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: nh3
-      - id: so2_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: so2
-      - id: nox_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: nox
-      - id: pm2_5_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: pm2_5
-      - id: pm5_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: pm5
-      - id: pm10_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: pm10
-      - id: nmvoc_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: nmvoc
-      - id: op1_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: op1
-      - id: op2_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: op2
-      - id: op3_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: op3
-      - id: op4_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: op4
-      - id: op5_emissions_rate
-        scenario-dependent: false
-        time-dependent: false
-        value:
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${thermal}
-            field: op5
+  components:
+    - id: ${area}_${thermal}
+      parameters:
+        - id: cluster_min_gen_modulation
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: prepro_modulation_matrix 
+            column: 3
+        - id: cluster_max_generation
+          scenario-dependent: true
+          time-dependent: true
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: thermal_series
+        - id: min_power_per_unit
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_stable_power
+        - id: max_power_per_unit
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: nominal_capacity
+        - id: generation_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: marginal_cost
+        - id: startup_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: startup_cost
+        - id: fixed_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: fixed_cost
+        - id: min_up_duration
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_up_time
+        - id: min_down_duration
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: min_down_time
+        - id: num_units
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: unit_count
+        - id: spinning
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: spinning
+        - id: co2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: co2
+        - id: nh3_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: nh3
+        - id: so2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: so2
+        - id: nox_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: nox
+        - id: pm2_5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: pm2_5
+        - id: pm5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: pm5
+        - id: pm10_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: pm10
+        - id: nmvoc_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: nmvoc
+        - id: op1_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: op1
+        - id: op2_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: op2
+        - id: op3_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: op3
+        - id: op4_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: op4
+        - id: op5_emissions_rate
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: op5
 
   # For full modeler mode
   connections:

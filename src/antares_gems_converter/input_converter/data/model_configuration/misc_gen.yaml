@@ -1,0 +1,169 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+template:
+  name: misc_gen
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: antares_legacy_models.miscellaneous_generation
+  template-parameters:
+    - name: area
+
+  components:
+    - id: chp_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 0
+    - id: biomass_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 1
+    - id: biogas_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 2
+    - id: waste_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 3
+    - id: geothermal_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 4
+    - id: other_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 5
+    - id: psp_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 6
+    - id: rest_of_world_${area}
+      parameters:
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: misc_gen
+              area: ${area}
+            column: 7
+
+  # For full modeler mode
+  connections:
+    - component1: chp_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: biomass_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: biogas_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: waste_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: geothermal_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: other_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: psp_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+    - component1: rest_of_world_${area}
+      port1: balance_port
+      component2: ${area}
+      port2: balance_port
+
+  # For hybrid mode
+  area-connections:
+    - component: chp_${area}
+      port: balance_port
+      area: ${area}
+    - component: biomass_${area}
+      port: balance_port
+      area: ${area}
+    - component: biogas_${area}
+      port: balance_port
+      area: ${area}
+    - component: waste_${area}
+      port: balance_port
+      area: ${area}
+    - component: geothermal_${area}
+      port: balance_port
+      area: ${area}
+    - component: other_${area}
+      port: balance_port
+      area: ${area}
+    - component: psp_${area}
+      port: balance_port
+      area: ${area}
+    - component: rest_of_world_${area}
+      port: balance_port
+      area: ${area}    
+
+  legacy-objects-to-delete:
+    - id: legacy_misc_gen
+      object-properties:
+        type: misc_gen
+        area: ${area}
