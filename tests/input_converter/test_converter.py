@@ -27,7 +27,6 @@ from antares_gems_converter.input_converter.src.parsing import (
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
-    read_yaml_file,
 )
 from gems.model.resolve_library import resolve_library
 from gems.study.parsing import (
@@ -684,9 +683,8 @@ class TestConverter:
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
-        expected_components = expected_data["components"]
-        expected_connections = expected_data["connections"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -707,51 +705,8 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        ### Compare connections
-        connection = load_connections[0]
-        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
-            **next(
-                (
-                    connection
-                    for connection in expected_connections
-                    if connection["component1"] == "load_fr"
-                ),
-                None,
-            )
-        )
-        assert connection == expected_connection
-        ### Compare components
-        expected_component = next(
-            (
-                component
-                for component in expected_components
-                if component["id"] == "load_fr"
-            ),
-            None,
-        )
-
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for item in expected_component["parameters"]:
-            item["scenario_dependent"] = item.pop("scenario-dependent")
-            item["time_dependent"] = item.pop("time-dependent")
-            if not item.get("scenario_group"):
-                item["scenario_group"] = None
-
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_parameters_to_dict = [
-            component.model_dump()
-            for component in dict(load_components[0])["parameters"]
-        ]
-        path_to_remove = converter.output_folder / "input" / "data-series"
-        obtained_parameters = TestConverter._match_area_pattern(
-            obtained_parameters_to_dict, "", str(path_to_remove) + "/"
-        )
-
-        assert obtained_parameters == expected_component["parameters"]
+        assert load_connections == [c for c in expected_data.connections if c.component1=="load_fr"]
+        assert load_components == [c for c in expected_data.components if c.id=="load_fr"]
         # TODO enrich
 
     @pytest.mark.parametrize(
@@ -1425,15 +1380,13 @@ class TestConverter:
             return object
 
     def test_convert_binding_constraints_to_component(
-        self, lib_id: str, tmp_path: Path
+        self, tmp_path: Path
     ):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
-
-        expected_components = expected_data["components"]
-        expected_connections = expected_data["connections"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -1455,53 +1408,9 @@ class TestConverter:
             bc_data, bc_data.get_excluded_objects_ids()
         )  # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
 
-        connection = binding_connections[0]
-        ### Compare area connections
         assert area_connections == []
-        # Compare connections
-
-        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
-            **next(
-                (
-                    connection
-                    for connection in expected_connections
-                    if connection["component2"] == "fr"
-                ),
-                None,
-            )
-        )
-
-        assert connection == expected_connection
-
-        expected_component = next(
-            (
-                component
-                for component in expected_components
-                if component["id"] == "battery_fr"
-            ),
-            None,
-        )
-
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for item in expected_component["parameters"]:
-            item["scenario_dependent"] = item.pop("scenario-dependent")
-            item["time_dependent"] = item.pop("time-dependent")
-            if not item.get("scenario_group"):
-                item["scenario_group"] = None
-
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_parameters_to_dict = [
-            component.model_dump()
-            for component in dict(binding_components[0])["parameters"]
-        ]
-        obtained_parameters = TestConverter._match_area_pattern(
-            obtained_parameters_to_dict, "", str(converter.output_folder) + "/"
-        )
-        assert obtained_parameters == expected_component["parameters"]
+        assert binding_connections == [c for c in expected_data.connections if c.component1=="battery_fr"]
+        assert binding_components == [c for c in expected_data.components if c.id == "battery_fr"]
         # TODO enrich
 
     def test_hybrid_data_series_presence(self, tmp_path: Path):
@@ -1568,7 +1477,8 @@ class TestConverter:
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference_hybrid.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         model_list: list = ["battery"]
 
@@ -1624,51 +1534,7 @@ class TestConverter:
         assert links_filepath.stat().st_size == 0
         # TODO check folder data-models is present
 
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for component in expected_data["components"]:
-            if not component.get("scenario_group"):
-                component["scenario_group"] = None
-            for item in component["parameters"]:
-                item["scenario_dependent"] = item.pop("scenario-dependent")
-                item["time_dependent"] = item.pop("time-dependent")
-                if not item.get("scenario_group"):
-                    item["scenario_group"] = None
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_components_to_dict = [
-            component.model_dump() for component in dict(obtained_data)["components"]
-        ]
-        obtained_components = TestConverter._match_area_pattern(
-            obtained_components_to_dict, "", str(converter.output_folder) + "/"
-        )
-
-        def normalize_components(components):
-            return [
-                {
-                    **c,
-                    "parameters": [
-                        {
-                            k: p[k]
-                            for k in (
-                                "id",
-                                "value",
-                                "scenario_dependent",
-                                "time_dependent",
-                                "scenario_group",
-                            )
-                        }
-                        for p in c["parameters"]
-                    ],
-                }
-                for c in components
-            ]
-
-        assert sorted(
-            normalize_components(obtained_components), key=lambda x: x["id"]
-        ) == sorted(expected_data["components"], key=lambda x: x["id"])
+        assert obtained_data.components == expected_data.components
 
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
