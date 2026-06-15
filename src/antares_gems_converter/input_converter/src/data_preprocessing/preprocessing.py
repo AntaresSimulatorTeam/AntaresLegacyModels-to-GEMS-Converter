@@ -86,6 +86,10 @@ class ModelConversionPreprocessor:
             cluster_properties = getattr(cluster, "properties")
             field_name = obj.object_properties.field
             value = getattr(cluster_properties, field_name)
+            if value is None:
+                raise ValueError(
+                    f"Parameter {field_name} of {cluster.name} in area {area} is None."
+                )
             if type_resource == "thermal":
                 self.preprocessed_values[self.param_id] = value
             return value
@@ -147,6 +151,8 @@ class ModelConversionPreprocessor:
             hydro_properties = getattr(hydro, "properties")
             field_name = obj.object_properties.field
             value = getattr(hydro_properties, field_name)
+            if field_name == "overflow_spilled_cost_difference":
+                value += self.study.get_areas()[area].properties.energy_cost_spilled
             return value
         return time_series
 

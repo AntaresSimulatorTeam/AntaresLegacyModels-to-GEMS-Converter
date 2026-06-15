@@ -69,6 +69,15 @@ template:
               area: ${area}
               cluster: ${thermal}
               field: marginal_cost
+        - id: market_bid_cost
+          scenario-dependent: false
+          time-dependent: false
+          value:
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: market_bid_cost
         - id: startup_cost
           scenario-dependent: false
           time-dependent: false

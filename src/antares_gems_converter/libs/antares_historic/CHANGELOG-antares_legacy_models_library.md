@@ -10,6 +10,15 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.1.0]
+
+- `thermal` model: added `market_bid_cost` parameter; objective contribution now uses `market_bid_cost` instead of `generation_cost`.
+- `link` model: simplified congestion expressions (`is_directly_congested`, `is_indirectly_congested`) to use `flow` directly, removing dependency on `loop_flow`.
+- `short_term_storage` model: added overflow support (`overflow` variable, `is_overflow_allowed`, `overflow_cost`) and variation penalties (`injection_variation`, `withdrawal_variation` variables with associated parameters and constraints).
+- `long_term_storage` model: fixed objective expression to add a small regularization term (`-0.000001*level`) to avoid degenerate solutions.
+
+---
+
 ## [2.0.0]
 
 - Added models `miscellaneous_generation` and `long_term_storage`

@@ -197,7 +197,7 @@ def test_overflow_cost(
         auto_generated_studies_path,
         load_time_serie_file,
         hydro_properties=HydroPropertiesUpdate(
-            overflow_spilled_cost_difference=base_overflow_cost
+            overflow_spilled_cost_difference=base_overflow_cost - 1
         ),
         inflows=pd.DataFrame(np.ones((365, 1)) * 100000),
     )
@@ -216,7 +216,7 @@ def test_overflow_cost(
             auto_generated_studies_path,
             load_time_serie_file,
             hydro_properties=HydroPropertiesUpdate(
-                overflow_spilled_cost_difference=base_overflow_cost * perturbation
+                overflow_spilled_cost_difference=(base_overflow_cost - 1) * perturbation
             ),
         )
         perturbed_study_path = auto_generated_studies_path / perturbed_study_name
