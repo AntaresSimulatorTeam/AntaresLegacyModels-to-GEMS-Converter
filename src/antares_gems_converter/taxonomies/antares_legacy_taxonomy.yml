@@ -21,7 +21,7 @@ taxonomy:
         - id: spilled_energy
       ports:
         - id: balance_port
-      constraints:
+      binding-constraints:
         - id: balance
       extra-outputs:
         - id: price
@@ -79,6 +79,7 @@ taxonomy:
       parent-category: fatal_generation
       properties:
         - id: technology 
+        - id: miscellaneous_type
 
     - id: consumption
       extra-outputs:

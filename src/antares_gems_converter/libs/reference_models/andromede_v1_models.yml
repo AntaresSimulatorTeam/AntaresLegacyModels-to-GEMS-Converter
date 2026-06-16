@@ -102,8 +102,8 @@ library:
         - id: marginal_cost
           time-dependent: true
           scenario-dependent: false
-
-
+      properties:
+        - id: carrier
       variables:
         - id: p_injection
           lower-bound: 0

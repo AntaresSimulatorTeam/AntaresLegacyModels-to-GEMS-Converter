@@ -249,6 +249,20 @@ template:
               area: ${area}
               cluster: ${thermal}
               field: op5
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value: 
+            object-properties:
+              type: thermal
+              area: ${area}
+              cluster: ${thermal}
+              field: group
+        - id: plant
+          value:
+            constant: ${thermal}
 
   # For full modeler mode
   connections:

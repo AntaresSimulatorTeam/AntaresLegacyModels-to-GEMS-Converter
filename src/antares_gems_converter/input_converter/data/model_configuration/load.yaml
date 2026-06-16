@@ -30,6 +30,10 @@ template:
             object-properties:
               type: load
               area: ${area}
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
 
   # For full modeler mode
   connections:

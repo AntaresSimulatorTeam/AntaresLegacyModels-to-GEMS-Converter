@@ -47,4 +47,7 @@ system:
       scenario-dependent: false
       time-dependent: true
       value: marginal_cost_battery_fr
+    properties:
+    - id: carrier
+      value: electricity
   id: mini_test_batterie_BP23

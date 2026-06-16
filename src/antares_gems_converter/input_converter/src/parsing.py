@@ -132,6 +132,7 @@ class ObjectProperties(ModifiedBaseModel):
 
 
 ALLOWED_TYPES: list = [
+    "area",
     "binding_constraint",
     "thermal",
     "link",
@@ -171,6 +172,30 @@ class ConversionValue(ModifiedBaseModel):
         return True
 
 
+class PropertyConversionValue(ConversionValue):
+    constant: Optional[Union[float, str]] = None  # type: ignore[assignment]
+
+    def resolve_template(
+        self, template_pattern: str, value: str
+    ) -> "PropertyConversionValue":
+        object_properties = (
+            self.object_properties.resolve_template(template_pattern, value)
+            if self.object_properties is not None
+            else None
+        )
+        constant = (
+            self.constant.replace(template_pattern, value)
+            if isinstance(self.constant, str)
+            else self.constant
+        )
+        return PropertyConversionValue(
+            object_properties=object_properties,
+            column=self.column,
+            operation=self.operation,
+            constant=constant,
+        )
+
+
 class ParameterConversionConfig(ModifiedBaseModel):
     id: str
     time_dependent: bool = False
@@ -188,18 +213,37 @@ class ParameterConversionConfig(ModifiedBaseModel):
         )
 
 
+class PropertyConversionConfig(ModifiedBaseModel):
+    id: str
+    value: PropertyConversionValue
+
+    def resolve_template(
+        self, template_pattern: str, value: str
+    ) -> "PropertyConversionConfig":
+        return PropertyConversionConfig(
+            id=self.id,
+            value=self.value.resolve_template(template_pattern, value),
+        )
+
+
 class ComponentConversionConfig(ModifiedBaseModel):
     id: str
     parameters: list[ParameterConversionConfig]
+    properties: list[PropertyConversionConfig] = Field(default_factory=list)
 
     def resolve_template(
         self, template_pattern: str, value: str
     ) -> "ComponentConversionConfig":
         id = self.id.replace(template_pattern, value)
-        parameters = []
-        for param in self.parameters:
-            parameters.append(param.resolve_template(template_pattern, value))
-        return ComponentConversionConfig(id=id, parameters=parameters)
+        parameters = [
+            param.resolve_template(template_pattern, value) for param in self.parameters
+        ]
+        properties = [
+            prop.resolve_template(template_pattern, value) for prop in self.properties
+        ]
+        return ComponentConversionConfig(
+            id=id, parameters=parameters, properties=properties
+        )
 
 
 class ReferencedLegacyObjects(ModifiedBaseModel):

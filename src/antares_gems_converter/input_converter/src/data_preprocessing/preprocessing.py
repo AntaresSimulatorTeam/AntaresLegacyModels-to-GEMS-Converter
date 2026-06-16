@@ -115,6 +115,26 @@ class ModelConversionPreprocessor:
         else:
             return term.weight
 
+    def calculate_area_data_values(self, obj: ConversionValue) -> float:
+        if (
+            not obj.object_properties
+            or not obj.object_properties.area
+            or not obj.object_properties.field
+        ):
+            raise ValueError(
+                f"Object properties, its area, and field from {obj} must not be None"
+            )
+        area_id: str = obj.object_properties.area
+        if area_id not in self.study.get_areas():
+            raise KeyError(f"Area {area_id} is not found in the study")
+        area_properties = self.study.get_areas()[area_id].properties
+        value = getattr(area_properties, obj.object_properties.field)
+        if value is None:
+            raise ValueError(
+                f"Field {obj.object_properties.field} of area {area_id} is None."
+            )
+        return value
+
     def calculate_hydro_data_values(
         self, obj: ConversionValue
     ) -> Union[Any, pd.DataFrame]:
@@ -167,7 +187,9 @@ class ModelConversionPreprocessor:
         self.file_path = Path(f"{self.param_id}_{component_id.replace(' / ','_')}.tsv")
         self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
 
-        if type_resource in ["load", "wind", "solar", "misc_gen"]:
+        if type_resource == "area":
+            return self.calculate_area_data_values(obj)
+        elif type_resource in ["load", "wind", "solar", "misc_gen"]:
             time_series = self.calculate_matrix_data_values(obj, type_resource)
         elif type_resource == "binding_constraint":
             # TODO No timeseries linked to binding constraints for the moment

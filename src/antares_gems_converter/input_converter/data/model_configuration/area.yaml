@@ -1,0 +1,47 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert an Antares area into an Andromede model.
+
+template:
+  name: area
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: antares_legacy_models.area
+  template-parameters:
+    - name: area
+      description: "Area identifier"
+
+  components:
+    - id: ${area}
+      parameters:
+        - id: unsupplied_energy_cost
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: area
+              area: ${area}
+              field: energy_cost_unsupplied
+        - id: spillage_cost
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: area
+              area: ${area}
+              field: energy_cost_spilled
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+
+  # Areas have no port-to-port connections: other components connect to them via their own templates
+  connections: []

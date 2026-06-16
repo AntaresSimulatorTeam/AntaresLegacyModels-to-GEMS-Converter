@@ -22,7 +22,7 @@ src/antares_gems_converter/
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
 - Loads YAML model templates and validates them against provided lib files
-- Iterates areas/links/clusters → builds InputComponent + InputPortConnections lists
+- Iterates areas/links/clusters → builds ComponentSchema + port connection lists
 - Hybrid: deletes converted Antares objects from the study copy in-place
 - Full: also converts areas themselves into GEMS components
 - process_all() dumps the final InputSystem to output/input/system.yml
@@ -30,7 +30,8 @@ src/antares_gems_converter/
 
       parsing.py - Pydantic models for YAML conversion templates
 - ConversionTemplate - top-level: model id, components, connections, legacy objects to delete
-- ParameterConversionConfig - parameter source: constant, matrix column, or object + optional operation
+- ParameterConversionConfig - parameter source: constant (float), matrix column, or object + optional operation
+- PropertyConversionConfig - property source (similar to ParameterConversionConfig; result always converted to string)
 - Operation - max / multiply_by / divide_by on a value or timeseries
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
 - All models have resolve_template() to substitute ${area} / ${thermal} placeholders
@@ -43,7 +44,7 @@ src/antares_gems_converter/
 - `HYDRO_TYPE_TO_SET_METHOD` - maps hydro field names → antares-craft hydro setter methods
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
-- `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES` - categorize model types for iteration logic in the converter
+- `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES / AREA_TYPES` - categorize model types for iteration logic in the converter
       utils.py - small I/O helpers
 - `resolve_path` - resolves a `Path` to absolute, raises if it doesn't exist
 - `check_file_exists` - returns `True` only if file exists and is non-empty
@@ -59,7 +60,7 @@ src/antares_gems_converter/
         preprocessing.py - `ModelConversionPreprocessor`: extracts raw data from the study and converts it to GEMS parameter values
 
 - `convert_param_value(id, value_content, component_id)` - entry point: returns a constant directly, or delegates to `calculate_value()`
-- `calculate_value(obj, component_id)` - dispatches by object type: matrix (load/wind/solar/misc_gen), binding constraint, link, cluster, or hydro; builds the output `.tsv` path as `{param_id}_{component_id}.tsv`
+- `calculate_value(obj, component_id)` - dispatches by object type: area, matrix (load/wind/solar/misc_gen), binding constraint, link, cluster, or hydro; builds the output `.tsv` path as `{param_id}_{component_id}.tsv`
 - Each `calculate_*` method fetches the relevant timeseries/scalar from antares-craft and optionally applies an `Operation`
 - Timeseries are saved to `output/input/data-series/` as `.tsv`, scalars are returned directly
 - `check_timeseries_validity()` - checks a matrix is non-empty and non-zero before emitting a component
@@ -97,8 +98,8 @@ dependencies.json                # Antares Simulator version for CI
 
 ### Two Conversion Modes
 
-- **FULL** — generates a standalone GEMS study from scratch. Components are connected via port-to-port connections.
-- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy.
+- **FULL** — generates a standalone GEMS study from scratch. Components are connected via port-to-port connections. The `area` model is required and is added automatically to `models_to_convert` if absent (with a warning).
+- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy. The `area` model is incompatible with this mode and is removed automatically from `models_to_convert` if present (with a warning).
 
 ### Config Registry (`config.py`)
 
@@ -130,13 +131,22 @@ template:
           value:
             constant: <number>            # OR object-properties reference below
             object-properties:
-              type: thermal|link|load|solar|wind|st_storage|binding_constraint|hydro|misc_gen
+              type: area|thermal|link|load|solar|wind|st_storage|binding_constraint|hydro|misc_gen
               area: ${area}
               cluster: ${thermal}         # for cluster types
               field: <antares_craft_field>
             column: <int>                 # optional: extract specific column from matrix
             operation:                    # optional: transform after extraction
               type: max                   # OR multiply_by: <value> OR divide_by: <param_ref>
+      properties:                         # optional: component properties (string values)
+        - id: <property_id>
+          value:
+            constant: <number|string>     # OR object-properties reference (same syntax as parameters); supports template variables (e.g. ${thermal})
+            object-properties:
+              type: area|thermal|link|...
+              area: ${area}
+              cluster: ${thermal}
+              field: <antares_craft_field> # scalar field; result is converted to string
 
   connections: [...]          # FULL mode: port-to-port
   area-connections: [...]     # HYBRID mode: port-to-area
@@ -150,6 +160,7 @@ template:
 - **Binding constraint fields**: use `%` and `.` separators (e.g., `${area}%z_batteries`, `${area}.${area}_batteries_inj`).
 - **Column indexing**: 0-based, references actual columns in Antares data matrices.
 - **Operations**: `divide_by` can reference another parameter by name (e.g., `divide_by: reservoir_capacity`).
+- **Electricity carrier assumption**: all current templates assume components belong to the electricity system (`carrier: electricity`). Multi-energy support would require revisiting this assumption in every template.
 
 ---
 

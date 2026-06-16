@@ -29,6 +29,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 0
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: chp
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: biomass_${area}
       parameters:
         - id: available_power
@@ -39,6 +49,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 1
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: biomass
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: biogas_${area}
       parameters:
         - id: available_power
@@ -49,6 +69,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 2
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: biogas
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: waste_${area}
       parameters:
         - id: available_power
@@ -59,6 +89,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 3
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: waste
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: geothermal_${area}
       parameters:
         - id: available_power
@@ -69,6 +109,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 4
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: geothermal
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: other_${area}
       parameters:
         - id: available_power
@@ -79,6 +129,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 5
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: other
+        - id: miscellaneous_type
+          value:
+            constant: misc_ndg
     - id: psp_${area}
       parameters:
         - id: available_power
@@ -89,6 +149,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 6
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: psp
+        - id: miscellaneous_type
+          value:
+            constant: psp
     - id: rest_of_world_${area}
       parameters:
         - id: available_power
@@ -99,6 +169,16 @@ template:
               type: misc_gen
               area: ${area}
             column: 7
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: rest_of_world
+        - id: miscellaneous_type
+          value:
+            constant: rest_of_world
 
   # For full modeler mode
   connections:

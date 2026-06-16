@@ -51,6 +51,7 @@ from antares_gems_converter.input_converter.src.utils import (
 from gems.study.parsing import (
     AreaConnectionsSchema,
     ComponentParameterSchema,
+    ComponentPropertySchema,
     ComponentSchema,
     PortConnectionsSchema,
     SystemSchema,
@@ -73,7 +74,7 @@ class AntaresStudyConverter:
         output_folder: Path = Path("/tmp/"),
         period: Optional[int] = None,
         lib_paths: Optional[list[str]] = None,
-        models_to_convert: list[str] = list(MODEL_NAME_TO_FILE_NAME.keys()),
+        models_to_convert: Optional[list[str]] = None,
         modeler_scenario_builder_file: Optional[Path] = None,
     ):
         """
@@ -82,7 +83,6 @@ class AntaresStudyConverter:
         self.logger = logger
         self.period: int = period if period else 168
         self.lib_paths: list[str] = lib_paths if lib_paths else []
-        self.models_to_convert = models_to_convert
         self.modeler_scenario_builder_file = modeler_scenario_builder_file
         try:
             self.mode = ConversionMode(mode)
@@ -90,6 +90,22 @@ class AntaresStudyConverter:
             raise ValueError(
                 f"Invalid conversion mode: {mode}, possible values are {[conv_mode.value for conv_mode in ConversionMode]}"
             )
+
+        self.models_to_convert = list(
+            models_to_convert
+            if models_to_convert is not None
+            else [m for m in MODEL_NAME_TO_FILE_NAME.keys() if m != "area"]
+        )
+        if self.mode == ConversionMode.FULL and "area" not in self.models_to_convert:
+            self.logger.warning(
+                "'area' is not in models_to_convert but conversion mode is 'full': adding it automatically."
+            )
+            self.models_to_convert.append("area")
+        if self.mode == ConversionMode.HYBRID and "area" in self.models_to_convert:
+            self.logger.warning(
+                "'area' is in models_to_convert but conversion mode is 'hybrid': removing it automatically."
+            )
+            self.models_to_convert.remove("area")
 
         # TODO: The logic is still too complicated, needs more refacto / to understand why thermal preprocessing sometimes needs different paths
         study_input_path = (
@@ -126,35 +142,6 @@ class AntaresStudyConverter:
         self.output_system_path = self.output_folder / "input" / "system.yml"
         self.areas = self.study.get_areas()
         self.legacy_objects: list[ObjectProperties] = []
-
-    def _convert_area_to_component_list(
-        self, lib_id: str, excluded_areas: Optional[list[str]] = None
-    ) -> list[ComponentSchema]:
-        components = []
-        self.logger.info("Converting areas to component list...")
-        for area in self.areas.values():
-            if not excluded_areas or area.id not in excluded_areas:
-                components.append(
-                    ComponentSchema(
-                        id=area.id,
-                        model=f"{lib_id}.area",
-                        parameters=[
-                            ComponentParameterSchema(
-                                id="unsupplied_energy_cost",
-                                time_dependent=False,
-                                scenario_dependent=False,
-                                value=area.properties.energy_cost_unsupplied,
-                            ),
-                            ComponentParameterSchema(
-                                id="spillage_cost",
-                                time_dependent=False,
-                                scenario_dependent=False,
-                                value=area.properties.energy_cost_spilled,
-                            ),
-                        ],
-                    )
-                )
-        return components
 
     def _delete_legacy_objects(self) -> None:
         for legacy_component in self.legacy_objects:
@@ -259,19 +246,24 @@ class AntaresStudyConverter:
                 )
                 for param in comp.parameters
             ]
-            scenario_group = getattr(
-                resolved_conversion_template, "scenario_group", None
+            properties = (
+                [
+                    ComponentPropertySchema(
+                        id=prop.id,
+                        value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
+                    )
+                    for prop in comp.properties
+                ]
+                if comp.properties
+                else None
             )
-            kwargs = {}
-            if scenario_group is not None:
-                kwargs["scenario_group"] = scenario_group
-
             components.append(
                 ComponentSchema(
                     id=(comp.id).replace(" ", "_"),
                     model=resolved_conversion_template.model,
+                    scenario_group=resolved_conversion_template.scenario_group,
                     parameters=parameters,
-                    **kwargs,
+                    properties=properties,
                 )
             )
 
@@ -523,12 +515,6 @@ class AntaresStudyConverter:
             )
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
-        else:
-            components.extend(
-                self._convert_area_to_component_list(
-                    ANTARES_HISTORIC_LIB_ID, virtual_objects.areas
-                )
-            )
         system = SystemSchema(
             id=self.study.name,
             components=components,

@@ -67,6 +67,10 @@ template:
               link: ${link}
               field: links_parameters
             column: 3
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
 
   # For full modeler mode
   connections:

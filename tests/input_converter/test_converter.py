@@ -27,13 +27,13 @@ from antares_gems_converter.input_converter.src.parsing import (
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
-    read_yaml_file,
 )
 from gems.model.resolve_library import resolve_library
 from gems.study.parsing import (
     AreaConnectionsSchema,
     ComponentParameterSchema,
     ComponentSchema,
+    ComponentPropertySchema,
     PortConnectionsSchema,
     SystemSchema,
     parse_yaml_components,
@@ -135,6 +135,9 @@ class TestConverter:
                             value=1.0,
                         ),
                     ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
                 ),
                 ComponentSchema(
                     id="it",
@@ -156,14 +159,22 @@ class TestConverter:
                             value=1.0,
                         ),
                     ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
                 ),
             ],
         )
         assert input_study == expected_input_study
 
-    def test_convert_area_to_component(self, local_study_w_areas: Study, lib_id: str):
+    def test_convert_area_to_component(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        area_components = converter._convert_area_to_component_list(lib_id)
+        path_area = RESOURCES_FOLDER / "area.yaml"
+        with path_area.open() as template:
+            resource_content = parse_conversion_template(template)
+        (area_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
 
         expected_area_components = [
             ComponentSchema(
@@ -185,6 +196,7 @@ class TestConverter:
                         value=1.0,
                     ),
                 ],
+                properties=[ComponentPropertySchema(id="carrier", value="electricity")],
             ),
             ComponentSchema(
                 id="it",
@@ -205,14 +217,20 @@ class TestConverter:
                         value=1.0,
                     ),
                 ],
+                properties=[ComponentPropertySchema(id="carrier", value="electricity")],
             ),
         ]
 
         assert area_components == expected_area_components
 
-    def test_convert_area_to_yaml(self, local_study_w_areas: Study, lib_id: str):
+    def test_convert_area_to_yaml(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        area_components = converter._convert_area_to_component_list(lib_id)
+        path_area = RESOURCES_FOLDER / "area.yaml"
+        with path_area.open() as template:
+            resource_content = parse_conversion_template(template)
+        (area_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
         input_study = SystemSchema(id=converter.study.name, components=area_components)
 
         # Dump model into yaml file
@@ -225,27 +243,6 @@ class TestConverter:
         expected_validated_data = SystemSchema(
             id="studyTest",
             components=[
-                ComponentSchema(
-                    id="it",
-                    model="antares_legacy_models.area",
-                    scenario_group=None,
-                    parameters=[
-                        ComponentParameterSchema(
-                            id="unsupplied_energy_cost",
-                            time_dependent=False,
-                            scenario_dependent=False,
-                            scenario_group=None,
-                            value=0.5,
-                        ),
-                        ComponentParameterSchema(
-                            id="spillage_cost",
-                            time_dependent=False,
-                            scenario_dependent=False,
-                            scenario_group=None,
-                            value=1.0,
-                        ),
-                    ],
-                ),
                 ComponentSchema(
                     id="fr",
                     model="antares_legacy_models.area",
@@ -266,12 +263,37 @@ class TestConverter:
                             value=1.0,
                         ),
                     ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
+                ),
+                ComponentSchema(
+                    id="it",
+                    model="antares_legacy_models.area",
+                    scenario_group=None,
+                    parameters=[
+                        ComponentParameterSchema(
+                            id="unsupplied_energy_cost",
+                            time_dependent=False,
+                            scenario_dependent=False,
+                            scenario_group=None,
+                            value=0.5,
+                        ),
+                        ComponentParameterSchema(
+                            id="spillage_cost",
+                            time_dependent=False,
+                            scenario_dependent=False,
+                            scenario_group=None,
+                            value=1.0,
+                        ),
+                    ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
                 ),
             ],
         )
 
-        expected_validated_data.components.sort(key=lambda x: x.id)
-        validated_data.components.sort(key=lambda x: x.id)
         assert validated_data == expected_validated_data
 
     def test_convert_st_storages_to_component(
@@ -441,6 +463,10 @@ class TestConverter:
                         value=2,
                     ),
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="group", value="other1"),
+                ],
             )
         ]
 
@@ -597,6 +623,11 @@ class TestConverter:
                         "op5_emissions_rate",
                     ]
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="other 1"),
+                    ComponentPropertySchema(id="plant", value="gaz"),
+                ],
             )
         ]
         # TODO preprocessing + nouveaux parametres liées a la nouvelle version antarescraft
@@ -711,17 +742,19 @@ class TestConverter:
                     value=1,
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+            ],
         )
         assert hydro_fr_connection == expected_hydro_connection
-        assert hydro_fr_component.model_dump() == expected_hydro_component.model_dump()
+        assert hydro_fr_component == expected_hydro_component
 
     def test_convert_load_to_component_from_path(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
-        expected_components = expected_data["components"]
-        expected_connections = expected_data["connections"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -742,51 +775,12 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        ### Compare connections
-        connection = load_connections[0]
-        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
-            **next(
-                (
-                    connection
-                    for connection in expected_connections
-                    if connection["component1"] == "load_fr"
-                ),
-                None,
-            )
-        )
-        assert connection == expected_connection
-        ### Compare components
-        expected_component = next(
-            (
-                component
-                for component in expected_components
-                if component["id"] == "load_fr"
-            ),
-            None,
-        )
-
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for item in expected_component["parameters"]:
-            item["scenario_dependent"] = item.pop("scenario-dependent")
-            item["time_dependent"] = item.pop("time-dependent")
-            if not item.get("scenario_group"):
-                item["scenario_group"] = None
-
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_parameters_to_dict = [
-            component.model_dump()
-            for component in dict(load_components[0])["parameters"]
+        assert load_connections == [
+            c for c in expected_data.connections if c.component1 == "load_fr"
         ]
-        path_to_remove = converter.output_folder / "input" / "data-series"
-        obtained_parameters = TestConverter._match_area_pattern(
-            obtained_parameters_to_dict, "", str(path_to_remove) + "/"
-        )
-
-        assert obtained_parameters == expected_component["parameters"]
+        assert load_components == [
+            c for c in expected_data.components if c.id == "load_fr"
+        ]
         # TODO enrich
 
     @pytest.mark.parametrize(
@@ -849,9 +843,13 @@ class TestConverter:
                     scenario_group=None,
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="solar"),
+            ],
         )
         assert solar_fr_connection == expected_solar_connection
-        assert solar_fr_component.model_dump() == expected_solar_components.model_dump()
+        assert solar_fr_component == expected_solar_components
 
     def test_convert_load_to_component_from_study(self, fr_load: None):
         converter = self._init_converter_from_study(fr_load)
@@ -892,9 +890,10 @@ class TestConverter:
                     scenario_group=None,
                 ),
             ],
+            properties=[ComponentPropertySchema(id="carrier", value="electricity")],
         )
         assert load_fr_connection == expected_load_connection
-        assert load_fr_component.model_dump() == expected_load_components.model_dump()
+        assert load_fr_component == expected_load_components
 
     @pytest.mark.parametrize(
         "fr_wind",
@@ -951,9 +950,13 @@ class TestConverter:
                     value="available_power_wind_fr",
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="wind"),
+            ],
         )
         assert wind_fr_connection == expected_wind_connection
-        assert wind_fr_component.model_dump() == expected_wind_components.model_dump()
+        assert wind_fr_component == expected_wind_components
 
     @pytest.mark.parametrize(
         "fr_wind",
@@ -1051,6 +1054,16 @@ class TestConverter:
                         value=f"available_power_{generation_type}_fr",
                     )
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value=generation_type),
+                    ComponentPropertySchema(
+                        id="miscellaneous_type",
+                        value="misc_ndg"
+                        if generation_type not in ["psp", "rest_of_world"]
+                        else generation_type,
+                    ),
+                ],
             )
             for generation_type in [
                 "chp",
@@ -1131,6 +1144,11 @@ class TestConverter:
                         value=f"available_power_biomass_fr",
                     )
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="biomass"),
+                    ComponentPropertySchema(id="miscellaneous_type", value="misc_ndg"),
+                ],
             )
         ]
         assert misc_gen_connections == expected_misc_gen_connections
@@ -1191,9 +1209,13 @@ class TestConverter:
                     value="available_power_ror_fr",
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="run_of_river"),
+            ],
         )
         assert ror_fr_connection == expected_ror_connection
-        assert ror_fr_component.model_dump() == expected_ror_component.model_dump()
+        assert ror_fr_component == expected_ror_component
 
     @pytest.mark.parametrize(
         "fr_ror",
@@ -1310,6 +1332,9 @@ class TestConverter:
                         value=f"{fr_it_loop_flow_timeseries}",
                     ),
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                ],
             ),
             ComponentSchema(
                 id="at_/_fr",
@@ -1352,6 +1377,9 @@ class TestConverter:
                         value=f"{at_fr_loop_flow_timeseries}",
                     ),
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                ],
             ),
             ComponentSchema(
                 id="at_/_it",
@@ -1393,6 +1421,9 @@ class TestConverter:
                         scenario_group=None,
                         value=f"{at_it_loop_flow_timeseries}",
                     ),
+                ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
                 ],
             ),
         ]
@@ -1459,16 +1490,12 @@ class TestConverter:
         else:
             return object
 
-    def test_convert_binding_constraints_to_component(
-        self, lib_id: str, tmp_path: Path
-    ):
+    def test_convert_binding_constraints_to_component(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
-
-        expected_components = expected_data["components"]
-        expected_connections = expected_data["connections"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -1490,53 +1517,13 @@ class TestConverter:
             bc_data, bc_data.get_excluded_objects_ids()
         )  # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
 
-        connection = binding_connections[0]
-        ### Compare area connections
         assert area_connections == []
-        # Compare connections
-
-        expected_connection: PortConnectionsSchema = PortConnectionsSchema(
-            **next(
-                (
-                    connection
-                    for connection in expected_connections
-                    if connection["component2"] == "fr"
-                ),
-                None,
-            )
-        )
-
-        assert connection == expected_connection
-
-        expected_component = next(
-            (
-                component
-                for component in expected_components
-                if component["id"] == "battery_fr"
-            ),
-            None,
-        )
-
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for item in expected_component["parameters"]:
-            item["scenario_dependent"] = item.pop("scenario-dependent")
-            item["time_dependent"] = item.pop("time-dependent")
-            if not item.get("scenario_group"):
-                item["scenario_group"] = None
-
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_parameters_to_dict = [
-            component.model_dump()
-            for component in dict(binding_components[0])["parameters"]
+        assert binding_connections == [
+            c for c in expected_data.connections if c.component1 == "battery_fr"
         ]
-        obtained_parameters = TestConverter._match_area_pattern(
-            obtained_parameters_to_dict, "", str(converter.output_folder) + "/"
-        )
-        assert obtained_parameters == expected_component["parameters"]
+        assert binding_components == [
+            c for c in expected_data.components if c.id == "battery_fr"
+        ]
         # TODO enrich
 
     def test_hybrid_data_series_presence(self, tmp_path: Path):
@@ -1603,7 +1590,8 @@ class TestConverter:
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference_hybrid.yaml"
-        expected_data = read_yaml_file(output_path)["system"]
+        with open(output_path) as system_file:
+            expected_data = parse_yaml_components(system_file)
 
         model_list: list = ["battery"]
 
@@ -1659,51 +1647,7 @@ class TestConverter:
         assert links_filepath.stat().st_size == 0
         # TODO check folder data-models is present
 
-        # A little formatting of expected parameters:
-        # Convert tiret fields with snake_case version
-        # Add scenario group to None, if not present
-        for component in expected_data["components"]:
-            if not component.get("scenario_group"):
-                component["scenario_group"] = None
-            for item in component["parameters"]:
-                item["scenario_dependent"] = item.pop("scenario-dependent")
-                item["time_dependent"] = item.pop("time-dependent")
-                if not item.get("scenario_group"):
-                    item["scenario_group"] = None
-        # A little formatting of obtained parameters:
-        # Convert list of objects to list of dictionaries
-        # Replace absolute path with relative path
-        obtained_components_to_dict = [
-            component.model_dump() for component in dict(obtained_data)["components"]
-        ]
-        obtained_components = TestConverter._match_area_pattern(
-            obtained_components_to_dict, "", str(converter.output_folder) + "/"
-        )
-
-        def normalize_components(components):
-            return [
-                {
-                    **c,
-                    "parameters": [
-                        {
-                            k: p[k]
-                            for k in (
-                                "id",
-                                "value",
-                                "scenario_dependent",
-                                "time_dependent",
-                                "scenario_group",
-                            )
-                        }
-                        for p in c["parameters"]
-                    ],
-                }
-                for c in components
-            ]
-
-        assert sorted(
-            normalize_components(obtained_components), key=lambda x: x["id"]
-        ) == sorted(expected_data["components"], key=lambda x: x["id"])
+        assert obtained_data.components == expected_data.components
 
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH

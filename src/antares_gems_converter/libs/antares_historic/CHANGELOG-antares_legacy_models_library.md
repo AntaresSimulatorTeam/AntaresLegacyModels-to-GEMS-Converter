@@ -10,6 +10,13 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.1.1]
+
+- Added `carrier` property to `link`, `short_term_storage`, and `long_term_storage` models.
+- Added `miscellaneous_type` property to `miscellaneous_generation` model.
+
+---
+
 ## [2.1.0]
 
 - `thermal` model: added `market_bid_cost` parameter; objective contribution now uses `market_bid_cost` instead of `generation_cost`.
