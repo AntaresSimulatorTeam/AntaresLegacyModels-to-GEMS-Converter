@@ -79,6 +79,10 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 6.2
+        - id: market_bid_cost
+          scenario-dependent: false
+          time-dependent: false
+          value: 6.2
         - id: startup_cost
           scenario-dependent: false
           time-dependent: false
