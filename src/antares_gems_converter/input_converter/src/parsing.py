@@ -148,7 +148,7 @@ class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
     column: Optional[int] = None
     operation: Optional[Operation] = None
-    constant: Optional[Union[float, str]] = None
+    constant: Optional[float] = None
 
     def resolve_template(self, template_pattern: str, value: str) -> "ConversionValue":
         object_properties = (
@@ -171,6 +171,28 @@ class ConversionValue(ModifiedBaseModel):
         return True
 
 
+class PropertyConversionValue(ConversionValue):
+    constant: Optional[Union[float, str]] = None
+
+    def resolve_template(self, template_pattern: str, value: str) -> "PropertyConversionValue":
+        object_properties = (
+            self.object_properties.resolve_template(template_pattern, value)
+            if self.object_properties is not None
+            else None
+        )
+        constant = (
+            self.constant.replace(template_pattern, value)
+            if isinstance(self.constant, str)
+            else self.constant
+        )
+        return PropertyConversionValue(
+            object_properties=object_properties,
+            column=self.column,
+            operation=self.operation,
+            constant=constant,
+        )
+
+
 class ParameterConversionConfig(ModifiedBaseModel):
     id: str
     time_dependent: bool = False
@@ -190,7 +212,7 @@ class ParameterConversionConfig(ModifiedBaseModel):
 
 class PropertyConversionConfig(ModifiedBaseModel):
     id: str
-    value: ConversionValue
+    value: PropertyConversionValue
 
     def resolve_template(
         self, template_pattern: str, value: str

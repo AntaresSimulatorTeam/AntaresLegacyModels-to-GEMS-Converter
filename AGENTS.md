@@ -22,7 +22,7 @@ src/antares_gems_converter/
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
 - Loads YAML model templates and validates them against provided lib files
-- Iterates areas/links/clusters → builds InputComponent + InputPortConnections lists
+- Iterates areas/links/clusters → builds ComponentSchema + port connection lists
 - Hybrid: deletes converted Antares objects from the study copy in-place
 - Full: also converts areas themselves into GEMS components
 - process_all() dumps the final InputSystem to output/input/system.yml
@@ -30,7 +30,8 @@ src/antares_gems_converter/
 
       parsing.py - Pydantic models for YAML conversion templates
 - ConversionTemplate - top-level: model id, components, connections, legacy objects to delete
-- ParameterConversionConfig - parameter source: constant, matrix column, or object + optional operation
+- ParameterConversionConfig - parameter source: constant (float), matrix column, or object + optional operation
+- PropertyConversionConfig - property source (similar to ParameterConversionConfig; result always converted to string)
 - Operation - max / multiply_by / divide_by on a value or timeseries
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
 - All models have resolve_template() to substitute ${area} / ${thermal} placeholders

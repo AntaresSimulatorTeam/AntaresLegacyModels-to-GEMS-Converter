@@ -261,12 +261,8 @@ template:
               cluster: ${thermal}
               field: group
         - id: plant
-          value: 
-            object-properties:
-              type: thermal
-              area: ${area}
-              cluster: ${thermal}
-              field: name
+          value:
+            constant: ${thermal}
 
   # For full modeler mode
   connections:

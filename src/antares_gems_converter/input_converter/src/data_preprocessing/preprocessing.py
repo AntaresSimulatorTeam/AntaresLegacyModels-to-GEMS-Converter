@@ -85,16 +85,13 @@ class ModelConversionPreprocessor:
         else:
             cluster_properties = getattr(cluster, "properties")
             field_name = obj.object_properties.field
-            if field_name == "name":
-                value = str(getattr(cluster, field_name)).lower()
-            else:
-                value = getattr(cluster_properties, field_name)
-                if value is None:
-                    raise ValueError(
-                        f"Parameter {field_name} of {cluster.name} in area {area} is None."
-                    )
-                if type_resource == "thermal":
-                    self.preprocessed_values[self.param_id] = value
+            value = getattr(cluster_properties, field_name)
+            if value is None:
+                raise ValueError(
+                    f"Parameter {field_name} of {cluster.name} in area {area} is None."
+                )
+            if type_resource == "thermal":
+                self.preprocessed_values[self.param_id] = value
             return value
         return time_series
 
