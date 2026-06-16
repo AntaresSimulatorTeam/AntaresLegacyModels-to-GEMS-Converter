@@ -172,9 +172,11 @@ class ConversionValue(ModifiedBaseModel):
 
 
 class PropertyConversionValue(ConversionValue):
-    constant: Optional[Union[float, str]] = None
+    constant: Optional[Union[float, str]] = None  # type: ignore[assignment]
 
-    def resolve_template(self, template_pattern: str, value: str) -> "PropertyConversionValue":
+    def resolve_template(
+        self, template_pattern: str, value: str
+    ) -> "PropertyConversionValue":
         object_properties = (
             self.object_properties.resolve_template(template_pattern, value)
             if self.object_properties is not None

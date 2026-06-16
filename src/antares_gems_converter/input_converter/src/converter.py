@@ -263,13 +263,17 @@ class AntaresStudyConverter:
                 )
                 for param in comp.parameters
             ]
-            properties = [
-                ComponentPropertySchema(
-                    id=prop.id,
-                    value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
-                )
-                for prop in comp.properties
-            ] if comp.properties else None
+            properties = (
+                [
+                    ComponentPropertySchema(
+                        id=prop.id,
+                        value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
+                    )
+                    for prop in comp.properties
+                ]
+                if comp.properties
+                else None
+            )
             components.append(
                 ComponentSchema(
                     id=(comp.id).replace(" ", "_"),
