@@ -51,6 +51,7 @@ from antares_gems_converter.input_converter.src.utils import (
 from gems.study.parsing import (
     AreaConnectionsSchema,
     ComponentParameterSchema,
+    ComponentPropertySchema,
     ComponentSchema,
     PortConnectionsSchema,
     SystemSchema,
@@ -151,6 +152,9 @@ class AntaresStudyConverter:
                                 scenario_dependent=False,
                                 value=area.properties.energy_cost_spilled,
                             ),
+                        ],
+                        properties=[
+                            ComponentPropertySchema(id="carrier", value="electricity")
                         ],
                     )
                 )
@@ -259,19 +263,20 @@ class AntaresStudyConverter:
                 )
                 for param in comp.parameters
             ]
-            scenario_group = getattr(
-                resolved_conversion_template, "scenario_group", None
-            )
-            kwargs = {}
-            if scenario_group is not None:
-                kwargs["scenario_group"] = scenario_group
-
+            properties = [
+                ComponentPropertySchema(
+                    id=prop.id,
+                    value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
+                )
+                for prop in comp.properties
+            ] or None
             components.append(
                 ComponentSchema(
                     id=(comp.id).replace(" ", "_"),
                     model=resolved_conversion_template.model,
+                    scenario_group=resolved_conversion_template.scenario_group,
                     parameters=parameters,
-                    **kwargs,
+                    properties=properties,
                 )
             )
 

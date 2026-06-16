@@ -41,6 +41,13 @@ template:
               type: hydro
               area: ${area}
               field: ror
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: run_of_river
 
   # For full modeler mode
   connections:

@@ -79,6 +79,7 @@ taxonomy:
       parent-category: fatal_generation
       properties:
         - id: technology 
+        - id: miscellaneous_type
 
     - id: consumption
       extra-outputs:

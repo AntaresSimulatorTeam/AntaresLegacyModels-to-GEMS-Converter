@@ -33,6 +33,7 @@ from gems.study.parsing import (
     AreaConnectionsSchema,
     ComponentParameterSchema,
     ComponentSchema,
+    ComponentPropertySchema,
     PortConnectionsSchema,
     SystemSchema,
     parse_yaml_components,
@@ -134,6 +135,9 @@ class TestConverter:
                             value=1.0,
                         ),
                     ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
                 ),
                 ComponentSchema(
                     id="it",
@@ -154,6 +158,9 @@ class TestConverter:
                             scenario_group=None,
                             value=1.0,
                         ),
+                    ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
                     ],
                 ),
             ],
@@ -184,6 +191,7 @@ class TestConverter:
                         value=1.0,
                     ),
                 ],
+                properties=[ComponentPropertySchema(id="carrier", value="electricity")],
             ),
             ComponentSchema(
                 id="it",
@@ -204,6 +212,7 @@ class TestConverter:
                         value=1.0,
                     ),
                 ],
+                properties=[ComponentPropertySchema(id="carrier", value="electricity")],
             ),
         ]
 
@@ -244,6 +253,9 @@ class TestConverter:
                             value=1.0,
                         ),
                     ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
+                    ],
                 ),
                 ComponentSchema(
                     id="fr",
@@ -264,6 +276,9 @@ class TestConverter:
                             scenario_group=None,
                             value=1.0,
                         ),
+                    ],
+                    properties=[
+                        ComponentPropertySchema(id="carrier", value="electricity")
                     ],
                 ),
             ],
@@ -411,6 +426,10 @@ class TestConverter:
                         scenario_group=None,
                         value=f"{cost_level_path}",
                     ),
+                ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="group", value="other1"),
                 ],
             )
         ]
@@ -561,6 +580,11 @@ class TestConverter:
                         "op5_emissions_rate",
                     ]
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="other 1"),
+                    ComponentPropertySchema(id="plant", value="gaz"),
+                ],
             )
         ]
         # TODO preprocessing + nouveaux parametres liées a la nouvelle version antarescraft
@@ -675,9 +699,12 @@ class TestConverter:
                     value=0,
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+            ],
         )
         assert hydro_fr_connection == expected_hydro_connection
-        assert hydro_fr_component.model_dump() == expected_hydro_component.model_dump()
+        assert hydro_fr_component == expected_hydro_component
 
     def test_convert_load_to_component_from_path(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
@@ -705,8 +732,12 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        assert load_connections == [c for c in expected_data.connections if c.component1=="load_fr"]
-        assert load_components == [c for c in expected_data.components if c.id=="load_fr"]
+        assert load_connections == [
+            c for c in expected_data.connections if c.component1 == "load_fr"
+        ]
+        assert load_components == [
+            c for c in expected_data.components if c.id == "load_fr"
+        ]
         # TODO enrich
 
     @pytest.mark.parametrize(
@@ -769,9 +800,13 @@ class TestConverter:
                     scenario_group=None,
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="solar"),
+            ],
         )
         assert solar_fr_connection == expected_solar_connection
-        assert solar_fr_component.model_dump() == expected_solar_components.model_dump()
+        assert solar_fr_component == expected_solar_components
 
     def test_convert_load_to_component_from_study(self, fr_load: None):
         converter = self._init_converter_from_study(fr_load)
@@ -812,9 +847,10 @@ class TestConverter:
                     scenario_group=None,
                 ),
             ],
+            properties=[ComponentPropertySchema(id="carrier", value="electricity")],
         )
         assert load_fr_connection == expected_load_connection
-        assert load_fr_component.model_dump() == expected_load_components.model_dump()
+        assert load_fr_component == expected_load_components
 
     @pytest.mark.parametrize(
         "fr_wind",
@@ -871,9 +907,13 @@ class TestConverter:
                     value="available_power_wind_fr",
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="wind"),
+            ],
         )
         assert wind_fr_connection == expected_wind_connection
-        assert wind_fr_component.model_dump() == expected_wind_components.model_dump()
+        assert wind_fr_component == expected_wind_components
 
     @pytest.mark.parametrize(
         "fr_wind",
@@ -971,6 +1011,16 @@ class TestConverter:
                         value=f"available_power_{generation_type}_fr",
                     )
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value=generation_type),
+                    ComponentPropertySchema(
+                        id="miscellaneous_type",
+                        value="misc_ndg"
+                        if generation_type not in ["psp", "rest_of_world"]
+                        else generation_type,
+                    ),
+                ],
             )
             for generation_type in [
                 "chp",
@@ -1051,6 +1101,11 @@ class TestConverter:
                         value=f"available_power_biomass_fr",
                     )
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="biomass"),
+                    ComponentPropertySchema(id="miscellaneous_type", value="misc_ndg"),
+                ],
             )
         ]
         assert misc_gen_connections == expected_misc_gen_connections
@@ -1111,9 +1166,13 @@ class TestConverter:
                     value="available_power_ror_fr",
                 ),
             ],
+            properties=[
+                ComponentPropertySchema(id="carrier", value="electricity"),
+                ComponentPropertySchema(id="technology", value="run_of_river"),
+            ],
         )
         assert ror_fr_connection == expected_ror_connection
-        assert ror_fr_component.model_dump() == expected_ror_component.model_dump()
+        assert ror_fr_component == expected_ror_component
 
     @pytest.mark.parametrize(
         "fr_ror",
@@ -1230,6 +1289,9 @@ class TestConverter:
                         value=f"{fr_it_loop_flow_timeseries}",
                     ),
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                ],
             ),
             ComponentSchema(
                 id="at_/_fr",
@@ -1272,6 +1334,9 @@ class TestConverter:
                         value=f"{at_fr_loop_flow_timeseries}",
                     ),
                 ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                ],
             ),
             ComponentSchema(
                 id="at_/_it",
@@ -1313,6 +1378,9 @@ class TestConverter:
                         scenario_group=None,
                         value=f"{at_it_loop_flow_timeseries}",
                     ),
+                ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
                 ],
             ),
         ]
@@ -1379,9 +1447,7 @@ class TestConverter:
         else:
             return object
 
-    def test_convert_binding_constraints_to_component(
-        self, tmp_path: Path
-    ):
+    def test_convert_binding_constraints_to_component(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
 
         output_path = local_path / "reference.yaml"
@@ -1409,8 +1475,12 @@ class TestConverter:
         )  # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
 
         assert area_connections == []
-        assert binding_connections == [c for c in expected_data.connections if c.component1=="battery_fr"]
-        assert binding_components == [c for c in expected_data.components if c.id == "battery_fr"]
+        assert binding_connections == [
+            c for c in expected_data.connections if c.component1 == "battery_fr"
+        ]
+        assert binding_components == [
+            c for c in expected_data.components if c.id == "battery_fr"
+        ]
         # TODO enrich
 
     def test_hybrid_data_series_presence(self, tmp_path: Path):

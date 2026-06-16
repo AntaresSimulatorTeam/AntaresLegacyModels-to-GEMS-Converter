@@ -150,6 +150,17 @@ template:
               area: ${area}
               cluster: ${st_storage}
               field: cost_level
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: group
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: group
 
   # For full modeler mode
   connections:

@@ -41,6 +41,13 @@ template:
             object-properties:
               type: wind
               area: ${area}
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            constant: wind
 
   # For full modeler mode
   connections:

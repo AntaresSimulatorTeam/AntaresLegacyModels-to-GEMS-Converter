@@ -148,7 +148,7 @@ class ConversionValue(ModifiedBaseModel):
     object_properties: Optional[ObjectProperties] = None
     column: Optional[int] = None
     operation: Optional[Operation] = None
-    constant: Optional[float] = None
+    constant: Optional[Union[float, str]] = None
 
     def resolve_template(self, template_pattern: str, value: str) -> "ConversionValue":
         object_properties = (
@@ -188,18 +188,37 @@ class ParameterConversionConfig(ModifiedBaseModel):
         )
 
 
+class PropertyConversionConfig(ModifiedBaseModel):
+    id: str
+    value: ConversionValue
+
+    def resolve_template(
+        self, template_pattern: str, value: str
+    ) -> "PropertyConversionConfig":
+        return PropertyConversionConfig(
+            id=self.id,
+            value=self.value.resolve_template(template_pattern, value),
+        )
+
+
 class ComponentConversionConfig(ModifiedBaseModel):
     id: str
     parameters: list[ParameterConversionConfig]
+    properties: list[PropertyConversionConfig] = Field(default_factory=list)
 
     def resolve_template(
         self, template_pattern: str, value: str
     ) -> "ComponentConversionConfig":
         id = self.id.replace(template_pattern, value)
-        parameters = []
-        for param in self.parameters:
-            parameters.append(param.resolve_template(template_pattern, value))
-        return ComponentConversionConfig(id=id, parameters=parameters)
+        parameters = [
+            param.resolve_template(template_pattern, value) for param in self.parameters
+        ]
+        properties = [
+            prop.resolve_template(template_pattern, value) for prop in self.properties
+        ]
+        return ComponentConversionConfig(
+            id=id, parameters=parameters, properties=properties
+        )
 
 
 class ReferencedLegacyObjects(ModifiedBaseModel):

@@ -137,6 +137,15 @@ template:
             column: <int>                 # optional: extract specific column from matrix
             operation:                    # optional: transform after extraction
               type: max                   # OR multiply_by: <value> OR divide_by: <param_ref>
+      properties:                         # optional: component properties (string values)
+        - id: <property_id>
+          value:
+            constant: <number>            # OR object-properties reference (same syntax as parameters)
+            object-properties:
+              type: thermal|link|...
+              area: ${area}
+              cluster: ${thermal}
+              field: <antares_craft_field> # scalar field; result is converted to string
 
   connections: [...]          # FULL mode: port-to-port
   area-connections: [...]     # HYBRID mode: port-to-area

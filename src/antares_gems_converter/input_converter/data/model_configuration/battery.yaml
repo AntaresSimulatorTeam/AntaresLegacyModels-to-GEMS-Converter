@@ -145,6 +145,10 @@ template:
               link: ${area} / z_batteries
               field: links_parameters
             column: 0
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
 
   connections:
     - component1: battery_${area}

@@ -43,6 +43,9 @@ system:
           scenario-dependent: false
           time-dependent: true
           value: marginal_cost_battery_fr
+      properties:
+        - id: carrier
+          value: electricity
     - id: load_fr
       model: antares_legacy_models.load
       parameters:
@@ -50,6 +53,9 @@ system:
           scenario-dependent: true
           time-dependent: true
           value: load_load_fr
+      properties:
+        - id: carrier
+          value: electricity
     - id: fr_fr_nuclear_epr
       model: antares_legacy_models.thermal
       parameters:
@@ -149,6 +155,13 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 0.0
+      properties:
+        - id: carrier
+          value: electricity
+        - id: technology
+          value: nuclear
+        - id: plant
+          value: fr_nuclear_epr
     - id: fr
       model: antares_legacy_models.area
       parameters:
@@ -160,6 +173,9 @@ system:
           scenario-dependent: false
           time-dependent: false
           value: 0.0
+      properties:
+        - id: carrier
+          value: electricity
   connections:
     - component1: battery_fr
       component2: fr

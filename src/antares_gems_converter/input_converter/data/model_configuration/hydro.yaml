@@ -108,6 +108,10 @@ template:
               type: hydro
               area: ${area}
               field: overflow_spilled_cost_difference
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
 
   # For full modeler mode
   connections:

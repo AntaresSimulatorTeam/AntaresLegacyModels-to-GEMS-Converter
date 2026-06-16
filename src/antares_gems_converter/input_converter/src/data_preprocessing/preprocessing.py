@@ -85,9 +85,12 @@ class ModelConversionPreprocessor:
         else:
             cluster_properties = getattr(cluster, "properties")
             field_name = obj.object_properties.field
-            value = getattr(cluster_properties, field_name)
-            if type_resource == "thermal":
-                self.preprocessed_values[self.param_id] = value
+            if field_name == "name":
+                value = str(getattr(cluster, field_name)).lower()
+            else:
+                value = getattr(cluster_properties, field_name)
+                if type_resource == "thermal":
+                    self.preprocessed_values[self.param_id] = value
             return value
         return time_series
 

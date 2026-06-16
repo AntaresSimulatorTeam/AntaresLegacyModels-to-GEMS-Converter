@@ -149,6 +149,8 @@ library:
           expression: max(flow,-flow)
         - id: actual_loop_flow
           expression: loop_flow
+      properties:
+        - id: carrier
 
     - id: renewable
       taxonomy-category: renewable_fatal_generation
@@ -195,6 +197,7 @@ library:
       properties:
         - id: carrier
         - id: technology
+        - id: miscellaneous_type
 
     - id: thermal
       taxonomy-category: dispatchable_generation
@@ -394,6 +397,7 @@ library:
         - id: profit
           expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price)+0.5)
       properties:
+        - id: carrier
         - id: group
     
     - id: long_term_storage
@@ -468,3 +472,5 @@ library:
           expression: level/reservoir_capacity*100
         - id: actual_inflows
           expression: floor(inflows+0.5)
+      properties:
+        - id: carrier
