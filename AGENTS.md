@@ -141,7 +141,7 @@ template:
       properties:                         # optional: component properties (string values)
         - id: <property_id>
           value:
-            constant: <number>            # OR object-properties reference (same syntax as parameters)
+            constant: <number|string>     # OR object-properties reference (same syntax as parameters); supports template variables (e.g. ${thermal})
             object-properties:
               type: thermal|link|...
               area: ${area}

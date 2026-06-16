@@ -269,7 +269,7 @@ class AntaresStudyConverter:
                     value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
                 )
                 for prop in comp.properties
-            ] or None
+            ] if comp.properties else None
             components.append(
                 ComponentSchema(
                     id=(comp.id).replace(" ", "_"),
