@@ -172,7 +172,9 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        (area_components, _, _) = converter._convert_model_to_component_list(resource_content)
+        (area_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
 
         expected_area_components = [
             ComponentSchema(
@@ -226,7 +228,9 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        (area_components, _, _) = converter._convert_model_to_component_list(resource_content)
+        (area_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
         input_study = SystemSchema(id=converter.study.name, components=area_components)
 
         # Dump model into yaml file
