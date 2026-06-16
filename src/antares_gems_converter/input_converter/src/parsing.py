@@ -132,6 +132,7 @@ class ObjectProperties(ModifiedBaseModel):
 
 
 ALLOWED_TYPES: list = [
+    "area",
     "binding_constraint",
     "thermal",
     "link",

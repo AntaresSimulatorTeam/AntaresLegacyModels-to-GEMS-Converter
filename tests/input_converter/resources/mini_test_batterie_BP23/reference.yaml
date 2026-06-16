@@ -1,5 +1,19 @@
 system:
   components:
+    - id: fr
+      model: antares_legacy_models.area
+      parameters:
+        - id: unsupplied_energy_cost
+          scenario-dependent: false
+          time-dependent: false
+          value: 4000.0
+        - id: spillage_cost
+          scenario-dependent: false
+          time-dependent: false
+          value: 0.0
+      properties:
+        - id: carrier
+          value: electricity
     - id: battery_fr
       model: andromede-v1-models.battery
       parameters:
@@ -166,20 +180,6 @@ system:
           value: nuclear
         - id: plant
           value: fr_nuclear_epr
-    - id: fr
-      model: antares_legacy_models.area
-      parameters:
-        - id: unsupplied_energy_cost
-          scenario-dependent: false
-          time-dependent: false
-          value: 4000.0
-        - id: spillage_cost
-          scenario-dependent: false
-          time-dependent: false
-          value: 0.0
-      properties:
-        - id: carrier
-          value: electricity
   connections:
     - component1: battery_fr
       component2: fr

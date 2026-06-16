@@ -167,9 +167,12 @@ class TestConverter:
         )
         assert input_study == expected_input_study
 
-    def test_convert_area_to_component(self, local_study_w_areas: Study, lib_id: str):
+    def test_convert_area_to_component(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        area_components = converter._convert_area_to_component_list(lib_id)
+        path_area = RESOURCES_FOLDER / "area.yaml"
+        with path_area.open() as template:
+            resource_content = parse_conversion_template(template)
+        (area_components, _, _) = converter._convert_model_to_component_list(resource_content)
 
         expected_area_components = [
             ComponentSchema(
@@ -218,9 +221,12 @@ class TestConverter:
 
         assert area_components == expected_area_components
 
-    def test_convert_area_to_yaml(self, local_study_w_areas: Study, lib_id: str):
+    def test_convert_area_to_yaml(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        area_components = converter._convert_area_to_component_list(lib_id)
+        path_area = RESOURCES_FOLDER / "area.yaml"
+        with path_area.open() as template:
+            resource_content = parse_conversion_template(template)
+        (area_components, _, _) = converter._convert_model_to_component_list(resource_content)
         input_study = SystemSchema(id=converter.study.name, components=area_components)
 
         # Dump model into yaml file
@@ -234,7 +240,7 @@ class TestConverter:
             id="studyTest",
             components=[
                 ComponentSchema(
-                    id="it",
+                    id="fr",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -258,7 +264,7 @@ class TestConverter:
                     ],
                 ),
                 ComponentSchema(
-                    id="fr",
+                    id="it",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -284,8 +290,6 @@ class TestConverter:
             ],
         )
 
-        expected_validated_data.components.sort(key=lambda x: x.id)
-        validated_data.components.sort(key=lambda x: x.id)
         assert validated_data == expected_validated_data
 
     def test_convert_st_storages_to_component(

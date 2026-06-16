@@ -104,6 +104,7 @@ TEMPLATE_TO_TIMESERIES_FILE_TYPE = {
 }
 
 MODEL_NAME_TO_FILE_NAME = {
+    "area": "area.yaml",
     "battery": "battery.yaml",
     "link": "link.yaml",
     "load": "load.yaml",
