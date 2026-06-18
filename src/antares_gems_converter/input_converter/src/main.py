@@ -117,8 +117,7 @@ def parse_commandline() -> Namespace:
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    config: dict = {}
+def main() -> None:
     args = parse_commandline()
     log_path = args.logging
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -173,3 +172,7 @@ if __name__ == "__main__":
 
     converter = AntaresStudyConverter(**params)  # type: ignore
     converter.process_all()
+
+
+if __name__ == "__main__":
+    main()
