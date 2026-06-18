@@ -27,12 +27,13 @@ pip install antares-legacy-gems-converter
 
 **From source (for development):**
 
+Requires [uv](https://docs.astral.sh/uv/). Python library versions are pinned in `pyproject.toml` and locked in `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
+
 ```bash
 git clone https://github.com/AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter.git
 cd AntaresLegacyModels-to-GEMS-Converter
 uv sync --group dev
 ```
-
 
 ## Usage
 
