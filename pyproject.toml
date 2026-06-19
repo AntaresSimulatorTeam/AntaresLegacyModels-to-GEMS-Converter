@@ -19,6 +19,9 @@ dependencies = [
     "PyYAML>=6.0.3",
 ]
 
+[project.scripts]
+antares-to-gems = "antares_gems_converter.input_converter.src.main:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
