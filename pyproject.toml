@@ -6,7 +6,16 @@ build-backend = "setuptools.build_meta"
 name = "antares-legacy-gems-converter"
 version = "0.2.0"
 description = "Convert Antares Legacy studies to GEMS format"
-license = {text = "MPL-2.0"}
+readme = "README.md"
+license = "MPL-2.0"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Antoine Oustry @aoustry"},
+    {name = "Dušan Paripović @dusanparipovic"},
+    {name = "Nikola Ilić @nikolaredstork"},
+    {name = "Thomas Bittar @tbittar"},
+    {name = "Juliette Gerbaux @Juliette-Gerbaux"}
+]
 requires-python = ">=3.11"
 dependencies = [
     "antares_craft==0.14.0",
