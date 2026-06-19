@@ -60,7 +60,6 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
-        - id: plant
 
     - id: fatal_generation
       parent-category: generation

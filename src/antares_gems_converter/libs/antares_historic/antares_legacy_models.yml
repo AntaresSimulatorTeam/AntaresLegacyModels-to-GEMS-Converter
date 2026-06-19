@@ -274,7 +274,6 @@ library:
         - id: objective
           expression: sum(market_bid_cost * generation_power + startup_cost * num_units_starting + fixed_cost * num_units_on)
       properties:
-        - id: plant
         - id: carrier
         - id: technology
       extra-outputs:

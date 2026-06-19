@@ -260,9 +260,6 @@ template:
               area: ${area}
               cluster: ${thermal}
               field: group
-        - id: plant
-          value:
-            constant: ${thermal}
 
   # For full modeler mode
   connections:

@@ -628,7 +628,6 @@ class TestConverter:
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
                     ComponentPropertySchema(id="technology", value="other 1"),
-                    ComponentPropertySchema(id="plant", value="gaz"),
                 ],
             )
         ]
