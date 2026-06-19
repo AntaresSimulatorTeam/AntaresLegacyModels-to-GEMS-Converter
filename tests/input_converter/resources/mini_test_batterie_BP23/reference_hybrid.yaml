@@ -1,10 +1,10 @@
 system:
   area-connections:
   - area: fr
-    component: battery_fr
+    component: fr_battery
     port: injection_port
   components:
-  - id: battery_fr
+  - id: fr_battery
     model: andromede-v1-models.battery
     parameters:
     - id: reservoir_capacity
@@ -34,19 +34,19 @@ system:
     - id: upper_rule_curve
       scenario-dependent: false
       time-dependent: true
-      value: upper_rule_curve_battery_fr
+      value: upper_rule_curve_fr_battery
     - id: p_max_injection_modulation
       scenario-dependent: false
       time-dependent: true
-      value: p_max_injection_modulation_battery_fr
+      value: p_max_injection_modulation_fr_battery
     - id: p_max_withdrawal_modulation
       scenario-dependent: false
       time-dependent: true
-      value: p_max_withdrawal_modulation_battery_fr
+      value: p_max_withdrawal_modulation_fr_battery
     - id: marginal_cost
       scenario-dependent: false
       time-dependent: true
-      value: marginal_cost_battery_fr
+      value: marginal_cost_fr_battery
     properties:
     - id: carrier
       value: electricity

@@ -1,6 +1,6 @@
 system:
   components:
-    - id: fr
+    - id: fr_node
       model: antares_legacy_models.area
       parameters:
         - id: unsupplied_energy_cost
@@ -14,7 +14,7 @@ system:
       properties:
         - id: carrier
           value: electricity
-    - id: battery_fr
+    - id: fr_battery
       model: andromede-v1-models.battery
       parameters:
         - id: reservoir_capacity
@@ -44,43 +44,43 @@ system:
         - id: upper_rule_curve
           scenario-dependent: false
           time-dependent: true
-          value: upper_rule_curve_battery_fr
+          value: upper_rule_curve_fr_battery
         - id: p_max_injection_modulation
           scenario-dependent: false
           time-dependent: true
-          value: p_max_injection_modulation_battery_fr
+          value: p_max_injection_modulation_fr_battery
         - id: p_max_withdrawal_modulation
           scenario-dependent: false
           time-dependent: true
-          value: p_max_withdrawal_modulation_battery_fr
+          value: p_max_withdrawal_modulation_fr_battery
         - id: marginal_cost
           scenario-dependent: false
           time-dependent: true
-          value: marginal_cost_battery_fr
+          value: marginal_cost_fr_battery
       properties:
         - id: carrier
           value: electricity
-    - id: load_fr
+    - id: fr_load
       model: antares_legacy_models.load
       parameters:
         - id: load
           scenario-dependent: true
           time-dependent: true
-          value: load_load_fr
+          value: load_fr_load
       properties:
         - id: carrier
           value: electricity
-    - id: fr_fr_nuclear_epr
+    - id: fr_thermal_fr_nuclear_epr
       model: antares_legacy_models.thermal
       parameters:
         - id: cluster_min_gen_modulation
           scenario-dependent: true
           time-dependent: true
-          value: cluster_min_gen_modulation_fr_fr_nuclear_epr
+          value: cluster_min_gen_modulation_fr_thermal_fr_nuclear_epr
         - id: cluster_max_generation
           scenario-dependent: true
           time-dependent: true
-          value: cluster_max_generation_fr_fr_nuclear_epr
+          value: cluster_max_generation_fr_thermal_fr_nuclear_epr
         - id: min_power_per_unit
           scenario-dependent: false
           time-dependent: false
@@ -181,16 +181,16 @@ system:
         - id: plant
           value: fr_nuclear_epr
   connections:
-    - component1: battery_fr
-      component2: fr
+    - component1: fr_battery
+      component2: fr_node
       port1: injection_port
       port2: balance_port
-    - component1: load_fr
-      component2: fr
+    - component1: fr_load
+      component2: fr_node
       port1: balance_port
       port2: balance_port
-    - component1: fr_fr_nuclear_epr
-      component2: fr
+    - component1: fr_thermal_fr_nuclear_epr
+      component2: fr_node
       port1: balance_port
       port2: balance_port
   id: mini_test_batterie_BP23

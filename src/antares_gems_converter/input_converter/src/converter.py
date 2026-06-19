@@ -259,7 +259,7 @@ class AntaresStudyConverter:
             )
             components.append(
                 ComponentSchema(
-                    id=(comp.id).replace(" ", "_"),
+                    id=(comp.id).replace(" / ", "_"),
                     model=resolved_conversion_template.model,
                     scenario_group=resolved_conversion_template.scenario_group,
                     parameters=parameters,
@@ -279,7 +279,7 @@ class AntaresStudyConverter:
                         )
                     else:
                         component_value = area_connection.component
-                    component_value = component_value.replace(" ", "_")
+                    component_value = component_value.replace(" / ", "_")
                     if "." in area_connection.area:
                         area_parts = area_connection.area.split(".")
                         area_value = getattr(
@@ -287,7 +287,7 @@ class AntaresStudyConverter:
                         )
                     else:
                         area_value = area_connection.area
-                    area_value = area_value.replace(" ", "_")
+                    area_value = area_value.replace(" / ", "_")
                     area_connections.append(
                         AreaConnectionsSchema(
                             component=component_value,
@@ -312,10 +312,10 @@ class AntaresStudyConverter:
                             component_value = getattr(
                                 self.study.get_links()[component_parts[0]],
                                 component_parts[1],
-                            )
+                            ) + ".".join(component_parts[2:])
                         else:
                             component_value = component
-                        treated_components.append(component_value.replace(" ", "_"))
+                        treated_components.append(component_value.replace(" / ", "_"))
 
                     connections.append(
                         PortConnectionsSchema(

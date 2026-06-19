@@ -20,7 +20,7 @@ template:
       description: "Area identifier"
 
   components:
-    - id: ${area}
+    - id: ${area}_node
       parameters:
         - id: unsupplied_energy_cost
           time-dependent: false

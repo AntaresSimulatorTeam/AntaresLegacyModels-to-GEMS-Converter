@@ -161,6 +161,7 @@ template:
 - **Column indexing**: 0-based, references actual columns in Antares data matrices.
 - **Operations**: `divide_by` can reference another parameter by name (e.g., `divide_by: reservoir_capacity`).
 - **Electricity carrier assumption**: all current templates assume components belong to the electricity system (`carrier: electricity`). Multi-energy support would require revisiting this assumption in every template.
+- **Identifier naming** (components, parameters, properties): `snake_case`; qualifier first (adjective before noun); `is_` prefix for booleans; units in schema metadata, not names. Component IDs start with the area: `${area}_<detail>` (e.g. `${area}_node`, `${area}_hydro_storage`) — never `<detail>_${area}`. Abbreviations whitelist: `gen` (generation), `prop` (proportional), `abs` (absolute), `alg` (algebraic), `min` (minimum), `max` (maximum), `num` (number), pollutant codes (`co2`, `nh3`, `so2`, `nox`, `pm2_5`, `pm5`, `pm10`, `nmvoc`, `op1`–`op5`). Everything else spelled out in full.
 
 ---
 
