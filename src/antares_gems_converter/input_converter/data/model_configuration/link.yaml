@@ -21,7 +21,7 @@ template:
       #   # How to identify virtual links in Antares ?
 
   components:
-    - id: ${link} # How to specify that we want to get the link_id ?
+    - id: ${link}_link # How to specify that we want to get the link_id ?
       parameters:
         - id: direct_capacity
           time-dependent: true
@@ -74,23 +74,23 @@ template:
 
   # For full modeler mode
   connections:
-    - component1: ${link}
+    - component1: ${link}_link
       port1: in_port
-      component2: ${link}.area_from_id
+      component2: ${link}.area_from_id._node
       port2: balance_port
 
-    - component1: ${link}
+    - component1: ${link}_link
       port1: out_port
-      component2: ${link}.area_to_id
+      component2: ${link}.area_to_id._node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: ${link}
+    - component: ${link}_link
       port: in_port
       area: ${link}.area_from_id
 
-    - component: ${link}
+    - component: ${link}_link
       port: out_port
       area: ${link}.area_to_id
 

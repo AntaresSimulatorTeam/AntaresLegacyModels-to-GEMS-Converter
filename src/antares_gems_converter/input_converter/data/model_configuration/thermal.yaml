@@ -21,7 +21,7 @@ template:
       # exclude:
 
   components:
-    - id: ${area}_${thermal}
+    - id: ${area}_thermal_${thermal}
       parameters:
         - id: cluster_min_gen_modulation
           time-dependent: true
@@ -260,20 +260,17 @@ template:
               area: ${area}
               cluster: ${thermal}
               field: group
-        - id: plant
-          value:
-            constant: ${thermal}
 
   # For full modeler mode
   connections:
-    - component1: ${area}_${thermal}
+    - component1: ${area}_thermal_${thermal}
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: ${area}_${thermal}
+    - component: ${area}_thermal_${thermal}
       port: balance_port
       area: ${area}
 

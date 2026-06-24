@@ -116,7 +116,7 @@ class TestConverter:
             id="studyTest",
             components=[
                 ComponentSchema(
-                    id="fr",
+                    id="fr_node",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -140,7 +140,7 @@ class TestConverter:
                     ],
                 ),
                 ComponentSchema(
-                    id="it",
+                    id="it_node",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -178,7 +178,7 @@ class TestConverter:
 
         expected_area_components = [
             ComponentSchema(
-                id="fr",
+                id="fr_node",
                 model="antares_legacy_models.area",
                 parameters=[
                     ComponentParameterSchema(
@@ -199,7 +199,7 @@ class TestConverter:
                 properties=[ComponentPropertySchema(id="carrier", value="electricity")],
             ),
             ComponentSchema(
-                id="it",
+                id="it_node",
                 model="antares_legacy_models.area",
                 parameters=[
                     ComponentParameterSchema(
@@ -244,7 +244,7 @@ class TestConverter:
             id="studyTest",
             components=[
                 ComponentSchema(
-                    id="fr",
+                    id="fr_node",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -268,7 +268,7 @@ class TestConverter:
                     ],
                 ),
                 ComponentSchema(
-                    id="it",
+                    id="it_node",
                     model="antares_legacy_models.area",
                     scenario_group=None,
                     parameters=[
@@ -314,25 +314,27 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        inflows_path = "inflows_fr_storage_1"
-        lower_rule_curve_path = "lower_rule_curve_fr_storage_1"
-        pmax_injection_path = "max_injection_modulation_fr_storage_1"
-        pmax_withdrawal_path = "max_withdrawal_modulation_fr_storage_1"
-        upper_rule_curve_path = "upper_rule_curve_fr_storage_1"
-        cost_injection_path = "injection_cost_fr_storage_1"
-        cost_withdrawal_path = "withdrawal_cost_fr_storage_1"
-        cost_level_path = "level_cost_fr_storage_1"
+        inflows_path = "inflows_fr_short_term_storage_storage_1"
+        lower_rule_curve_path = "lower_rule_curve_fr_short_term_storage_storage_1"
+        pmax_injection_path = "max_injection_modulation_fr_short_term_storage_storage_1"
+        pmax_withdrawal_path = (
+            "max_withdrawal_modulation_fr_short_term_storage_storage_1"
+        )
+        upper_rule_curve_path = "upper_rule_curve_fr_short_term_storage_storage_1"
+        cost_injection_path = "injection_cost_fr_short_term_storage_storage_1"
+        cost_withdrawal_path = "withdrawal_cost_fr_short_term_storage_storage_1"
+        cost_level_path = "level_cost_fr_short_term_storage_storage_1"
         expected_storage_connections = [
             PortConnectionsSchema(
-                component1="fr_storage_1",
+                component1="fr_short_term_storage_storage_1",
                 port1="balance_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             )
         ]
         expected_storage_component = [
             ComponentSchema(
-                id="fr_storage_1",
+                id="fr_short_term_storage_storage_1",
                 model=f"{lib_id}.short_term_storage",
                 scenario_group=None,
                 parameters=[
@@ -450,13 +452,13 @@ class TestConverter:
                         id="injection_variation_penalty",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"injection_variation_penalty_fr_storage_1",
+                        value=f"injection_variation_penalty_fr_short_term_storage_storage_1",
                     ),
                     ComponentParameterSchema(
                         id="withdrawal_variation_penalty",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"withdrawal_variation_penalty_fr_storage_1",
+                        value=f"withdrawal_variation_penalty_fr_short_term_storage_storage_1",
                     ),
                     ComponentParameterSchema(
                         id="overflow_cost",
@@ -502,15 +504,15 @@ class TestConverter:
         print(thermals_components)
         expected_thermals_connections = [
             PortConnectionsSchema(
-                component1="fr_gaz",
+                component1="fr_thermal_gaz",
                 port1="balance_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             )
         ]
         expected_thermals_components = [
             ComponentSchema(
-                id="fr_gaz",
+                id="fr_thermal_gaz",
                 model="antares_legacy_models.thermal",
                 scenario_group=None,
                 parameters=[
@@ -519,14 +521,14 @@ class TestConverter:
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="cluster_min_gen_modulation_fr_gaz",
+                        value="cluster_min_gen_modulation_fr_thermal_gaz",
                     ),
                     ComponentParameterSchema(
                         id="cluster_max_generation",
                         time_dependent=True,
                         scenario_dependent=True,
                         scenario_group=None,
-                        value="cluster_max_generation_fr_gaz",
+                        value="cluster_max_generation_fr_thermal_gaz",
                     ),
                     ComponentParameterSchema(
                         id="min_power_per_unit",
@@ -626,7 +628,6 @@ class TestConverter:
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
                     ComponentPropertySchema(id="technology", value="other 1"),
-                    ComponentPropertySchema(id="plant", value="gaz"),
                 ],
             )
         ]
@@ -653,21 +654,25 @@ class TestConverter:
         ) = converter._convert_model_to_component_list(resource_content)
 
         hydro_fr_component = next(
-            (comp for comp in hydro_components if comp.id == "lt_storage_fr"), None
+            (comp for comp in hydro_components if comp.id == "fr_hydro_storage"), None
         )
         hydro_fr_connection = next(
-            (conn for conn in hydro_connections if conn.component1 == "lt_storage_fr"),
+            (
+                conn
+                for conn in hydro_connections
+                if conn.component1 == "fr_hydro_storage"
+            ),
             None,
         )
 
         expected_hydro_connection = PortConnectionsSchema(
-            component1="lt_storage_fr",
+            component1="fr_hydro_storage",
             port1="balance_port",
-            component2="fr",
+            component2="fr_node",
             port2="balance_port",
         )
         expected_hydro_component = ComponentSchema(
-            id="lt_storage_fr",
+            id="fr_hydro_storage",
             model="antares_legacy_models.long_term_storage",
             scenario_group=None,
             parameters=[
@@ -683,21 +688,21 @@ class TestConverter:
                     time_dependent=True,
                     scenario_dependent=True,
                     scenario_group=None,
-                    value="nominal_pumping_capacity_lt_storage_fr",
+                    value="nominal_pumping_capacity_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="nominal_generation_capacity",
                     time_dependent=True,
                     scenario_dependent=True,
                     scenario_group=None,
-                    value="nominal_generation_capacity_lt_storage_fr",
+                    value="nominal_generation_capacity_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="minimum_generation",
                     time_dependent=True,
                     scenario_dependent=True,
                     scenario_group=None,
-                    value="minimum_generation_lt_storage_fr",
+                    value="minimum_generation_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="pumping_efficiency",
@@ -711,28 +716,28 @@ class TestConverter:
                     time_dependent=True,
                     scenario_dependent=False,
                     scenario_group=None,
-                    value="lower_rule_curve_lt_storage_fr",
+                    value="lower_rule_curve_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="upper_rule_curve",
                     time_dependent=True,
                     scenario_dependent=False,
                     scenario_group=None,
-                    value="upper_rule_curve_lt_storage_fr",
+                    value="upper_rule_curve_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="inflows",
                     time_dependent=True,
                     scenario_dependent=True,
                     scenario_group=None,
-                    value="inflows_lt_storage_fr",
+                    value="inflows_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="initial_and_final_level",
                     time_dependent=True,
                     scenario_dependent=True,
                     scenario_group=None,
-                    value="initial_and_final_level_lt_storage_fr",
+                    value="initial_and_final_level_fr_hydro_storage",
                 ),
                 ComponentParameterSchema(
                     id="overflow_cost",
@@ -776,10 +781,10 @@ class TestConverter:
         ) = converter._convert_model_to_component_list(resource_content)
 
         assert load_connections == [
-            c for c in expected_data.connections if c.component1 == "load_fr"
+            c for c in expected_data.connections if c.component1 == "fr_load"
         ]
         assert load_components == [
-            c for c in expected_data.components if c.id == "load_fr"
+            c for c in expected_data.components if c.id == "fr_load"
         ]
         # TODO enrich
 
@@ -803,21 +808,21 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         solar_fr_component = next(
-            (comp for comp in solar_components if comp.id == "solar_fr"), None
+            (comp for comp in solar_components if comp.id == "fr_solar"), None
         )
         solar_fr_connection = next(
-            (conn for conn in solar_connections if conn.component1 == "solar_fr"), None
+            (conn for conn in solar_connections if conn.component1 == "fr_solar"), None
         )
-        solar_timeseries = "available_power_solar_fr"
+        solar_timeseries = "available_power_fr_solar"
         expected_solar_connection = PortConnectionsSchema(
-            component1="solar_fr",
+            component1="fr_solar",
             port1="balance_port",
-            component2="fr",
+            component2="fr_node",
             port2="balance_port",
         )
 
         expected_solar_components = ComponentSchema(
-            id="solar_fr",
+            id="fr_solar",
             model="antares_legacy_models.renewable",
             scenario_group=None,
             parameters=[
@@ -864,21 +869,21 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         load_fr_component = next(
-            (comp for comp in load_components if comp.id == "load_fr"), None
+            (comp for comp in load_components if comp.id == "fr_load"), None
         )
         load_fr_connection = next(
-            (conn for conn in load_connections if conn.component1 == "load_fr"), None
+            (conn for conn in load_connections if conn.component1 == "fr_load"), None
         )
 
-        load_timeseries = "load_load_fr"
+        load_timeseries = "load_fr_load"
         expected_load_connection = PortConnectionsSchema(
-            component1="load_fr",
+            component1="fr_load",
             port1="balance_port",
-            component2="fr",
+            component2="fr_node",
             port2="balance_port",
         )
         expected_load_components = ComponentSchema(
-            id="load_fr",
+            id="fr_load",
             model="antares_legacy_models.load",
             scenario_group=None,
             parameters=[
@@ -914,20 +919,20 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         wind_fr_component = next(
-            (comp for comp in wind_components if comp.id == "wind_fr"), None
+            (comp for comp in wind_components if comp.id == "fr_wind"), None
         )
         wind_fr_connection = next(
-            (conn for conn in wind_connections if conn.component1 == "wind_fr"), None
+            (conn for conn in wind_connections if conn.component1 == "fr_wind"), None
         )
 
         expected_wind_connection = PortConnectionsSchema(
-            component1="wind_fr",
+            component1="fr_wind",
             port1="balance_port",
-            component2="fr",
+            component2="fr_node",
             port2="balance_port",
         )
         expected_wind_components = ComponentSchema(
-            id="wind_fr",
+            id="fr_wind",
             model="antares_legacy_models.renewable",
             scenario_group="wind_group",
             parameters=[
@@ -947,7 +952,7 @@ class TestConverter:
                     id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
-                    value="available_power_wind_fr",
+                    value="available_power_fr_wind",
                 ),
             ],
             properties=[
@@ -1026,32 +1031,32 @@ class TestConverter:
 
         expected_misc_gen_connections = [
             PortConnectionsSchema(
-                component1=f"{generation_type}_fr",
+                component1=f"fr_{generation_type}",
                 port1="balance_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             )
             for generation_type in [
-                "chp",
+                "combined_heat_power",
                 "biomass",
                 "biogas",
                 "waste",
                 "geothermal",
                 "other",
-                "psp",
-                "rest_of_world",
+                "pumped_storage_power",
+                "rest_world",
             ]
         ]
         expected_misc_gen_components = [
             ComponentSchema(
-                id=f"{generation_type}_fr",
+                id=f"fr_{generation_type}",
                 model="antares_legacy_models.miscellaneous_generation",
                 parameters=[
                     ComponentParameterSchema(
                         id="available_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"available_power_{generation_type}_fr",
+                        value=f"available_power_fr_{generation_type}",
                     )
                 ],
                 properties=[
@@ -1060,20 +1065,20 @@ class TestConverter:
                     ComponentPropertySchema(
                         id="miscellaneous_type",
                         value="misc_ndg"
-                        if generation_type not in ["psp", "rest_of_world"]
+                        if generation_type not in ["pumped_storage_power", "rest_world"]
                         else generation_type,
                     ),
                 ],
             )
             for generation_type in [
-                "chp",
+                "combined_heat_power",
                 "biomass",
                 "biogas",
                 "waste",
                 "geothermal",
                 "other",
-                "psp",
-                "rest_of_world",
+                "pumped_storage_power",
+                "rest_world",
             ]
         ]
         assert misc_gen_connections == expected_misc_gen_connections
@@ -1126,22 +1131,22 @@ class TestConverter:
 
         expected_misc_gen_connections = [
             PortConnectionsSchema(
-                component1=f"biomass_fr",
+                component1=f"fr_biomass",
                 port1="balance_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             )
         ]
         expected_misc_gen_components = [
             ComponentSchema(
-                id=f"biomass_fr",
+                id=f"fr_biomass",
                 model="antares_legacy_models.miscellaneous_generation",
                 parameters=[
                     ComponentParameterSchema(
                         id="available_power",
                         time_dependent=True,
                         scenario_dependent=False,
-                        value=f"available_power_biomass_fr",
+                        value=f"available_power_fr_biomass",
                     )
                 ],
                 properties=[
@@ -1173,20 +1178,21 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         ror_fr_component = next(
-            (comp for comp in ror_components if comp.id == "ror_fr"), None
+            (comp for comp in ror_components if comp.id == "fr_run_of_river"), None
         )
         ror_fr_connection = next(
-            (conn for conn in ror_connections if conn.component1 == "ror_fr"), None
+            (conn for conn in ror_connections if conn.component1 == "fr_run_of_river"),
+            None,
         )
 
         expected_ror_connection = PortConnectionsSchema(
-            component1="ror_fr",
+            component1="fr_run_of_river",
             port1="balance_port",
-            component2="fr",
+            component2="fr_node",
             port2="balance_port",
         )
         expected_ror_component = ComponentSchema(
-            id="ror_fr",
+            id="fr_run_of_river",
             model="antares_legacy_models.renewable",
             scenario_group=None,
             parameters=[
@@ -1206,7 +1212,7 @@ class TestConverter:
                     id="available_power",
                     time_dependent=True,
                     scenario_dependent=True,
-                    value="available_power_ror_fr",
+                    value="available_power_fr_run_of_river",
                 ),
             ],
             properties=[
@@ -1275,24 +1281,24 @@ class TestConverter:
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
-        fr_it_direct_links_timeseries = "direct_capacity_fr_it"
-        fr_it_indirect_links_timeseries = "indirect_capacity_fr_it"
-        fr_it_direct_costs_timeseries = "direct_hurdle_cost_fr_it"
-        fr_it_indirect_costs_timeseries = "indirect_hurdle_cost_fr_it"
-        at_fr_direct_links_timeseries = "direct_capacity_at_fr"
-        at_fr_indirect_links_timeseries = "indirect_capacity_at_fr"
-        at_it_direct_links_timeseries = "direct_capacity_at_it"
-        at_it_indirect_links_timeseries = "indirect_capacity_at_it"
-        at_fr_direct_costs_timeseries = "direct_hurdle_cost_at_fr"
-        at_fr_indirect_costs_timeseries = "indirect_hurdle_cost_at_fr"
-        at_it_direct_costs_timeseries = "direct_hurdle_cost_at_it"
-        at_it_indirect_costs_timeseries = "indirect_hurdle_cost_at_it"
-        fr_it_loop_flow_timeseries = "loop_flow_fr_it"
-        at_fr_loop_flow_timeseries = "loop_flow_at_fr"
-        at_it_loop_flow_timeseries = "loop_flow_at_it"
+        fr_it_direct_links_timeseries = "direct_capacity_fr_it_link"
+        fr_it_indirect_links_timeseries = "indirect_capacity_fr_it_link"
+        fr_it_direct_costs_timeseries = "direct_hurdle_cost_fr_it_link"
+        fr_it_indirect_costs_timeseries = "indirect_hurdle_cost_fr_it_link"
+        at_fr_direct_links_timeseries = "direct_capacity_at_fr_link"
+        at_fr_indirect_links_timeseries = "indirect_capacity_at_fr_link"
+        at_it_direct_links_timeseries = "direct_capacity_at_it_link"
+        at_it_indirect_links_timeseries = "indirect_capacity_at_it_link"
+        at_fr_direct_costs_timeseries = "direct_hurdle_cost_at_fr_link"
+        at_fr_indirect_costs_timeseries = "indirect_hurdle_cost_at_fr_link"
+        at_it_direct_costs_timeseries = "direct_hurdle_cost_at_it_link"
+        at_it_indirect_costs_timeseries = "indirect_hurdle_cost_at_it_link"
+        fr_it_loop_flow_timeseries = "loop_flow_fr_it_link"
+        at_fr_loop_flow_timeseries = "loop_flow_at_fr_link"
+        at_it_loop_flow_timeseries = "loop_flow_at_it_link"
         expected_link_component = [
             ComponentSchema(
-                id="fr_/_it",
+                id="fr_it_link",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
@@ -1337,7 +1343,7 @@ class TestConverter:
                 ],
             ),
             ComponentSchema(
-                id="at_/_fr",
+                id="at_fr_link",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
@@ -1382,7 +1388,7 @@ class TestConverter:
                 ],
             ),
             ComponentSchema(
-                id="at_/_it",
+                id="at_it_link",
                 model="antares_legacy_models.link",
                 scenario_group=None,
                 parameters=[
@@ -1430,39 +1436,39 @@ class TestConverter:
 
         expected_link_connections = [
             PortConnectionsSchema(
-                component1="at_/_fr",
+                component1="at_fr_link",
                 port1="in_port",
-                component2="at",
+                component2="at_node",
                 port2="balance_port",
             ),
             PortConnectionsSchema(
-                component1="at_/_fr",
+                component1="at_fr_link",
                 port1="out_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             ),
             PortConnectionsSchema(
-                component1="at_/_it",
+                component1="at_it_link",
                 port1="in_port",
-                component2="at",
+                component2="at_node",
                 port2="balance_port",
             ),
             PortConnectionsSchema(
-                component1="at_/_it",
+                component1="at_it_link",
                 port1="out_port",
-                component2="it",
+                component2="it_node",
                 port2="balance_port",
             ),
             PortConnectionsSchema(
-                component1="fr_/_it",
+                component1="fr_it_link",
                 port1="in_port",
-                component2="fr",
+                component2="fr_node",
                 port2="balance_port",
             ),
             PortConnectionsSchema(
-                component1="fr_/_it",
+                component1="fr_it_link",
                 port1="out_port",
-                component2="it",
+                component2="it_node",
                 port2="balance_port",
             ),
         ]
@@ -1519,10 +1525,10 @@ class TestConverter:
 
         assert area_connections == []
         assert binding_connections == [
-            c for c in expected_data.connections if c.component1 == "battery_fr"
+            c for c in expected_data.connections if c.component1 == "fr_battery"
         ]
         assert binding_components == [
-            c for c in expected_data.components if c.id == "battery_fr"
+            c for c in expected_data.components if c.id == "fr_battery"
         ]
         # TODO enrich
 
@@ -1558,21 +1564,21 @@ class TestConverter:
         ) = converter._convert_model_to_component_list(bc_data)
 
         output_path = converter.output_folder
-        path1 = output_path / "input" / "data-series" / "marginal_cost_battery_fr.tsv"
+        path1 = output_path / "input" / "data-series" / "marginal_cost_fr_battery.tsv"
         path2 = (
             output_path
             / "input"
             / "data-series"
-            / "p_max_injection_modulation_battery_fr.tsv"
+            / "p_max_injection_modulation_fr_battery.tsv"
         )
         path3 = (
             output_path
             / "input"
             / "data-series"
-            / "p_max_withdrawal_modulation_battery_fr.tsv"
+            / "p_max_withdrawal_modulation_fr_battery.tsv"
         )
         path4 = (
-            output_path / "input" / "data-series" / "upper_rule_curve_battery_fr.tsv"
+            output_path / "input" / "data-series" / "upper_rule_curve_fr_battery.tsv"
         )
         assert check_file_exists(path1)
         assert check_file_exists(path2)
@@ -1581,7 +1587,7 @@ class TestConverter:
         ### Compare area connections
         expected_area_connections = [
             AreaConnectionsSchema(
-                component="battery_fr", port="injection_port", area="fr"
+                component="fr_battery", port="injection_port", area="fr"
             )
         ]
         assert area_connections == expected_area_connections
