@@ -69,9 +69,15 @@ jobs:
             const body = [
               `Antares Legacy models library updated to \`v${version}\` in [${converterRepo}](https://github.com/${converterOwner}/${converterRepo}).`,
               '',
-              `Changelog: https://github.com/${converterOwner}/${converterRepo}/blob/main/src/antares_gems_converter/libs/antares_historic/CHANGELOG-antares_legacy_models_library.md`,
+              'The converter is the **source of truth** for this library. To sync GEMS, simply copy the following three files from the converter into the GEMS repository — no regeneration or manual edits are required:',
               '',
-              'Update `libraries/antares_legacy_models.yml` in GEMS accordingly.',
+              '| File | From (converter) | To (GEMS) |',
+              '|---|---|---|',
+              '| Library YAML | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` | `libraries/antares_legacy_models.yml` |',
+              '| SHA256 checksum | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml.sha256` | `libraries/antares_legacy_models.yml.sha256` |',
+              '| Library changelog | `src/antares_gems_converter/libs/antares_historic/CHANGELOG-antares_legacy_models_library.md` | `libraries/CHANGELOG-antares_legacy_models_library.md` |',
+              '',
+              'That is all — copy these three files and nothing else.',
             ].join('\n');
 
             const result = await github.rest.issues.create({
