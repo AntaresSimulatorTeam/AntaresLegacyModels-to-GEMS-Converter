@@ -21,7 +21,7 @@ template:
       # exclude:
 
   components:
-    - id: lt_storage_${area}
+    - id: ${area}_hydro_storage
       parameters:
         - id: reservoir_capacity
           time-dependent: false
@@ -115,14 +115,14 @@ template:
 
   # For full modeler mode
   connections:
-    - component1: lt_storage_${area}
+    - component1: ${area}_hydro_storage
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: lt_storage_${area}
+    - component: ${area}_hydro_storage
       port: balance_port
       area: ${area}
 

@@ -281,7 +281,7 @@ catalog:
   - id: LOLD
     terms:
       - taxonomy-category: balance
-        output-id: is_loss_of_load
+        output-id: is_significant_loss_of_load
         location-ports: null
     terms-operator: sum
     time-operator: sum

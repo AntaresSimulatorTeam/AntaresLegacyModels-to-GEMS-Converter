@@ -10,6 +10,12 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.1.2]
+
+- `area` model: added `is_significant_loss_of_load` extra-output (`unsupplied_energy >= 0.5`); `is_loss_of_load` now captures any non-zero unsupplied energy (`unsupplied_energy >= 1e-6`).
+
+---
+
 ## [2.1.1]
 
 - Added `carrier` property to `link`, `short_term_storage`, and `long_term_storage` models.

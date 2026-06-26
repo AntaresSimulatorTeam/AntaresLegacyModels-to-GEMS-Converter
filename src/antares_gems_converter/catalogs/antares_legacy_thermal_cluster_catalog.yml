@@ -16,8 +16,6 @@ catalog:
         location-ports: null
     terms-operator: sum
     time-operator: sum
-    breakdown:
-      - key: plant
 
   - id: MIN.GEN
     terms:
@@ -26,8 +24,6 @@ catalog:
         location-ports: null
     terms-operator: sum
     time-operator: sum
-    breakdown:
-      - key: plant
 
   - id: PROFIT
     terms:
@@ -36,8 +32,6 @@ catalog:
         location-ports: null
     terms-operator: sum
     time-operator: sum
-    breakdown:
-      - key: plant
 
   - id: NODU
     terms:
@@ -46,8 +40,6 @@ catalog:
         location-ports: null
     terms-operator: sum
     time-operator: sum
-    breakdown:
-      - key: plant
 
   - id: NP.COST
     terms:
@@ -56,5 +48,3 @@ catalog:
         location-ports: null
     terms-operator: sum
     time-operator: sum
-    breakdown:
-      - key: plant

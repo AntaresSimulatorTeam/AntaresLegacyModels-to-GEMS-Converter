@@ -27,6 +27,7 @@ taxonomy:
         - id: price
         - id: imbalance_cost
         - id: is_loss_of_load
+        - id: is_significant_loss_of_load
         - id: is_near_loss_of_load
 
     - id: generation
@@ -60,7 +61,6 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
-        - id: plant
 
     - id: fatal_generation
       parent-category: generation

@@ -21,7 +21,7 @@ template:
       # exclude:
 
   components:
-    - id: load_${area}
+    - id: ${area}_load
       parameters:
         - id: load
           time-dependent: true
@@ -37,14 +37,14 @@ template:
 
   # For full modeler mode
   connections:
-    - component1: load_${area}
+    - component1: ${area}_load
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: load_${area}
+    - component: ${area}_load
       port: balance_port
       area: ${area}
 

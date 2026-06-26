@@ -22,7 +22,7 @@ template:
       # exclude:
 
   components:
-    - id: wind_${area}
+    - id: ${area}_wind
       parameters:
         - id: nominal_capacity
           time-dependent: false
@@ -51,14 +51,14 @@ template:
 
   # For full modeler mode
   connections:
-    - component1: wind_${area}
+    - component1: ${area}_wind
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: wind_${area}
+    - component: ${area}_wind
       port: balance_port
       area: ${area}
 

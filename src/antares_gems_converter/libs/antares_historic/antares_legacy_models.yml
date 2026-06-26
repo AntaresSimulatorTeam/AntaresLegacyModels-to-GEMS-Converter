@@ -12,7 +12,7 @@
 library:
   id: antares_legacy_models
   description: Antares historic model library
-  version: "2.1.1"
+  version: "2.1.2"
   taxonomy: antares_legacy_taxonomy
 
   port-types:
@@ -58,6 +58,8 @@ library:
         - id: imbalance_cost
           expression: spillage_cost * spilled_energy + unsupplied_energy_cost * unsupplied_energy
         - id: is_loss_of_load
+          expression: unsupplied_energy >= 0.000001
+        - id: is_significant_loss_of_load
           expression: unsupplied_energy >= 0.5
         - id: is_near_loss_of_load
           expression: dual(balance) >= unsupplied_energy_cost - 5
@@ -274,7 +276,6 @@ library:
         - id: objective
           expression: sum(market_bid_cost * generation_power + startup_cost * num_units_starting + fixed_cost * num_units_on)
       properties:
-        - id: plant
         - id: carrier
         - id: technology
       extra-outputs:

@@ -38,7 +38,7 @@ template:
 
 
   components:
-    - id: battery_${area}
+    - id: ${area}_battery
       parameters:
         - id: reservoir_capacity
           time-dependent: false
@@ -151,14 +151,14 @@ template:
             constant: electricity
 
   connections:
-    - component1: battery_${area}
+    - component1: ${area}_battery
       port1: injection_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   area-connections: #Syntax for hybrid connections: https://antares-simulator.readthedocs.io/en/latest/user-guide/solver/08-hybrid-studies/
     #To handle the case of hybrid studies, where we replace complex modeling artifacts for batteries by a model.
-    - component: battery_${area}
+    - component: ${area}_battery
       port: injection_port
       area: ${area}
 

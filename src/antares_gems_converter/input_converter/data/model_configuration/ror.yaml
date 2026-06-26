@@ -21,7 +21,7 @@ template:
       # exclude:
 
   components:
-    - id: ror_${area}
+    - id: ${area}_run_of_river
       parameters:
         - id: nominal_capacity
           time-dependent: false
@@ -51,14 +51,14 @@ template:
 
   # For full modeler mode
   connections:
-    - component1: ror_${area}
+    - component1: ${area}_run_of_river
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: ror_${area}
+    - component: ${area}_run_of_river
       port: balance_port
       area: ${area}
 

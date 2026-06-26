@@ -19,7 +19,7 @@ template:
     - name: area
 
   components:
-    - id: chp_${area}
+    - id: ${area}_combined_heat_power
       parameters:
         - id: available_power
           time-dependent: true
@@ -35,11 +35,11 @@ template:
             constant: electricity
         - id: technology
           value:
-            constant: chp
+            constant: combined_heat_power
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: biomass_${area}
+    - id: ${area}_biomass
       parameters:
         - id: available_power
           time-dependent: true
@@ -59,7 +59,7 @@ template:
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: biogas_${area}
+    - id: ${area}_biogas
       parameters:
         - id: available_power
           time-dependent: true
@@ -79,7 +79,7 @@ template:
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: waste_${area}
+    - id: ${area}_waste
       parameters:
         - id: available_power
           time-dependent: true
@@ -99,7 +99,7 @@ template:
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: geothermal_${area}
+    - id: ${area}_geothermal
       parameters:
         - id: available_power
           time-dependent: true
@@ -119,7 +119,7 @@ template:
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: other_${area}
+    - id: ${area}_other
       parameters:
         - id: available_power
           time-dependent: true
@@ -139,7 +139,7 @@ template:
         - id: miscellaneous_type
           value:
             constant: misc_ndg
-    - id: psp_${area}
+    - id: ${area}_pumped_storage_power
       parameters:
         - id: available_power
           time-dependent: true
@@ -155,11 +155,11 @@ template:
             constant: electricity
         - id: technology
           value:
-            constant: psp
+            constant: pumped_storage_power
         - id: miscellaneous_type
           value:
-            constant: psp
-    - id: rest_of_world_${area}
+            constant: pumped_storage_power
+    - id: ${area}_rest_world
       parameters:
         - id: available_power
           time-dependent: true
@@ -175,72 +175,72 @@ template:
             constant: electricity
         - id: technology
           value:
-            constant: rest_of_world
+            constant: rest_world
         - id: miscellaneous_type
           value:
-            constant: rest_of_world
+            constant: rest_world
 
   # For full modeler mode
   connections:
-    - component1: chp_${area}
+    - component1: ${area}_combined_heat_power
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: biomass_${area}
+    - component1: ${area}_biomass
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: biogas_${area}
+    - component1: ${area}_biogas
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: waste_${area}
+    - component1: ${area}_waste
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: geothermal_${area}
+    - component1: ${area}_geothermal
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: other_${area}
+    - component1: ${area}_other
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: psp_${area}
+    - component1: ${area}_pumped_storage_power
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
-    - component1: rest_of_world_${area}
+    - component1: ${area}_rest_world
       port1: balance_port
-      component2: ${area}
+      component2: ${area}_node
       port2: balance_port
 
   # For hybrid mode
   area-connections:
-    - component: chp_${area}
+    - component: ${area}_combined_heat_power
       port: balance_port
       area: ${area}
-    - component: biomass_${area}
+    - component: ${area}_biomass
       port: balance_port
       area: ${area}
-    - component: biogas_${area}
+    - component: ${area}_biogas
       port: balance_port
       area: ${area}
-    - component: waste_${area}
+    - component: ${area}_waste
       port: balance_port
       area: ${area}
-    - component: geothermal_${area}
+    - component: ${area}_geothermal
       port: balance_port
       area: ${area}
-    - component: other_${area}
+    - component: ${area}_other
       port: balance_port
       area: ${area}
-    - component: psp_${area}
+    - component: ${area}_pumped_storage_power
       port: balance_port
       area: ${area}
-    - component: rest_of_world_${area}
+    - component: ${area}_rest_world
       port: balance_port
-      area: ${area}    
+      area: ${area}
 
   legacy-objects-to-delete:
     - id: legacy_misc_gen
