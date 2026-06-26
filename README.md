@@ -17,14 +17,23 @@ This tool automates the translation of Antares Simulator studies into valid GEMS
 
 ## Installation
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+ (CI uses 3.12). Python library versions are pinned in `pyproject.toml` and locked in `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
+Requires Python 3.11+.
+
+**From PyPI:**
+
+```bash
+pip install antares-legacy-gems-converter
+```
+
+**From source (for development):**
+
+Requires [uv](https://docs.astral.sh/uv/). Python library versions are pinned in `pyproject.toml` and locked in `uv.lock` (see [COMPATIBILITY.md](COMPATIBILITY.md#python-library-dependencies)).
 
 ```bash
 git clone https://github.com/AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter.git
 cd AntaresLegacyModels-to-GEMS-Converter
 uv sync --group dev
 ```
-
 
 ## Usage
 
@@ -48,9 +57,7 @@ model_list = thermal, battery
 Then run the converter:
 
 ```bash
-python -m antares_gems_converter.input_converter.src.main \
-    --conf path/to/config.ini \
-    --logging path/to/output.log
+antares-to-gems --conf path/to/config.ini --logging path/to/output.log
 ```
 
 The `--conf` and `--logging` arguments are optional — they default to `data/config.ini` and `data/logging.log` respectively.
