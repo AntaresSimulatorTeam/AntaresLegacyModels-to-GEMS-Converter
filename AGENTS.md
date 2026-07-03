@@ -238,6 +238,8 @@ Runs on every push to any branch:
 - No direct pushes to `main`
 - CI runs on every push
 
+> **Full ecosystem developer guide:** the authoritative branching, versioning, CI/CD, and release process for all repositories (including this converter) lives in the GEMS Developer Guidelines, published at <https://gems-energy.readthedocs.io/en/latest/support/dev-guidelines/>. Fetch this page (e.g. via WebFetch) before any branching, versioning, or release work.
+
 ---
 
 ## Coding Conventions
