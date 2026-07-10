@@ -307,8 +307,9 @@ catalog:
       - taxonomy-category: miscellaneous_fatal_generation
         output-id: generation_power
         location-ports: balance_port
-    filter: 
-      - technology: rest_of_world
+    filter:
+      key: miscellaneous_type
+      value: rest_world
     terms-operator: sum
     time-operator: sum
 
@@ -318,7 +319,8 @@ catalog:
         output-id: generation_power
         location-ports: balance_port
     filter: 
-      - miscellaneous_type: misc_ndg 
+      key: miscellaneous_type
+      value: misc_ndg
     terms-operator: sum
     time-operator: sum
   
@@ -328,7 +330,8 @@ catalog:
         output-id: generation_power
         location-ports: balance_port
     filter: 
-      - technology: pumped_storage_plant
+      key: miscellaneous_type
+      value: pumped_storage_power
     terms-operator: sum
     time-operator: sum
 
