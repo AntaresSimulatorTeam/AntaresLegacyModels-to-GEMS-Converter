@@ -38,7 +38,7 @@ wheels = [
 
 [[package]]
 name = "antares-legacy-gems-converter"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "antares-craft" },
