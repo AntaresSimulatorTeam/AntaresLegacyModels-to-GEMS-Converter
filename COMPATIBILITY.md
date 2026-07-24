@@ -4,6 +4,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Converter | Antares-Simulator | antares-craft | GemsPy | Notes |
 |-----------|-------------------|---------------|--------|-------|
+| 0.3.0     | 10.1.0            | 0.15.1        | 0.1.2  | antares-craft 0.15.1 (bug fix: districts issue in area deletion; unused read_outputs_api/local methods added) |
 | 0.2.1     | 10.1.0            | 0.14.0        | 0.1.2  | Packaging fix: include missing YAML files (model libraries) in the pip package |
 | 0.2.0     | 10.1.0            | 0.14.0        | 0.1.2  | GemsPy 0.1.2; Antares Legacy Models Library 2.1.2; all component properties now converted via templates (only `electricity` carrier supported)|
 | 0.1.3     | 10.1.0            | 0.14.0        | 0.1.0  | Antares Legacy Models Library 2.1.0: market bid cost in thermal, STS overflow and variation penalties |
@@ -36,7 +37,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Package | Pinned version |
 |---------|----------------|
-| antares-craft | 0.14.0 |
+| antares-craft | 0.15.1 |
 | antares-study-version | 1.0.20 |
 | antares-timeseries-generation | 0.1.9 |
 | gemspy | 0.1.2 |
@@ -59,8 +60,8 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
-| Converter | 0.2.1 | `pyproject.toml` |
+| Converter | 0.3.0 | `pyproject.toml` |
 | Antares Legacy Models Library | 2.1.2 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
 | Antares-Simulator | 10.1.0 | `dependencies.json` |
-| antares-craft | 0.14.0 | `pyproject.toml` |
+| antares-craft | 0.15.1 | `pyproject.toml` |
 | GemsPy | 0.1.2 | `pyproject.toml` |

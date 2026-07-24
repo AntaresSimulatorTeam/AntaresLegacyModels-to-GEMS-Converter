@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "antares-craft"
-version = "0.14.0"
+version = "0.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "antares-study-version" },
@@ -31,14 +31,14 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/68/31422ddfa8e017c6ece6507768ecde08d52aebbd8c587f0eb336144ab9cd/antares_craft-0.14.0.tar.gz", hash = "sha256:ec96d476d217c61475440aa7331a7ea7161b2ef66e84d77e36a393c342f51d08", size = 167170, upload-time = "2026-05-20T08:52:48.538Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/22/c4b801b8a0d87a0092ac582d315b03c20c41e8cbcdd5dad7b5683880b90a/antares_craft-0.15.1.tar.gz", hash = "sha256:0e4422ec0d83027375b02dc43ff4f881c3e3ac012949a1c5bf51e7227b94d28c", size = 169034, upload-time = "2026-07-10T15:42:20.493Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/4c/0cca779057c7d3fa0a350535ef3a71eb8bbfe88a2e97197986dd0e99e52f/antares_craft-0.14.0-py3-none-any.whl", hash = "sha256:3f2f761a01389a35111568bd68e17b0dcd66f6f0f0886f6e500a8b305dcbbae0", size = 243687, upload-time = "2026-05-20T08:52:47.415Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/99/05c8e96951e814b74d2425fa1aeefdab458379bd2bf0ec82ca47de7c529e/antares_craft-0.15.1-py3-none-any.whl", hash = "sha256:be3ed9708513f0ba75e61a1599d18f29e5500c9bd5d58f17c32e148b44b1ce1c", size = 245031, upload-time = "2026-07-10T15:42:19.378Z" },
 ]
 
 [[package]]
 name = "antares-legacy-gems-converter"
-version = "0.2.1"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "antares-craft" },
@@ -62,7 +62,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "antares-craft", specifier = "==0.14.0" },
+    { name = "antares-craft", specifier = "==0.15.1" },
     { name = "antares-study-version", specifier = "==1.0.20" },
     { name = "antares-timeseries-generation", specifier = "==0.1.9" },
     { name = "gemspy", specifier = "==0.1.2" },
