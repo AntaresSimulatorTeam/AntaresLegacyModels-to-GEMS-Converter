@@ -1,5 +1,4 @@
 catalog:
-  
   id: antares_thermal_cluster_metrics
 
   taxonomy: antares_legacy_taxonomy
@@ -7,44 +6,43 @@ catalog:
   location:
     taxonomy-category: dispatchable_generation
 
-  metrics-definition: 
+  metrics-definition:
+    - id: GENERATION
+      terms:
+        - taxonomy-category: dispatchable_generation
+          output-id: generation_power
+          location-port: null
+      terms-operator: sum
+      time-operator: sum
 
-  - id: GENERATION
-    terms:
-      - taxonomy-category: dispatchable_generation
-        output-id: generation_power
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
+    - id: MIN.GEN
+      terms:
+        - taxonomy-category: dispatchable_generation
+          output-id: min_gen_power
+          location-port: null
+      terms-operator: sum
+      time-operator: sum
 
-  - id: MIN.GEN
-    terms:
-      - taxonomy-category: dispatchable_generation
-        output-id: min_gen_power
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
+    - id: PROFIT
+      terms:
+        - taxonomy-category: dispatchable_generation
+          output-id: profit
+          location-port: null
+      terms-operator: sum
+      time-operator: sum
 
-  - id: PROFIT
-    terms:
-      - taxonomy-category: dispatchable_generation
-        output-id: profit 
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
+    - id: NODU
+      terms:
+        - taxonomy-category: dispatchable_generation
+          output-id: actual_num_units_on
+          location-port: null
+      terms-operator: sum
+      time-operator: sum
 
-  - id: NODU
-    terms:
-      - taxonomy-category: dispatchable_generation
-        output-id: actual_num_units_on
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
-
-  - id: NP.COST
-    terms:
-      - taxonomy-category: dispatchable_generation
-        output-id: non_prop_cost
-        location-ports: null
-    terms-operator: sum
-    time-operator: sum
+    - id: NP.COST
+      terms:
+        - taxonomy-category: dispatchable_generation
+          output-id: non_prop_cost
+          location-port: null
+      terms-operator: sum
+      time-operator: sum
