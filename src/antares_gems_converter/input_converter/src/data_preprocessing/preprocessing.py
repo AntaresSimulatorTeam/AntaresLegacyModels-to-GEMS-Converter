@@ -4,6 +4,7 @@ from typing import Any, Union
 import pandas as pd
 from antares.craft.model.binding_constraint import BindingConstraint, ConstraintTerm
 from antares.craft.model.link import Link
+from antares.craft.model.renewable import TimeSeriesInterpretation
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import (
@@ -82,6 +83,20 @@ class ModelConversionPreprocessor:
             time_series = getattr(
                 cluster, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field]
             )()
+            if (
+                type_resource == "renewable"
+                and obj.object_properties.field == "renewable_series"
+                and cluster.properties.ts_interpretation
+                == TimeSeriesInterpretation.PRODUCTION_FACTOR
+            ):
+                # Antares "production-factor" series are in [0, 1] (fraction of
+                # installed capacity); the GEMS renewable model expects available_power
+                # in MW, so scale by the cluster's installed capacity.
+                time_series = (
+                    time_series
+                    * cluster.properties.nominal_capacity
+                    * cluster.properties.unit_count
+                )
         else:
             cluster_properties = getattr(cluster, "properties")
             field_name = obj.object_properties.field

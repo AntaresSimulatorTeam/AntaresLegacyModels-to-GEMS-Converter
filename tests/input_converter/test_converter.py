@@ -15,6 +15,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from antares.craft.model.renewable import (
+    RenewableClusterProperties,
+    TimeSeriesInterpretation,
+)
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
@@ -699,6 +703,48 @@ class TestConverter:
 
         assert renewables_components == expected_renewables_component
         assert renewables_connections == expected_renewables_connections
+
+    def test_convert_renewables_to_component_production_factor(
+        self, local_study_w_thermal: Study
+    ):
+        # A "production-factor" cluster's series is a [0, 1] availability factor,
+        # not a power value: the converter must scale it by nominal_capacity * unit_count.
+        local_study_w_thermal.get_areas()["fr"].create_renewable_cluster(
+            "wind_pf",
+            RenewableClusterProperties(
+                unit_count=3,
+                nominal_capacity=150.0,
+                ts_interpretation=TimeSeriesInterpretation.PRODUCTION_FACTOR,
+            ),
+        )
+        local_study_w_thermal.get_areas()["fr"].get_renewables()[
+            "wind_pf"
+        ].set_series(pd.DataFrame(create_dataframe_from_constant(lines=8760, value=1)))
+
+        converter = self._init_converter_from_study(local_study_w_thermal, model_list=[])
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (renewables_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
+
+        available_power_param = next(
+            param
+            for component in renewables_components
+            for param in component.parameters
+            if param.id == "available_power"
+        )
+        series_path = (
+            converter.output_folder
+            / "input"
+            / "data-series"
+            / f"{available_power_param.value}.tsv"
+        )
+        written_series = pd.read_csv(series_path, sep="\t", header=None)
+        # factor 1.0 * nominal_capacity 150 * unit_count 3 = 450 MW
+        assert (written_series == 450.0).all().all()
 
     def test_convert_hydro_to_component(
         self,
