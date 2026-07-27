@@ -135,6 +135,7 @@ ALLOWED_TYPES: list = [
     "area",
     "binding_constraint",
     "thermal",
+    "renewable",
     "link",
     "st_storage",
     "load",

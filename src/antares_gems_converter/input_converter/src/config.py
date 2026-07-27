@@ -111,6 +111,7 @@ MODEL_NAME_TO_FILE_NAME = {
     "solar": "solar.yaml",
     "short-term-storage": "st-storage.yaml",
     "thermal": "thermal.yaml",
+    "renewable": "renewable.yaml",
     "wind": "wind.yaml",
     "misc_gen": "misc_gen.yaml",
     "hydro": "hydro.yaml",

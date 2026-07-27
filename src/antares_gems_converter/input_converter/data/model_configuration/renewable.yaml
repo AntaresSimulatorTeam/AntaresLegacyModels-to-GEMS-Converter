@@ -1,0 +1,83 @@
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+
+# Configuration file to convert a complex modelling artefact in an Antares study into an Andromede model.
+
+template:
+  name: renewable
+  generator-version-compatibility: X.Y #TODO: find this information
+  model: antares_legacy_models.renewable
+  template-parameters:
+    - name: area
+      cluster-type: renewable
+      # exclude:
+
+  components:
+    - id: ${area}_renewable_${renewable}
+      parameters:
+        - id: nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: renewable
+              area: ${area}
+              cluster: ${renewable}
+              field: nominal_capacity
+        - id: num_units
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: renewable
+              area: ${area}
+              cluster: ${renewable}
+              field: unit_count
+        - id: available_power
+          time-dependent: true
+          scenario-dependent: true
+          value:
+            object-properties:
+              type: renewable
+              area: ${area}
+              cluster: ${renewable}
+              field: renewable_series
+      properties:
+        - id: carrier
+          value:
+            constant: electricity
+        - id: technology
+          value:
+            object-properties:
+              type: renewable
+              area: ${area}
+              cluster: ${renewable}
+              field: group
+
+  # For full modeler mode
+  connections:
+    - component1: ${area}_renewable_${renewable}
+      port1: balance_port
+      component2: ${area}_node
+      port2: balance_port
+
+  # For hybrid mode
+  area-connections:
+    - component: ${area}_renewable_${renewable}
+      port: balance_port
+      area: ${area}
+
+  legacy-objects-to-delete:
+    - id: legacy_renewable_cluster
+      object-properties:
+        type: renewable
+        area: ${area}
+        cluster: ${renewable}

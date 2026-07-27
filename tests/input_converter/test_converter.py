@@ -635,6 +635,71 @@ class TestConverter:
         assert thermals_components == expected_thermals_components
         assert thermals_connections == expected_thermals_connections
 
+    def test_convert_renewables_to_component(
+        self, local_study_with_renewable: Study, lib_id: str
+    ):
+        # This test is on the inner function _convert_model_to_component_list, no need to pass a model_list to the converter constructor
+        converter = self._init_converter_from_study(
+            local_study_with_renewable, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            renewables_components,
+            renewables_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+
+        available_power_path = "available_power_fr_renewable_generation"
+        expected_renewables_connections = [
+            PortConnectionsSchema(
+                component1="fr_renewable_generation",
+                port1="balance_port",
+                component2="fr_node",
+                port2="balance_port",
+            )
+        ]
+        expected_renewables_component = [
+            ComponentSchema(
+                id="fr_renewable_generation",
+                model=f"{lib_id}.renewable",
+                scenario_group=None,
+                parameters=[
+                    ComponentParameterSchema(
+                        id="nominal_capacity",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0.0,
+                    ),
+                    ComponentParameterSchema(
+                        id="num_units",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=1,
+                    ),
+                    ComponentParameterSchema(
+                        id="available_power",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=available_power_path,
+                    ),
+                ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="other res 1"),
+                ],
+            )
+        ]
+
+        assert renewables_components == expected_renewables_component
+        assert renewables_connections == expected_renewables_connections
+
     def test_convert_hydro_to_component(
         self,
         local_study_with_hydro: Study,
