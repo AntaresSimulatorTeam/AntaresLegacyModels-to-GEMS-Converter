@@ -61,6 +61,25 @@ class ModelConversionPreprocessor:
         link: Link = self.study.get_links()[link_id]
         return getattr(link, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field])()
 
+    def _apply_renewable_ts_interpretation(
+        self, type_resource: str, field: str, cluster: Any, time_series: pd.DataFrame
+    ) -> pd.DataFrame:
+        # Antares "production-factor" series are in [0, 1] (fraction of installed
+        # capacity); the GEMS renewable model expects available_power in MW, so
+        # scale by the cluster's installed capacity.
+        if (
+            type_resource != "renewable"
+            or field != "renewable_series"
+            or cluster.properties.ts_interpretation
+            != TimeSeriesInterpretation.PRODUCTION_FACTOR
+        ):
+            return time_series
+        return (
+            time_series
+            * cluster.properties.nominal_capacity
+            * cluster.properties.unit_count
+        )
+
     def calculate_cluster_data_values(
         self, type_resource: str, obj: ConversionValue
     ) -> Union[Any, pd.DataFrame]:
@@ -83,20 +102,9 @@ class ModelConversionPreprocessor:
             time_series = getattr(
                 cluster, TIMESERIES_NAME_TO_METHOD[obj.object_properties.field]
             )()
-            if (
-                type_resource == "renewable"
-                and obj.object_properties.field == "renewable_series"
-                and cluster.properties.ts_interpretation
-                == TimeSeriesInterpretation.PRODUCTION_FACTOR
-            ):
-                # Antares "production-factor" series are in [0, 1] (fraction of
-                # installed capacity); the GEMS renewable model expects available_power
-                # in MW, so scale by the cluster's installed capacity.
-                time_series = (
-                    time_series
-                    * cluster.properties.nominal_capacity
-                    * cluster.properties.unit_count
-                )
+            time_series = self._apply_renewable_ts_interpretation(
+                type_resource, obj.object_properties.field, cluster, time_series
+            )
         else:
             cluster_properties = getattr(cluster, "properties")
             field_name = obj.object_properties.field
