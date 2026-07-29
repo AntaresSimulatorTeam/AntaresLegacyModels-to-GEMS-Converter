@@ -374,10 +374,20 @@ class AntaresStudyConverter:
                             None,
                         )
                         if cluster_type:
-                            for cluster_id in getattr(
+                            clusters = getattr(
                                 area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
-                            )():
+                            )()
+                            for cluster_id, cluster in clusters.items():
                                 if cluster_id not in resolved_virtual_objects.thermals:
+                                    if (
+                                        cluster_type == "renewable"
+                                        and not cluster.properties.enabled
+                                    ):
+                                        self.logger.warning(
+                                            f"Renewable cluster '{cluster_id}' in area "
+                                            f"'{area.id}' is disabled; skipping conversion."
+                                        )
+                                        continue
                                     # We have already resolved areas, now need to resolve cluster ids
                                     cluster_resolved_template = (
                                         area_resolved_template.resolve_template(
