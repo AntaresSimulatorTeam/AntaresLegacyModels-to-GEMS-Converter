@@ -717,11 +717,13 @@ class TestConverter:
                 ts_interpretation=TimeSeriesInterpretation.PRODUCTION_FACTOR,
             ),
         )
-        local_study_w_thermal.get_areas()["fr"].get_renewables()[
-            "wind_pf"
-        ].set_series(pd.DataFrame(create_dataframe_from_constant(lines=8760, value=1)))
+        local_study_w_thermal.get_areas()["fr"].get_renewables()["wind_pf"].set_series(
+            pd.DataFrame(create_dataframe_from_constant(lines=8760, value=1))
+        )
 
-        converter = self._init_converter_from_study(local_study_w_thermal, model_list=[])
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=[]
+        )
         path_load = RESOURCES_FOLDER / "renewable.yaml"
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
@@ -745,6 +747,40 @@ class TestConverter:
         written_series = pd.read_csv(series_path, sep="\t", header=None)
         # factor 1.0 * nominal_capacity 150 * unit_count 3 = 450 MW
         assert (written_series == 450.0).all().all()
+
+    def test_convert_disabled_renewable_is_skipped(
+        self, local_study_w_thermal: Study, caplog: pytest.LogCaptureFixture
+    ):
+        local_study_w_thermal.get_areas()["fr"].create_renewable_cluster(
+            "disabled_wind",
+            RenewableClusterProperties(
+                enabled=False, unit_count=1, nominal_capacity=100.0
+            ),
+        )
+        local_study_w_thermal.get_areas()["fr"].get_renewables()[
+            "disabled_wind"
+        ].set_series(create_dataframe_from_constant(lines=8760))
+
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        with caplog.at_level("WARNING"):
+            (renewables_components, _, _) = converter._convert_model_to_component_list(
+                resource_content
+            )
+
+        assert all(
+            component.id != "fr_renewable_disabled_wind"
+            for component in renewables_components
+        )
+        assert any(
+            "disabled_wind" in record.message and "disabled" in record.message
+            for record in caplog.records
+        )
 
     def test_convert_hydro_to_component(
         self,
