@@ -48,14 +48,14 @@ from antares_gems_converter.input_converter.src.utils import (
     read_yaml_file,
     resolve_path,
 )
-from gems.study.parsing import (
-    AreaConnectionsSchema,
+from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentPropertySchema,
     ComponentSchema,
     PortConnectionsSchema,
     SystemSchema,
 )
+from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
 
 ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
@@ -494,7 +494,7 @@ class AntaresStudyConverter:
         connections.extend(connections_from_model)
         area_connections.extend(area_connections_from_model)
 
-    def convert_study_to_input_system(self) -> SystemSchema:
+    def convert_study_to_input_system(self) -> HybridSystemSchema:
         self._copy_libs_to_model_librairies()
         self._copy_scenario_builder()
         self._create_dataseries_dir()
@@ -515,14 +515,14 @@ class AntaresStudyConverter:
             )
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
-        system = SystemSchema(
+        system = HybridSystemSchema(
             id=self.study.name,
             components=components,
             connections=connections or None,
             area_connections=area_connections or None,
         )
         data = system.model_dump(exclude_none=True)
-        return SystemSchema(**data)
+        return HybridSystemSchema(**data)
 
     def _build_model_conversion_templates(self) -> dict[str, ConversionTemplate]:
         model_conversion_templates: dict[str, ConversionTemplate] = {}

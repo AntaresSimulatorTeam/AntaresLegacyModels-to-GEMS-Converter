@@ -28,17 +28,17 @@ from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
 )
-from gems.model.resolve_library import resolve_library
-from gems.study.parsing import (
-    AreaConnectionsSchema,
+from gems_craft.model.resolve_library import resolve_library
+from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentSchema,
     ComponentPropertySchema,
     PortConnectionsSchema,
     SystemSchema,
-    parse_yaml_components,
+    parse_yaml_system,
 )
-from gems.study.resolve_components import resolve_system
+from gems_craft.study.resolve_components import resolve_system
+from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
 from tests.input_converter.conftest import create_dataframe_from_constant
 import numpy as np
 
@@ -112,7 +112,7 @@ class TestConverter:
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         input_study = converter.convert_study_to_input_system()
 
-        expected_input_study = SystemSchema(
+        expected_input_study = HybridSystemSchema(
             id="studyTest",
             components=[
                 ComponentSchema(
@@ -238,7 +238,7 @@ class TestConverter:
         dump_to_yaml(model=input_study, output_path=yaml_path)
         # Open yaml file to validate
         with open(yaml_path, "r", encoding="utf-8") as yaml_file:
-            validated_data = parse_yaml_components(yaml_file)
+            validated_data = parse_yaml_system(yaml_file)
 
         expected_validated_data = SystemSchema(
             id="studyTest",
@@ -759,7 +759,7 @@ class TestConverter:
 
         output_path = local_path / "reference.yaml"
         with open(output_path) as system_file:
-            expected_data = parse_yaml_components(system_file)
+            expected_data = parse_yaml_system(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -1501,7 +1501,7 @@ class TestConverter:
 
         output_path = local_path / "reference.yaml"
         with open(output_path) as system_file:
-            expected_data = parse_yaml_components(system_file)
+            expected_data = parse_yaml_system(system_file)
 
         input_path = tmp_path / "input" / LOCAL_PATH
         output_path = tmp_path / "output" / LOCAL_PATH
@@ -1597,7 +1597,7 @@ class TestConverter:
 
         output_path = local_path / "reference_hybrid.yaml"
         with open(output_path) as system_file:
-            expected_data = parse_yaml_components(system_file)
+            expected_data = parse_yaml_system(system_file, HybridSystemSchema)
 
         model_list: list = ["battery"]
 
@@ -1672,7 +1672,7 @@ class TestConverter:
         )
         obtained_sys = converter.convert_study_to_input_system()
         with open(ref_path) as system_file:
-            expected_sys = parse_yaml_components(system_file)
+            expected_sys = parse_yaml_system(system_file)
         assert obtained_sys.components == expected_sys.components
 
     def test_multiply_operation(self):
