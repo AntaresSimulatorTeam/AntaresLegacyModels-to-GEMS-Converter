@@ -189,12 +189,6 @@ uv sync --group dev
 # Run all tests
 uv run pytest
 
-# Run tests in parallel (pytest-xdist)
-uv run pytest -n auto
-
-# Prefer parallel for unit/integration tests
-uv run pytest tests/input_converter/ -n auto
-
 # Run a specific test
 uv run pytest tests/input_converter/test_converter.py::TestConverter::test_thermal_model_conversion
 
