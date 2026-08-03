@@ -98,7 +98,7 @@ jobs:
 
       - name: Run tests
         id: run_tests
-        run: uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
+        run: uv run pytest -n auto --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
         continue-on-error: true
 
       - name: Upload test artifacts on failure
