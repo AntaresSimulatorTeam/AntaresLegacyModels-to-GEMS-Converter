@@ -112,7 +112,7 @@ class TestConverter:
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         input_study = converter.convert_study_to_input_system()
 
-        expected_input_study = HybridSystemSchema(
+        expected_input_study = SystemSchema(
             id="studyTest",
             components=[
                 ComponentSchema(

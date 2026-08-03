@@ -494,7 +494,7 @@ class AntaresStudyConverter:
         connections.extend(connections_from_model)
         area_connections.extend(area_connections_from_model)
 
-    def convert_study_to_input_system(self) -> HybridSystemSchema:
+    def convert_study_to_input_system(self) -> SystemSchema | HybridSystemSchema:
         self._copy_libs_to_model_librairies()
         self._copy_scenario_builder()
         self._create_dataseries_dir()
@@ -515,14 +515,21 @@ class AntaresStudyConverter:
             )
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
-        system = HybridSystemSchema(
+            system = HybridSystemSchema(
+                id=self.study.name,
+                components=components,
+                connections=connections or None,
+                area_connections=area_connections or None,
+            )
+            data = system.model_dump(exclude_none=True)
+            return HybridSystemSchema(**data)
+        system = SystemSchema(
             id=self.study.name,
             components=components,
             connections=connections or None,
-            area_connections=area_connections or None,
         )
         data = system.model_dump(exclude_none=True)
-        return HybridSystemSchema(**data)
+        return SystemSchema(**data)
 
     def _build_model_conversion_templates(self) -> dict[str, ConversionTemplate]:
         model_conversion_templates: dict[str, ConversionTemplate] = {}

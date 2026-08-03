@@ -47,6 +47,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | PyYAML | 6.0.3 |
 | pytest | 9.0.3 |
 | pytest-cov | 7.1.0 |
+| pytest-xdist | 3.8.0 |
 | mypy | 2.1.0 |
 | types-pyyaml | 6.0.12 |
 | black | 23.7.0 |
