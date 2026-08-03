@@ -292,7 +292,7 @@ Pinned Python library versions are listed in `pyproject.toml` and `uv.lock` (see
 | Package | Purpose |
 |---------|---------|
 | `antares-craft` | Read/write Antares studies programmatically |
-| `gemspy` | GEMS interpreter — provides `InputSystem`, `InputComponent`, etc. |
+| `gemspy` | GEMS interpreter — top-level packages `gems_craft` (`SystemSchema`, `ComponentSchema`, etc.) and `gems_craft_hybrid` (hybrid-mode-only schemas, e.g. `AreaConnectionsSchema`, `HybridSystemSchema`) |
 | `pydantic` | Data validation for conversion templates and structured data |
 | `pandas` / `numpy` | Timeseries data handling and numerical operations |
 | `PyYAML` | YAML parsing and generation |
