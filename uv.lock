@@ -57,6 +57,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pytest-xdist" },
     { name = "types-pyyaml" },
 ]
 
@@ -65,7 +66,7 @@ requires-dist = [
     { name = "antares-craft", specifier = "==0.15.1" },
     { name = "antares-study-version", specifier = "==1.0.20" },
     { name = "antares-timeseries-generation", specifier = "==0.1.9" },
-    { name = "gemspy", specifier = "==0.1.2" },
+    { name = "gemspy", specifier = "==0.1.3" },
     { name = "numpy", specifier = ">=2.2.6" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pydantic", specifier = ">=2.11.10" },
@@ -78,6 +79,7 @@ dev = [
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "types-pyyaml", specifier = ">=6.0.12" },
 ]
 
@@ -511,6 +513,15 @@ wheels = [
 ]
 
 [[package]]
+name = "execnet"
+version = "2.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/89/780e11f9588d9e7128a3f87788354c7946a9cbb1401ad38a48c4db9a4f07/execnet-2.1.2.tar.gz", hash = "sha256:63d83bfdd9a23e35b9c6a3261412324f964c2ec8dcd8d3c6916ee9373e0befcd", size = 166622, upload-time = "2025-11-12T09:56:37.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/84/02fc1827e8cdded4aa65baef11296a9bbe595c474f0d6d758af082d849fd/execnet-2.1.2-py3-none-any.whl", hash = "sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec", size = 40708, upload-time = "2025-11-12T09:56:36.333Z" },
+]
+
+[[package]]
 name = "fsspec"
 version = "2026.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -521,7 +532,7 @@ wheels = [
 
 [[package]]
 name = "gemspy"
-version = "0.1.2"
+version = "0.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "antlr4-python3-runtime" },
@@ -535,9 +546,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "xarray" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/06/8a/4e4285e61e9d6716a19995cf0680373a7ec6dd573a659101b4c61d75043b/gemspy-0.1.2.tar.gz", hash = "sha256:55aeef7ac32f049136d82381d488e03744329ef95489f2562f3cd14b11193487", size = 88370, upload-time = "2026-06-11T12:13:17.994Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/e2/8260139805f657cdd5dd2d5f3e02c974c05e4cd3ac83724b6b759c488892/gemspy-0.1.3.tar.gz", hash = "sha256:49325e19f37be1f1b1dc394fab4f29d85b813a95256a5da62756936100c5341a", size = 90736, upload-time = "2026-07-24T09:54:41.674Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/a5/592b323148996541f80e4e812dddf92982d340afe5e14a765b62b590312c/gemspy-0.1.2-py3-none-any.whl", hash = "sha256:dd4b7b8adb9dfde1e00717f0c92df77725701b9b8bf2e5cc796a03cb594e1c65", size = 114582, upload-time = "2026-06-11T12:13:16.801Z" },
+    { url = "https://files.pythonhosted.org/packages/95/d4/208b59a521ba66f75de1e5757401ce029469e4d537ff559602d670f641b3/gemspy-0.1.3-py3-none-any.whl", hash = "sha256:115dd4b344551ab3e4f6cadc68328e9926d01f1297fe1227e25c61b34aebf0bd", size = 120811, upload-time = "2026-07-24T09:54:40.693Z" },
 ]
 
 [[package]]
@@ -1192,6 +1203,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/51/a849f96e117386044471c8ec2bd6cfebacda285da9525c9106aeb28da671/pytest_cov-7.1.0.tar.gz", hash = "sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2", size = 55592, upload-time = "2026-03-21T20:11:16.284Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/7a/d968e294073affff457b041c2be9868a40c1c71f4a35fcc1e45e5493067b/pytest_cov-7.1.0-py3-none-any.whl", hash = "sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678", size = 22876, upload-time = "2026-03-21T20:11:14.438Z" },
+]
+
+[[package]]
+name = "pytest-xdist"
+version = "3.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "execnet" },
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/b4/439b179d1ff526791eb921115fca8e44e596a13efeda518b9d845a619450/pytest_xdist-3.8.0.tar.gz", hash = "sha256:7e578125ec9bc6050861aa93f2d59f1d8d085595d6551c2c90b6f4fad8d3a9f1", size = 88069, upload-time = "2025-07-01T13:30:59.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/31/d4e37e9e550c2b92a9cbc2e4d0b7420a27224968580b5a447f420847c975/pytest_xdist-3.8.0-py3-none-any.whl", hash = "sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88", size = 46396, upload-time = "2025-07-01T13:30:56.632Z" },
 ]
 
 [[package]]
