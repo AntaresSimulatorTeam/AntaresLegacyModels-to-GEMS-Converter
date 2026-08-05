@@ -15,6 +15,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from antares.craft.model.renewable import (
+    RenewableClusterProperties,
+    TimeSeriesInterpretation,
+)
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
@@ -634,6 +638,149 @@ class TestConverter:
         # TODO preprocessing + nouveaux parametres liées a la nouvelle version antarescraft
         assert thermals_components == expected_thermals_components
         assert thermals_connections == expected_thermals_connections
+
+    def test_convert_renewables_to_component(
+        self, local_study_with_renewable: Study, lib_id: str
+    ):
+        # This test is on the inner function _convert_model_to_component_list, no need to pass a model_list to the converter constructor
+        converter = self._init_converter_from_study(
+            local_study_with_renewable, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (
+            renewables_components,
+            renewables_connections,
+            _,
+        ) = converter._convert_model_to_component_list(resource_content)
+
+        available_power_path = "available_power_fr_renewable_generation"
+        expected_renewables_connections = [
+            PortConnectionsSchema(
+                component1="fr_renewable_generation",
+                port1="balance_port",
+                component2="fr_node",
+                port2="balance_port",
+            )
+        ]
+        expected_renewables_component = [
+            ComponentSchema(
+                id="fr_renewable_generation",
+                model=f"{lib_id}.renewable",
+                scenario_group=None,
+                parameters=[
+                    ComponentParameterSchema(
+                        id="nominal_capacity",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=0.0,
+                    ),
+                    ComponentParameterSchema(
+                        id="num_units",
+                        time_dependent=False,
+                        scenario_dependent=False,
+                        scenario_group=None,
+                        value=1,
+                    ),
+                    ComponentParameterSchema(
+                        id="available_power",
+                        time_dependent=True,
+                        scenario_dependent=True,
+                        scenario_group=None,
+                        value=available_power_path,
+                    ),
+                ],
+                properties=[
+                    ComponentPropertySchema(id="carrier", value="electricity"),
+                    ComponentPropertySchema(id="technology", value="other res 1"),
+                ],
+            )
+        ]
+
+        assert renewables_components == expected_renewables_component
+        assert renewables_connections == expected_renewables_connections
+
+    def test_convert_renewables_to_component_production_factor(
+        self, local_study_w_thermal: Study
+    ):
+        # A "production-factor" cluster's series is a [0, 1] availability factor,
+        # not a power value: the converter must scale it by nominal_capacity * unit_count.
+        local_study_w_thermal.get_areas()["fr"].create_renewable_cluster(
+            "wind_pf",
+            RenewableClusterProperties(
+                unit_count=3,
+                nominal_capacity=150.0,
+                ts_interpretation=TimeSeriesInterpretation.PRODUCTION_FACTOR,
+            ),
+        )
+        local_study_w_thermal.get_areas()["fr"].get_renewables()["wind_pf"].set_series(
+            pd.DataFrame(create_dataframe_from_constant(lines=8760, value=1))
+        )
+
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        (renewables_components, _, _) = converter._convert_model_to_component_list(
+            resource_content
+        )
+
+        available_power_param = next(
+            param
+            for component in renewables_components
+            for param in component.parameters
+            if param.id == "available_power"
+        )
+        series_path = (
+            converter.output_folder
+            / "input"
+            / "data-series"
+            / f"{available_power_param.value}.tsv"
+        )
+        written_series = pd.read_csv(series_path, sep="\t", header=None)
+        # factor 1.0 * nominal_capacity 150 * unit_count 3 = 450 MW
+        assert (written_series == 450.0).all().all()
+
+    def test_convert_disabled_renewable_is_skipped(
+        self, local_study_w_thermal: Study, caplog: pytest.LogCaptureFixture
+    ):
+        local_study_w_thermal.get_areas()["fr"].create_renewable_cluster(
+            "disabled_wind",
+            RenewableClusterProperties(
+                enabled=False, unit_count=1, nominal_capacity=100.0
+            ),
+        )
+        local_study_w_thermal.get_areas()["fr"].get_renewables()[
+            "disabled_wind"
+        ].set_series(create_dataframe_from_constant(lines=8760))
+
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "renewable.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        with caplog.at_level("WARNING"):
+            (renewables_components, _, _) = converter._convert_model_to_component_list(
+                resource_content
+            )
+
+        assert all(
+            component.id != "fr_renewable_disabled_wind"
+            for component in renewables_components
+        )
+        assert any(
+            "disabled_wind" in record.message and "disabled" in record.message
+            for record in caplog.records
+        )
 
     def test_convert_hydro_to_component(
         self,
