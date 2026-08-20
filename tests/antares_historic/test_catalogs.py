@@ -79,6 +79,7 @@ def load_taxonomy_by_id(taxonomy_id):
 
 CATALOG_FILES = list(CATALOGS_DIR.glob("*.yml"))
 
+FLATTENED_TAXONOMY_FILE = TAXONOMIES_DIR / "antares_legacy_taxonomy_flattened.yml"
 
 @pytest.mark.parametrize("catalog_file", CATALOG_FILES)
 def test_metrics_output_ids_and_properties_are_declared(catalog_file):
@@ -89,6 +90,25 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
 
     taxonomy_index = build_taxonomy_index(taxonomy)
 
+    errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
+
+    assert not errors, "\n".join(errors)
+
+
+# The flattened taxonomy is provisional: it exists only until the view builder
+# supports parent categories, at which point it can be removed.
+@pytest.mark.parametrize("catalog_file", CATALOG_FILES)
+def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(catalog_file):
+    catalog = load_yaml(catalog_file)
+
+    taxonomy = load_yaml(FLATTENED_TAXONOMY_FILE)
+    taxonomy_index = build_taxonomy_index(taxonomy)
+
+    errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
+
+    assert not errors, "\n".join(errors)
+
+def find_taxonomy_errors(catalog, catalog_file, taxonomy_index):
     errors = []
 
     for metric in catalog["catalog"]["metrics-definition"]:
@@ -136,4 +156,4 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
                         f"this property (nor any parent category)"
                     )
 
-    assert not errors, "\n".join(errors)
+    return errors

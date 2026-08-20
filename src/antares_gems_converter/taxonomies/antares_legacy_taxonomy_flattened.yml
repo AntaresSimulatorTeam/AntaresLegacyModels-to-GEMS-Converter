@@ -35,7 +35,8 @@ taxonomy:
         - id: balance_port
 
     - id: dispatchable_generation
-      parent-category: generation
+      ports:
+        - id: balance_port
       variables: 
         - id: generation_power
       extra-outputs:
@@ -63,20 +64,33 @@ taxonomy:
         - id: technology
 
     - id: fatal_generation
-      parent-category: generation
+      ports:
+        - id: balance_port
       parameters:
         - id: available_power
       extra-outputs:
         - id: minus_generation
         - id: generation_power
-    
+
     - id: renewable_fatal_generation
-      parent-category: fatal_generation
+      ports:
+        - id: balance_port
+      parameters:
+        - id: available_power
+      extra-outputs:
+        - id: minus_generation
+        - id: generation_power
       properties:
         - id: technology
 
     - id: miscellaneous_fatal_generation
-      parent-category: fatal_generation
+      ports:
+        - id: balance_port
+      parameters:
+        - id: available_power
+      extra-outputs:
+        - id: minus_generation
+        - id: generation_power
       properties:
         - id: technology 
         - id: miscellaneous_type
@@ -88,7 +102,10 @@ taxonomy:
         - id: balance_port
 
     - id: fatal_consumption
-      parent-category: consumption
+      ports:
+        - id: balance_port
+      extra-outputs:
+        - id: actual_load
 
     - id: storage
       ports:
@@ -99,21 +116,38 @@ taxonomy:
         - id: level
     
     - id: long_term_storage
-      parent-category: storage
+      ports:
+        - id: balance_port
       variables:
+        - id: injection_power
+        - id: withdrawal_power
+        - id: level
         - id: overflow
       extra-outputs:
         - id: actual_inflows
         - id: level_percentage
-    
+
     - id: long_term_storage_with_watervalues
-      parent-category: long_term_storage
+      ports:
+        - id: balance_port
+      variables:
+        - id: injection_power
+        - id: withdrawal_power
+        - id: level
+        - id: overflow
       extra-outputs:
+        - id: actual_inflows
+        - id: level_percentage
         - id: hydro_shadow_price
         - id: bellman_value
-    
+
     - id: short_term_storage
-      parent-category: storage
+      ports:
+        - id: balance_port
+      variables:
+        - id: injection_power
+        - id: withdrawal_power
+        - id: level
       extra-outputs:
         - id: profit
       properties:
