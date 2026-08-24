@@ -21,15 +21,17 @@ from antares.craft.model.study import Study, read_study_local
 from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
+    CLUSTER_TYPE_TO_SB_ATTR,
+    HYDRO_TYPE_TO_SET_METHOD,
     LINK_TYPES,
     MATRIX_TYPES,
     MATRIX_TYPES_TO_SET_METHOD,
+    MATRIX_TYPES_TO_SB_ATTR,
     MODEL_NAME_TO_FILE_NAME,
     STUDY_LEVEL_DELETION,
     STUDY_LEVEL_GET,
     TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
-    HYDRO_TYPE_TO_SET_METHOD,
 )
 from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
     ConversionMode,
