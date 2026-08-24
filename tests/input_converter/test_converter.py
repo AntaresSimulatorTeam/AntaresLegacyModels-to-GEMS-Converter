@@ -1081,7 +1081,7 @@ class TestConverter:
         expected_wind_components = ComponentSchema(
             id="fr_wind",
             model="antares_legacy_models.renewable",
-            scenario_group="wind_group",
+            scenario_group=None,
             parameters=[
                 ComponentParameterSchema(
                     id="nominal_capacity",
