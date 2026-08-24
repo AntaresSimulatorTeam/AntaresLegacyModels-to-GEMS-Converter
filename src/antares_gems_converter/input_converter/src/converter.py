@@ -637,3 +637,19 @@ class AntaresStudyConverter:
                 group_data[group_name] = year_ts
 
         return group_data
+
+    def _generate_scenario_builder_file(
+        self, group_year_ts: dict[str, dict[int, int]]
+    ) -> None:
+        dest = self.output_folder / "input" / SERIES_FOLDER
+        dest.mkdir(parents=True, exist_ok=True)
+
+        dest_file = dest / "modeler-scenariobuilder.dat"
+
+        lines = []
+        for group in sorted(group_year_ts):
+            for year, ts_index in sorted(group_year_ts[group].items()):
+                lines.append(f"{group}, {year} = {ts_index}")
+        dest_file.write_text("\n".join(lines))
+
+        self.logger.info(f"Generated scenario builder file at {dest_file}")
