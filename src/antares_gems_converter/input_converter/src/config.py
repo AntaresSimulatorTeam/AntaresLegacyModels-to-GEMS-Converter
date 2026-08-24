@@ -51,6 +51,17 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "wind": "get_wind_matrix",
     "misc_gen": "get_misc_gen_matrix",
 }
+
+MATRIX_TYPES_TO_SB_ATTR: dict[str, str] = {
+    "load": "load",
+    "solar": "solar",
+    "wind": "wind",
+}
+
+CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
+    "thermal": "thermal",
+    "renewable": "renewable",
+}
 TIMESERIES_NAME_TO_METHOD = {
     "capacity_direct": "get_capacity_direct",
     "capacity_indirect": "get_capacity_indirect",
