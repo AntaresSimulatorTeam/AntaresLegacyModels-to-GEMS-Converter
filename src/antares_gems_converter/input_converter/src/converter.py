@@ -579,3 +579,61 @@ class AntaresStudyConverter:
             self.logger.info(f"Copied scenario builder file to {dest_file}")
         except Exception as e:
             self.logger.warning(f"Failed to copy scenario builder file: {e}")
+
+    def _read_legacy_scenario_groups(
+        self,
+        model_conversion_templates: dict[str, ConversionTemplate],
+        virtual_objects: VirtualObjectsRepository,
+    ) -> dict[str, dict[int, int]]:
+        """
+        Reads the legacy Antares scenario builder and returns {group_name: {year: ts_index}}
+        for each model type that has at least one non-trivial scenario assignment.
+        Only models with active entries produce a group; others are omitted.
+        """
+        group_data: dict[str, dict[int, int]] = {}
+        try:
+            legacy_sb = self.study.get_scenario_builder()
+        except Exception as e:
+            self.logger.warning(f"Could not read legacy scenario builder: {e}")
+            return group_data
+
+        for model_name in self.models_to_convert:
+            group_name = f"{model_name}_group"
+            year_ts: dict[int, int] = {}
+
+            if model_name in MATRIX_TYPES_TO_SB_ATTR:
+                sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SB_ATTR[model_name])
+                for area_id in self.areas:
+                    if area_id in virtual_objects.areas:
+                        continue
+                    for year, ts_index in enumerate(sb_area.get_area(area_id).get_scenario()):
+                        if ts_index is not None and year not in year_ts:
+                            year_ts[year] = ts_index
+            else:
+                template = model_conversion_templates[model_name]
+                cluster_type = next(
+                    (p.cluster_type for p in template.template_parameters if p.cluster_type),
+                    None,
+                )
+                if cluster_type not in CLUSTER_TYPE_TO_SB_ATTR:
+                    continue
+                sb_cluster = getattr(legacy_sb, CLUSTER_TYPE_TO_SB_ATTR[cluster_type])
+                get_clusters_method = TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
+                for area_id, area in self.areas.items():
+                    if area_id in virtual_objects.areas:
+                        continue
+                    for cluster_id in getattr(area, get_clusters_method)():
+                        if cluster_id in virtual_objects.thermals:
+                            continue
+                        for year, ts_index in enumerate(
+                            sb_cluster.get_cluster(area_id, cluster_id).get_scenario()
+                        ):
+                            if ts_index is not None and year not in year_ts:
+                                year_ts[year] = ts_index
+                    if year_ts:
+                        break
+
+            if year_ts:
+                group_data[group_name] = year_ts
+
+        return group_data
