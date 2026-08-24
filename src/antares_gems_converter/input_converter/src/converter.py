@@ -151,7 +151,9 @@ class AntaresStudyConverter:
         try:
             legacy_sb = self.study.get_scenario_builder()
         except Exception as e:
-            self.logger.warning(f"Could not read legacy scenario builder for cleaning: {e}")
+            self.logger.warning(
+                f"Could not read legacy scenario builder for cleaning: {e}"
+            )
 
         for legacy_component in self.legacy_objects:
             try:
@@ -195,10 +197,17 @@ class AntaresStudyConverter:
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
                     # Also clear the legacy scenario builder entries for this area
-                    if legacy_sb is not None and legacy_component.type in MATRIX_TYPES_TO_SB_ATTR:
-                        sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SB_ATTR[legacy_component.type])
+                    if (
+                        legacy_sb is not None
+                        and legacy_component.type in MATRIX_TYPES_TO_SB_ATTR
+                    ):
+                        sb_area = getattr(
+                            legacy_sb, MATRIX_TYPES_TO_SB_ATTR[legacy_component.type]
+                        )
                         sb_matrix = sb_area.get_area(legacy_component.area)
-                        sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
+                        sb_matrix.set_new_scenario(
+                            [None] * len(sb_matrix.get_scenario())
+                        )
                         sb_modified = True
                 elif (
                     legacy_component.type == "hydro"
@@ -233,7 +242,9 @@ class AntaresStudyConverter:
             try:
                 self.study.set_scenario_builder(legacy_sb)
             except Exception as e:
-                self.logger.warning(f"Failed to persist cleaned legacy scenario builder: {e}")
+                self.logger.warning(
+                    f"Failed to persist cleaned legacy scenario builder: {e}"
+                )
 
         self.legacy_objects = []
 
@@ -642,13 +653,19 @@ class AntaresStudyConverter:
                 for area_id in self.areas:
                     if area_id in virtual_objects.areas:
                         continue
-                    for year, ts_index in enumerate(sb_area.get_area(area_id).get_scenario()):
+                    for year, ts_index in enumerate(
+                        sb_area.get_area(area_id).get_scenario()
+                    ):
                         if ts_index is not None and year not in year_ts:
                             year_ts[year] = ts_index
             else:
                 template = model_conversion_templates[model_name]
                 cluster_type = next(
-                    (p.cluster_type for p in template.template_parameters if p.cluster_type),
+                    (
+                        p.cluster_type
+                        for p in template.template_parameters
+                        if p.cluster_type
+                    ),
                     None,
                 )
                 if cluster_type not in CLUSTER_TYPE_TO_SB_ATTR:
