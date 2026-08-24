@@ -514,8 +514,19 @@ class AntaresStudyConverter:
         components: list[ComponentSchema] = []
         connections: list[PortConnectionsSchema] = []
         area_connections: list[AreaConnectionsSchema] = []
+
+        legacy_scenario_groups = self._read_legacy_scenario_groups(
+            model_conversion_templates, virtual_objects
+        )
+
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
+            group_name = f"{model}_group"
+            active_group = group_name if group_name in legacy_scenario_groups else None
+            if conversion_template.scenario_group != active_group:
+                conversion_template = conversion_template.model_copy(
+                    update={"scenario_group": active_group}
+                )
             self._convert_single_model(
                 conversion_template,
                 virtual_objects,
@@ -523,6 +534,10 @@ class AntaresStudyConverter:
                 connections,
                 area_connections,
             )
+
+        if not self.modeler_scenario_builder_file and legacy_scenario_groups:
+            self._generate_scenario_builder_file(legacy_scenario_groups)
+
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
             system = HybridSystemSchema(
