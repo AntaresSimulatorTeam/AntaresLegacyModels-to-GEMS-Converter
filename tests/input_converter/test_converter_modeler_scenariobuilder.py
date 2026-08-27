@@ -121,8 +121,9 @@ class TestConverterScenarioBuilder:
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must still be generated in hybrid mode"
-        assert "wind_group" in sb_files[0].read_text(), (
-            "Modeler SB must contain wind_group entries"
+        content = sb_files[0].read_text()
+        assert "wind_group, 0 = 2" in content, (
+            f"Expected 'wind_group, 0 = 2' in generated SB file, got:\n{content}"
         )
 
         wind_components = [c for c in system.components if "wind" in c.id]
