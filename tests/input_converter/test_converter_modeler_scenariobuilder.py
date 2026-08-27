@@ -99,15 +99,22 @@ class TestConverterScenarioBuilder:
     def test_hybrid_legacy_sb_cleared_after_conversion(self, fr_wind: Study):
         sb = fr_wind.get_scenario_builder()
         sb.wind.get_area("fr").set_new_scenario([2])
+        sb.thermal.get_cluster("fr", "gaz").set_new_scenario([3])
         fr_wind.set_scenario_builder(sb)
 
-        converter = self._init_converter_from_study(fr_wind, model_list=["wind"], mode="hybrid")
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["wind", "thermal"], mode="hybrid"
+        )
         converter.process_all()
 
         hybrid_sb = converter.study.get_scenario_builder()
         fr_scenario = hybrid_sb.wind.get_area("fr").get_scenario()
         assert all(ts is None for ts in fr_scenario), (
             "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
+        )
+
+        assert "gaz" not in converter.study.get_areas()["fr"].get_thermals(), (
+            "Thermal cluster 'gaz' must be deleted from the study after hybrid conversion"
         )
 
     def test_hybrid__sb_file_generated(self, fr_wind: Study):
