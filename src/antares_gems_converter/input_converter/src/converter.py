@@ -636,6 +636,10 @@ class AntaresStudyConverter:
         Reads the legacy Antares scenario builder and returns {group_name: {year: ts_index}}
         for each model type that has at least one non-trivial scenario assignment.
         Only models with active entries produce a group; others are omitted.
+
+        Limitation: the modeler SB format has no area dimension, so only one ts_index per
+        year is kept per group (first non-None value across areas/clusters wins). A warning
+        is emitted when a later area carries a different value for the same year.
         """
         group_data: dict[str, dict[int, int]] = {}
         try:
@@ -646,7 +650,7 @@ class AntaresStudyConverter:
 
         for model_name in self.models_to_convert:
             group_name = f"{model_name}_group"
-            year_ts: dict[int, int] = {}
+            year_scanned: dict[int, int] = {}
 
             if model_name in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
                 sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name])
@@ -656,8 +660,16 @@ class AntaresStudyConverter:
                     for year, ts_index in enumerate(
                         sb_area.get_area(area_id).get_scenario()
                     ):
-                        if ts_index is not None and year not in year_ts:
-                            year_ts[year] = ts_index
+                        if ts_index is None:
+                            continue
+                        if year not in year_scanned:
+                            year_scanned[year] = ts_index
+                        elif year_scanned[year] != ts_index:
+                            self.logger.warning(
+                                f"Scenario builder conflict for {group_name}, year {year}: "
+                                f"area '{area_id}' has ts_index={ts_index} but {year_scanned[year]} "
+                                f"was already recorded. Keeping first value."
+                            )
             else:
                 template = model_conversion_templates[model_name]
                 cluster_type = next(
@@ -681,18 +693,26 @@ class AntaresStudyConverter:
                         for year, ts_index in enumerate(
                             sb_cluster.get_cluster(area_id, cluster_id).get_scenario()
                         ):
-                            if ts_index is not None and year not in year_ts:
-                                year_ts[year] = ts_index
-                    if year_ts:
+                            if ts_index is None:
+                                continue
+                            if year not in year_scanned:
+                                year_scanned[year] = ts_index
+                            elif year_scanned[year] != ts_index:
+                                self.logger.warning(
+                                    f"Scenario builder conflict for {group_name}, year {year}: "
+                                    f"cluster '{area_id}/{cluster_id}' has ts_index={ts_index} "
+                                    f"but {year_scanned[year]} was already recorded. Keeping first value."
+                                )
+                    if year_scanned:
                         break
 
-            if year_ts:
-                group_data[group_name] = year_ts
+            if year_scanned:
+                group_data[group_name] = year_scanned
 
         return group_data
 
     def _generate_scenario_builder_file(
-        self, group_year_ts: dict[str, dict[int, int]]
+        self, group_year_scanned: dict[str, dict[int, int]]
     ) -> None:
         dest = self.output_folder / "input" / SERIES_FOLDER
         dest.mkdir(parents=True, exist_ok=True)
@@ -700,8 +720,8 @@ class AntaresStudyConverter:
         dest_file = dest / "modeler-scenariobuilder.dat"
 
         lines = []
-        for group in sorted(group_year_ts):
-            for year, ts_index in sorted(group_year_ts[group].items()):
+        for group in sorted(group_year_scanned):
+            for year, ts_index in sorted(group_year_scanned[group].items()):
                 lines.append(f"{group}, {year} = {ts_index}")
         dest_file.write_text("\n".join(lines))
 
