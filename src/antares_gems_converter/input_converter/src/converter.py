@@ -146,14 +146,7 @@ class AntaresStudyConverter:
         self.legacy_objects: list[ObjectProperties] = []
 
     def _delete_legacy_objects(self) -> None:
-        legacy_sb = None
-        sb_modified = False
-        try:
-            legacy_sb = self.study.get_scenario_builder()
-        except Exception as e:
-            self.logger.warning(
-                f"Could not read legacy scenario builder for cleaning: {e}"
-            )
+        sb_cleanups: list[tuple[str, str]] = []
 
         for legacy_component in self.legacy_objects:
             try:
@@ -196,19 +189,8 @@ class AntaresStudyConverter:
                         self.areas[legacy_component.area],
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
-                    # Also clear the legacy scenario builder entries for this area
-                    if (
-                        legacy_sb is not None
-                        and legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR
-                    ):
-                        sb_area = getattr(
-                            legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[legacy_component.type]
-                        )
-                        sb_matrix = sb_area.get_area(legacy_component.area)
-                        sb_matrix.set_new_scenario(
-                            [None] * len(sb_matrix.get_scenario())
-                        )
-                        sb_modified = True
+                    if legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
+                        sb_cleanups.append((legacy_component.area, legacy_component.type))
                 elif (
                     legacy_component.type == "hydro"
                     and legacy_component.area is not None
@@ -238,8 +220,13 @@ class AntaresStudyConverter:
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
                 )
 
-        if sb_modified and legacy_sb is not None:
+        if sb_cleanups:
             try:
+                legacy_sb = self.study.get_scenario_builder()
+                for area, type_ in sb_cleanups:
+                    sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[type_])
+                    sb_matrix = sb_area.get_area(area)
+                    sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
                 self.study.set_scenario_builder(legacy_sb)
             except Exception as e:
                 self.logger.warning(
