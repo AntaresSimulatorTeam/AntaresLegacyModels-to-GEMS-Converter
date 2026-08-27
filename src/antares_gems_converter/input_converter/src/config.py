@@ -52,7 +52,8 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "misc_gen": "get_misc_gen_matrix",
 }
 
-MATRIX_TYPES_TO_SB_ATTR: dict[str, str] = {
+# Not yet covered: links, hydro inflows (ror/storage), binding constraints and hydro storage levels
+MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
     "load": "load",
     "solar": "solar",
     "wind": "wind",

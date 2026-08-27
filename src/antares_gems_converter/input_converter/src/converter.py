@@ -26,7 +26,7 @@ from antares_gems_converter.input_converter.src.config import (
     LINK_TYPES,
     MATRIX_TYPES,
     MATRIX_TYPES_TO_SET_METHOD,
-    MATRIX_TYPES_TO_SB_ATTR,
+    MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
     MODEL_NAME_TO_FILE_NAME,
     STUDY_LEVEL_DELETION,
     STUDY_LEVEL_GET,
@@ -199,10 +199,10 @@ class AntaresStudyConverter:
                     # Also clear the legacy scenario builder entries for this area
                     if (
                         legacy_sb is not None
-                        and legacy_component.type in MATRIX_TYPES_TO_SB_ATTR
+                        and legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR
                     ):
                         sb_area = getattr(
-                            legacy_sb, MATRIX_TYPES_TO_SB_ATTR[legacy_component.type]
+                            legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[legacy_component.type]
                         )
                         sb_matrix = sb_area.get_area(legacy_component.area)
                         sb_matrix.set_new_scenario(
@@ -648,8 +648,8 @@ class AntaresStudyConverter:
             group_name = f"{model_name}_group"
             year_ts: dict[int, int] = {}
 
-            if model_name in MATRIX_TYPES_TO_SB_ATTR:
-                sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SB_ATTR[model_name])
+            if model_name in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
+                sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name])
                 for area_id in self.areas:
                     if area_id in virtual_objects.areas:
                         continue
