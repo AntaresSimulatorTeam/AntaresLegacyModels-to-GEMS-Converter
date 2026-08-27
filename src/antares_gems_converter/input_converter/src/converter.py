@@ -190,7 +190,9 @@ class AntaresStudyConverter:
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
                     if legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
-                        sb_cleanups.append((legacy_component.area, legacy_component.type))
+                        sb_cleanups.append(
+                            (legacy_component.area, legacy_component.type)
+                        )
                 elif (
                     legacy_component.type == "hydro"
                     and legacy_component.area is not None
@@ -224,7 +226,9 @@ class AntaresStudyConverter:
             try:
                 legacy_sb = self.study.get_scenario_builder()
                 for area, type_ in sb_cleanups:
-                    sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[type_])
+                    sb_area = getattr(
+                        legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[type_]
+                    )
                     sb_matrix = sb_area.get_area(area)
                     sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
                 self.study.set_scenario_builder(legacy_sb)
@@ -416,8 +420,15 @@ class AntaresStudyConverter:
                                     )
                                     if legacy_scenario_groups is not None:
                                         group_name = f"{conversion_template.name}_{area.id}_{cluster_id}_group"
-                                        cluster_resolved_template = cluster_resolved_template.model_copy(
-                                            update={"scenario_group": group_name if group_name in legacy_scenario_groups else None}
+                                        cluster_resolved_template = (
+                                            cluster_resolved_template.model_copy(
+                                                update={
+                                                    "scenario_group": group_name
+                                                    if group_name
+                                                    in legacy_scenario_groups
+                                                    else None
+                                                }
+                                            )
                                         )
                                     self._iterate_through_model(
                                         cluster_resolved_template,
@@ -428,9 +439,17 @@ class AntaresStudyConverter:
                                     )
                         else:
                             if legacy_scenario_groups is not None:
-                                group_name = f"{conversion_template.name}_{area.id}_group"
-                                area_resolved_template = area_resolved_template.model_copy(
-                                    update={"scenario_group": group_name if group_name in legacy_scenario_groups else None}
+                                group_name = (
+                                    f"{conversion_template.name}_{area.id}_group"
+                                )
+                                area_resolved_template = (
+                                    area_resolved_template.model_copy(
+                                        update={
+                                            "scenario_group": group_name
+                                            if group_name in legacy_scenario_groups
+                                            else None
+                                        }
+                                    )
                                 )
                             self._iterate_through_model(
                                 area_resolved_template,
@@ -643,13 +662,17 @@ class AntaresStudyConverter:
 
         for model_name in self.models_to_convert:
             if model_name in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
-                sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name])
+                sb_area = getattr(
+                    legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name]
+                )
                 for area_id in self.areas:
                     if area_id in virtual_objects.areas:
                         continue
                     year_ts: dict[int, int] = {
                         year: ts_index
-                        for year, ts_index in enumerate(sb_area.get_area(area_id).get_scenario())
+                        for year, ts_index in enumerate(
+                            sb_area.get_area(area_id).get_scenario()
+                        )
                         if ts_index is not None
                     }
                     if year_ts:
@@ -677,12 +700,16 @@ class AntaresStudyConverter:
                         year_ts = {
                             year: ts_index
                             for year, ts_index in enumerate(
-                                sb_cluster.get_cluster(area_id, cluster_id).get_scenario()
+                                sb_cluster.get_cluster(
+                                    area_id, cluster_id
+                                ).get_scenario()
                             )
                             if ts_index is not None
                         }
                         if year_ts:
-                            group_data[f"{model_name}_{area_id}_{cluster_id}_group"] = year_ts
+                            group_data[
+                                f"{model_name}_{area_id}_{cluster_id}_group"
+                            ] = year_ts
 
         return group_data
 
