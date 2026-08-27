@@ -362,6 +362,7 @@ class AntaresStudyConverter:
         self,
         conversion_template: ConversionTemplate,
         virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
+        legacy_scenario_groups: dict[str, dict[int, int]] | None = None,
     ) -> tuple[
         list[ComponentSchema], list[PortConnectionsSchema], list[AreaConnectionsSchema]
     ]:
@@ -426,6 +427,11 @@ class AntaresStudyConverter:
                                             f"${{{cluster_type}}}", cluster_id
                                         )
                                     )
+                                    if legacy_scenario_groups is not None:
+                                        group_name = f"{conversion_template.name}_{area.id}_{cluster_id}_group"
+                                        cluster_resolved_template = cluster_resolved_template.model_copy(
+                                            update={"scenario_group": group_name if group_name in legacy_scenario_groups else None}
+                                        )
                                     self._iterate_through_model(
                                         cluster_resolved_template,
                                         components,
@@ -434,6 +440,11 @@ class AntaresStudyConverter:
                                         model_preprocessor,
                                     )
                         else:
+                            if legacy_scenario_groups is not None:
+                                group_name = f"{conversion_template.name}_{area.id}_group"
+                                area_resolved_template = area_resolved_template.model_copy(
+                                    update={"scenario_group": group_name if group_name in legacy_scenario_groups else None}
+                                )
                             self._iterate_through_model(
                                 area_resolved_template,
                                 components,
@@ -521,6 +532,7 @@ class AntaresStudyConverter:
         components: list[ComponentSchema],
         connections: list[PortConnectionsSchema],
         area_connections: list[AreaConnectionsSchema],
+        legacy_scenario_groups: dict[str, dict[int, int]],
     ) -> None:
         self.logger.info(
             f"Converting components of model {conversion_template.name}..."
@@ -530,7 +542,9 @@ class AntaresStudyConverter:
             components_from_model,
             connections_from_model,
             area_connections_from_model,
-        ) = self._convert_model_to_component_list(conversion_template, virtual_objects)
+        ) = self._convert_model_to_component_list(
+            conversion_template, virtual_objects, legacy_scenario_groups
+        )
 
         components.extend(components_from_model)
         connections.extend(connections_from_model)
@@ -553,18 +567,13 @@ class AntaresStudyConverter:
 
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
-            group_name = f"{model}_group"
-            active_group = group_name if group_name in legacy_scenario_groups else None
-            if conversion_template.scenario_group != active_group:
-                conversion_template = conversion_template.model_copy(
-                    update={"scenario_group": active_group}
-                )
             self._convert_single_model(
                 conversion_template,
                 virtual_objects,
                 components,
                 connections,
                 area_connections,
+                legacy_scenario_groups,
             )
 
         if not self.modeler_scenario_builder_file and legacy_scenario_groups:
@@ -634,12 +643,9 @@ class AntaresStudyConverter:
     ) -> dict[str, dict[int, int]]:
         """
         Reads the legacy Antares scenario builder and returns {group_name: {year: ts_index}}
-        for each model type that has at least one non-trivial scenario assignment.
-        Only models with active entries produce a group; others are omitted.
-
-        Limitation: the modeler SB format has no area dimension, so only one ts_index per
-        year is kept per group (first non-None value across areas/clusters wins). A warning
-        is emitted when a later area carries a different value for the same year.
+        with one entry per component (area or cluster), e.g. 'wind_fr_group',
+        'thermal_fr_gaz_group'. Only components with at least one non-trivial assignment
+        produce an entry.
         """
         group_data: dict[str, dict[int, int]] = {}
         try:
@@ -649,27 +655,18 @@ class AntaresStudyConverter:
             return group_data
 
         for model_name in self.models_to_convert:
-            group_name = f"{model_name}_group"
-            year_scanned: dict[int, int] = {}
-
             if model_name in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
                 sb_area = getattr(legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name])
                 for area_id in self.areas:
                     if area_id in virtual_objects.areas:
                         continue
-                    for year, ts_index in enumerate(
-                        sb_area.get_area(area_id).get_scenario()
-                    ):
-                        if ts_index is None:
-                            continue
-                        if year not in year_scanned:
-                            year_scanned[year] = ts_index
-                        elif year_scanned[year] != ts_index:
-                            self.logger.warning(
-                                f"Scenario builder conflict for {group_name}, year {year}: "
-                                f"area '{area_id}' has ts_index={ts_index} but {year_scanned[year]} "
-                                f"was already recorded. Keeping first value."
-                            )
+                    year_ts: dict[int, int] = {
+                        year: ts_index
+                        for year, ts_index in enumerate(sb_area.get_area(area_id).get_scenario())
+                        if ts_index is not None
+                    }
+                    if year_ts:
+                        group_data[f"{model_name}_{area_id}_group"] = year_ts
             else:
                 template = model_conversion_templates[model_name]
                 cluster_type = next(
@@ -690,24 +687,15 @@ class AntaresStudyConverter:
                     for cluster_id in getattr(area, get_clusters_method)():
                         if cluster_id in virtual_objects.thermals:
                             continue
-                        for year, ts_index in enumerate(
-                            sb_cluster.get_cluster(area_id, cluster_id).get_scenario()
-                        ):
-                            if ts_index is None:
-                                continue
-                            if year not in year_scanned:
-                                year_scanned[year] = ts_index
-                            elif year_scanned[year] != ts_index:
-                                self.logger.warning(
-                                    f"Scenario builder conflict for {group_name}, year {year}: "
-                                    f"cluster '{area_id}/{cluster_id}' has ts_index={ts_index} "
-                                    f"but {year_scanned[year]} was already recorded. Keeping first value."
-                                )
-                    if year_scanned:
-                        break
-
-            if year_scanned:
-                group_data[group_name] = year_scanned
+                        year_ts = {
+                            year: ts_index
+                            for year, ts_index in enumerate(
+                                sb_cluster.get_cluster(area_id, cluster_id).get_scenario()
+                            )
+                            if ts_index is not None
+                        }
+                        if year_ts:
+                            group_data[f"{model_name}_{area_id}_{cluster_id}_group"] = year_ts
 
         return group_data
 

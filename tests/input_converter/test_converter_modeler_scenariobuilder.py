@@ -70,25 +70,25 @@ class TestConverterScenarioBuilder:
 
         wind_components = [c for c in system.components if "wind" in c.id]
         assert wind_components, "Expected at least one wind component"
-        assert all(c.scenario_group == "wind_group" for c in wind_components), (
-            "Wind components must carry scenario_group='wind_group'"
+        assert all(c.scenario_group == "wind_fr_group" for c in wind_components), (
+            "Wind components must carry scenario_group='wind_fr_group'"
         )
 
         thermal_components = [c for c in system.components if "gaz" in c.id]
         assert thermal_components, "Expected at least one thermal component"
-        assert all(c.scenario_group == "thermal_group" for c in thermal_components), (
-            "Thermal components must carry scenario_group='thermal_group'"
+        assert all(c.scenario_group == "thermal_fr_gaz_group" for c in thermal_components), (
+            "Thermal components must carry scenario_group='thermal_fr_gaz_group'"
         )
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
 
         content = sb_files[0].read_text()
-        assert "wind_group, 0 = 2" in content, (
-            f"Expected 'wind_group, 0 = 2' in generated SB file, got:\n{content}"
+        assert "wind_fr_group, 0 = 2" in content, (
+            f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
         )
-        assert "thermal_group, 0 = 3" in content, (
-            f"Expected 'thermal_group, 0 = 3' in generated SB file, got:\n{content}"
+        assert "thermal_fr_gaz_group, 0 = 3" in content, (
+            f"Expected 'thermal_fr_gaz_group, 0 = 3' in generated SB file, got:\n{content}"
         )
 
     # -------------------------------------------------------------------------
@@ -129,12 +129,12 @@ class TestConverterScenarioBuilder:
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must still be generated in hybrid mode"
         content = sb_files[0].read_text()
-        assert "wind_group, 0 = 2" in content, (
-            f"Expected 'wind_group, 0 = 2' in generated SB file, got:\n{content}"
+        assert "wind_fr_group, 0 = 2" in content, (
+            f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
         )
 
         wind_components = [c for c in system.components if "wind" in c.id]
         assert wind_components, "Expected at least one wind component in hybrid mode"
-        assert all(c.scenario_group == "wind_group" for c in wind_components), (
+        assert all(c.scenario_group == "wind_fr_group" for c in wind_components), (
             "Wind components must carry scenario_group in hybrid mode when legacy SB has entries"
         )
