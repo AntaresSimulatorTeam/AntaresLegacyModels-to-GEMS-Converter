@@ -22,6 +22,7 @@ template:
 
   components:
     - id: ${area}_load
+      scenario-group: load_${area}_group
       parameters:
         - id: load
           time-dependent: true

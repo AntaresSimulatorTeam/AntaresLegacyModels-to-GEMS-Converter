@@ -22,6 +22,7 @@ template:
 
   components:
     - id: ${area}_wind
+      scenario-group: wind_${area}_group
       parameters:
         - id: nominal_capacity
           time-dependent: false

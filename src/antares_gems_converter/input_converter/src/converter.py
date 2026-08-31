@@ -203,6 +203,8 @@ class AntaresStudyConverter:
                             self.areas[legacy_component.area].hydro,
                             HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
                         )(pd.DataFrame())
+                        if legacy_component.field in {"mod_inflows", "ror"}:
+                            sb_cleanups.append((legacy_component.area, "hydro"))
                     else:
                         self.areas[legacy_component.area].hydro.update_properties(
                             HydroPropertiesUpdate(**{legacy_component.field: False})
@@ -284,7 +286,7 @@ class AntaresStudyConverter:
                 ComponentSchema(
                     id=(comp.id).replace(" / ", "_"),
                     model=resolved_conversion_template.model,
-                    scenario_group=resolved_conversion_template.scenario_group,
+                    scenario_group=comp.scenario_group,
                     parameters=parameters,
                     properties=properties,
                 )

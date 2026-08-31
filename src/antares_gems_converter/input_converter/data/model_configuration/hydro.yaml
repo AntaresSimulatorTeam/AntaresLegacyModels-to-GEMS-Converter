@@ -22,6 +22,7 @@ template:
 
   components:
     - id: ${area}_hydro_storage
+      scenario-group: hydro_inflows_${area}_group
       parameters:
         - id: reservoir_capacity
           time-dependent: false

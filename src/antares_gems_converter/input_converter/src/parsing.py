@@ -229,6 +229,7 @@ class PropertyConversionConfig(ModifiedBaseModel):
 
 class ComponentConversionConfig(ModifiedBaseModel):
     id: str
+    scenario_group: Optional[str] = None
     parameters: list[ParameterConversionConfig]
     properties: list[PropertyConversionConfig] = Field(default_factory=list)
 
@@ -236,6 +237,11 @@ class ComponentConversionConfig(ModifiedBaseModel):
         self, template_pattern: str, value: str
     ) -> "ComponentConversionConfig":
         id = self.id.replace(template_pattern, value)
+        scenario_group = (
+            self.scenario_group.replace(template_pattern, value)
+            if self.scenario_group is not None
+            else None
+        )
         parameters = [
             param.resolve_template(template_pattern, value) for param in self.parameters
         ]
@@ -243,7 +249,7 @@ class ComponentConversionConfig(ModifiedBaseModel):
             prop.resolve_template(template_pattern, value) for prop in self.properties
         ]
         return ComponentConversionConfig(
-            id=id, parameters=parameters, properties=properties
+            id=id, scenario_group=scenario_group, parameters=parameters, properties=properties
         )
 
 
@@ -312,7 +318,6 @@ class ConversionTemplate(ModifiedBaseModel):
     legacy_objects_to_delete: list[ReferencedLegacyObjects] = Field(
         default_factory=list
     )
-    scenario_group: Optional[str] = None
 
     def resolve_template(
         self, template_pattern: str, value: str
@@ -343,7 +348,6 @@ class ConversionTemplate(ModifiedBaseModel):
             connections=connections,
             area_connections=area_connections,
             legacy_objects_to_delete=legacy_objects_to_delete,
-            scenario_group=self.scenario_group,
         )
 
     def get_excluded_objects_ids(self) -> VirtualObjectsRepository:
