@@ -12,17 +12,19 @@
 import logging
 import shutil
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Any, Optional, Union, List
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
 from antares.craft.model.link import Link
+from antares.craft.model.scenario_builder import ScenarioBuilder
 from antares.craft.model.study import Study, read_study_local
 from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
     CLUSTER_TYPE_TO_SB_ATTR,
     HYDRO_TYPE_TO_SET_METHOD,
+    LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
     LINK_TYPES,
     MATRIX_TYPES,
     MATRIX_TYPES_TO_SET_METHOD,
@@ -351,17 +353,57 @@ class AntaresStudyConverter:
                         )
                     )
 
+    @staticmethod
+    def _read_sb_year_ts(sb_matrix: Any) -> dict[int, int]:
+        # Returns {year_index: ts_index} for all years that have an explicit SB entry (non-None).
+        return {
+            year: ts
+            for year, ts in enumerate(sb_matrix.get_scenario())
+            if ts is not None
+        }
+
+    @staticmethod
+    def _apply_sb_groups(
+        resolved_template: ConversionTemplate,
+        year_ts: dict[int, int],
+        group_data: dict[str, dict[int, int]],
+    ) -> ConversionTemplate:
+        # For each component that carries a scenario_group placeholder from the YAML template:
+        # - if year_ts is non-empty: keep the group name, register its {year: ts} data in group_data
+        #   (used later to write modeler-scenariobuilder.dat)
+        # - if year_ts is empty (no SB entries, or no legacy SB at all): clear to None so the
+        #   placeholder value does not leak into the output system
+        # " / " in group names comes from link IDs (e.g. "at / fr") — normalize to "_".
+        new_components = []
+        changed = False
+        for comp in resolved_template.components:
+            if comp.scenario_group is not None:
+                normalized = comp.scenario_group.replace(" / ", "_")
+                if year_ts:
+                    group_data[normalized] = year_ts
+                    new_comp = comp.model_copy(update={"scenario_group": normalized})
+                else:
+                    new_comp = comp.model_copy(update={"scenario_group": None})
+                new_components.append(new_comp)
+                changed = True
+            else:
+                new_components.append(comp)
+        if changed:
+            return resolved_template.model_copy(update={"components": new_components})
+        return resolved_template
+
     def _convert_model_to_component_list(
         self,
         conversion_template: ConversionTemplate,
         virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
-        legacy_scenario_groups: dict[str, dict[int, int]] | None = None,
+        legacy_sb: ScenarioBuilder | None = None,
     ) -> tuple[
-        list[ComponentSchema], list[PortConnectionsSchema], list[AreaConnectionsSchema]
+        list[ComponentSchema], list[PortConnectionsSchema], list[AreaConnectionsSchema], dict[str, dict[int, int]]
     ]:
         components: list[ComponentSchema] = []
         connections: list[PortConnectionsSchema] = []
         area_connections: list[AreaConnectionsSchema] = []
+        group_data: dict[str, dict[int, int]] = {}
 
         model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
 
@@ -369,12 +411,26 @@ class AntaresStudyConverter:
             self.study, self.mode, self.output_folder
         )
 
+        model_name = conversion_template.name
+
         try:
-            if conversion_template.name in LINK_TYPES:
+            if model_name in LINK_TYPES:
+                # Link SB attribute 
+                sb_link_attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(model_name)
                 for link in self.study.get_links().values():
                     if not self.is_virtual_link(link, virtual_objects):
                         resolved_template = conversion_template.resolve_template(
                             model_area_pattern, link.id
+                        )
+                        # Link IDs are sorted alphabetically 
+                        if legacy_sb is not None and sb_link_attr is not None:
+                            sb_obj = getattr(legacy_sb, sb_link_attr)
+                            year_ts = self._read_sb_year_ts(sb_obj.get_link(link.id))
+                        else:
+                            year_ts = {}
+                        # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
+                        resolved_template = self._apply_sb_groups(
+                            resolved_template, year_ts, group_data
                         )
                         self._iterate_through_model(
                             resolved_template,
@@ -384,6 +440,20 @@ class AntaresStudyConverter:
                             model_preprocessor,
                         )
             else:
+                cluster_type = next(
+                    (
+                        template.cluster_type
+                        for template in conversion_template.template_parameters
+                    ),
+                    None,
+                )
+                # Resolve the SB attribute name for cluster types (thermal/renewable)
+                # or area matrix types (wind/solar/load/hydro/ror)
+                sb_area_attr = (
+                    CLUSTER_TYPE_TO_SB_ATTR.get(cluster_type)
+                    if cluster_type
+                    else MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(model_name)
+                )
                 for area in self.areas.values():
                     if area.id not in virtual_objects.areas:
                         area_resolved_template = conversion_template.resolve_template(
@@ -391,13 +461,6 @@ class AntaresStudyConverter:
                         )
                         resolved_virtual_objects = virtual_objects.resolve_template(
                             "${area}", area.id
-                        )
-                        cluster_type = next(
-                            (
-                                template.cluster_type
-                                for template in conversion_template.template_parameters
-                            ),
-                            None,
                         )
                         if cluster_type:
                             clusters = getattr(
@@ -420,18 +483,17 @@ class AntaresStudyConverter:
                                             f"${{{cluster_type}}}", cluster_id
                                         )
                                     )
-                                    if legacy_scenario_groups is not None:
-                                        group_name = f"{conversion_template.name}_{area.id}_{cluster_id}_group"
-                                        cluster_resolved_template = (
-                                            cluster_resolved_template.model_copy(
-                                                update={
-                                                    "scenario_group": group_name
-                                                    if group_name
-                                                    in legacy_scenario_groups
-                                                    else None
-                                                }
-                                            )
+                                    if legacy_sb is not None and sb_area_attr is not None:
+                                        sb_obj = getattr(legacy_sb, sb_area_attr)
+                                        year_ts = self._read_sb_year_ts(
+                                            sb_obj.get_cluster(area.id, cluster_id)
                                         )
+                                    else:
+                                        year_ts = {}
+                                    # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
+                                    cluster_resolved_template = self._apply_sb_groups(
+                                        cluster_resolved_template, year_ts, group_data
+                                    )
                                     self._iterate_through_model(
                                         cluster_resolved_template,
                                         components,
@@ -440,19 +502,15 @@ class AntaresStudyConverter:
                                         model_preprocessor,
                                     )
                         else:
-                            if legacy_scenario_groups is not None:
-                                group_name = (
-                                    f"{conversion_template.name}_{area.id}_group"
-                                )
-                                area_resolved_template = (
-                                    area_resolved_template.model_copy(
-                                        update={
-                                            "scenario_group": group_name
-                                            if group_name in legacy_scenario_groups
-                                            else None
-                                        }
-                                    )
-                                )
+                            if legacy_sb is not None and sb_area_attr is not None:
+                                sb_obj = getattr(legacy_sb, sb_area_attr)
+                                year_ts = self._read_sb_year_ts(sb_obj.get_area(area.id))
+                            else:
+                                year_ts = {}
+                            # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
+                            area_resolved_template = self._apply_sb_groups(
+                                area_resolved_template, year_ts, group_data
+                            )
                             self._iterate_through_model(
                                 area_resolved_template,
                                 components,
@@ -465,9 +523,9 @@ class AntaresStudyConverter:
                 f"Error while converting model to component list: {e}. "
                 "Please check the model configuration file."
             )
-            return components, connections, area_connections
+            return components, connections, area_connections, group_data
 
-        return components, connections, area_connections
+        return components, connections, area_connections, group_data
 
     @staticmethod
     def is_virtual_link(link: Link, virtual_objects: VirtualObjectsRepository) -> bool:
@@ -540,8 +598,8 @@ class AntaresStudyConverter:
         components: list[ComponentSchema],
         connections: list[PortConnectionsSchema],
         area_connections: list[AreaConnectionsSchema],
-        legacy_scenario_groups: dict[str, dict[int, int]],
-    ) -> None:
+        legacy_sb: ScenarioBuilder | None,
+    ) -> dict[str, dict[int, int]]:
         self.logger.info(
             f"Converting components of model {conversion_template.name}..."
         )
@@ -550,16 +608,28 @@ class AntaresStudyConverter:
             components_from_model,
             connections_from_model,
             area_connections_from_model,
+            group_data,
         ) = self._convert_model_to_component_list(
-            conversion_template, virtual_objects, legacy_scenario_groups
+            conversion_template, virtual_objects, legacy_sb
         )
 
         components.extend(components_from_model)
         connections.extend(connections_from_model)
         area_connections.extend(area_connections_from_model)
+        return group_data
+
+    def _get_legacy_sb(self) -> ScenarioBuilder | None:
+        # Returns None (instead of raising) when the study has no SB or it cannot be read,
+        # so the rest of the conversion proceeds without SB data.
+        try:
+            return self.study.get_scenario_builder()
+        except Exception as e:
+            self.logger.warning(f"Could not read legacy scenario builder: {e}")
+            return None
 
     def convert_study_to_input_system(self) -> SystemSchema | HybridSystemSchema:
         self._copy_libs_to_model_librairies()
+        # Copy a pre-existing modeler SB file if one was provided (skips auto-generation below)
         self._copy_scenario_builder()
         self._create_dataseries_dir()
         model_conversion_templates = self._build_model_conversion_templates()
@@ -569,23 +639,26 @@ class AntaresStudyConverter:
         connections: list[PortConnectionsSchema] = []
         area_connections: list[AreaConnectionsSchema] = []
 
-        legacy_scenario_groups = self._read_legacy_scenario_groups(
-            model_conversion_templates, virtual_objects
-        )
+        # Read the legacy SB once and pass it to every model conversion
+        legacy_sb = self._get_legacy_sb()
+        # Accumulates {group_name: {year: ts_index}} across all converted models
+        all_group_data: dict[str, dict[int, int]] = {}
 
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
-            self._convert_single_model(
+            group_data = self._convert_single_model(
                 conversion_template,
                 virtual_objects,
                 components,
                 connections,
                 area_connections,
-                legacy_scenario_groups,
+                legacy_sb,
             )
+            all_group_data.update(group_data)
 
-        if not self.modeler_scenario_builder_file and legacy_scenario_groups:
-            self._generate_scenario_builder_file(legacy_scenario_groups)
+        # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
+        if not self.modeler_scenario_builder_file and all_group_data:
+            self._generate_scenario_builder_file(all_group_data)
 
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
@@ -643,77 +716,6 @@ class AntaresStudyConverter:
             self.logger.info(f"Copied scenario builder file to {dest_file}")
         except Exception as e:
             self.logger.warning(f"Failed to copy scenario builder file: {e}")
-
-    def _read_legacy_scenario_groups(
-        self,
-        model_conversion_templates: dict[str, ConversionTemplate],
-        virtual_objects: VirtualObjectsRepository,
-    ) -> dict[str, dict[int, int]]:
-        """
-        Reads the legacy Antares scenario builder and returns {group_name: {year: ts_index}}
-        with one entry per component (area or cluster), e.g. 'wind_fr_group',
-        'thermal_fr_gaz_group'. Only components with at least one non-trivial assignment
-        produce an entry.
-        """
-        group_data: dict[str, dict[int, int]] = {}
-        try:
-            legacy_sb = self.study.get_scenario_builder()
-        except Exception as e:
-            self.logger.warning(f"Could not read legacy scenario builder: {e}")
-            return group_data
-
-        for model_name in self.models_to_convert:
-            if model_name in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
-                sb_area = getattr(
-                    legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[model_name]
-                )
-                for area_id in self.areas:
-                    if area_id in virtual_objects.areas:
-                        continue
-                    year_ts: dict[int, int] = {
-                        year: ts_index
-                        for year, ts_index in enumerate(
-                            sb_area.get_area(area_id).get_scenario()
-                        )
-                        if ts_index is not None
-                    }
-                    if year_ts:
-                        group_data[f"{model_name}_{area_id}_group"] = year_ts
-            else:
-                template = model_conversion_templates[model_name]
-                cluster_type = next(
-                    (
-                        p.cluster_type
-                        for p in template.template_parameters
-                        if p.cluster_type
-                    ),
-                    None,
-                )
-                if cluster_type not in CLUSTER_TYPE_TO_SB_ATTR:
-                    continue
-                sb_cluster = getattr(legacy_sb, CLUSTER_TYPE_TO_SB_ATTR[cluster_type])
-                get_clusters_method = TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
-                for area_id, area in self.areas.items():
-                    if area_id in virtual_objects.areas:
-                        continue
-                    for cluster_id in getattr(area, get_clusters_method)():
-                        if cluster_id in virtual_objects.thermals:
-                            continue
-                        year_ts = {
-                            year: ts_index
-                            for year, ts_index in enumerate(
-                                sb_cluster.get_cluster(
-                                    area_id, cluster_id
-                                ).get_scenario()
-                            )
-                            if ts_index is not None
-                        }
-                        if year_ts:
-                            group_data[
-                                f"{model_name}_{area_id}_{cluster_id}_group"
-                            ] = year_ts
-
-        return group_data
 
     def _generate_scenario_builder_file(
         self, group_year_scanned: dict[str, dict[int, int]]
