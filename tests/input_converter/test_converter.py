@@ -176,7 +176,7 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        (area_components, _, _) = converter._convert_model_to_component_list(
+        (area_components, _, _, _) = converter._convert_model_to_component_list(
             resource_content
         )
 
@@ -232,7 +232,7 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        (area_components, _, _) = converter._convert_model_to_component_list(
+        (area_components, _, _, _) = converter._convert_model_to_component_list(
             resource_content
         )
         input_study = SystemSchema(id=converter.study.name, components=area_components)
@@ -315,6 +315,7 @@ class TestConverter:
         (
             storage_components,
             storage_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
@@ -502,6 +503,7 @@ class TestConverter:
             thermals_components,
             thermals_connections,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         # study_path = converter.output_folder
         # series_path = study_path / "input" / "thermal" / "series" / "fr" / "gaz"
@@ -655,6 +657,7 @@ class TestConverter:
             renewables_components,
             renewables_connections,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
 
         available_power_path = "available_power_fr_renewable_generation"
@@ -728,7 +731,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        (renewables_components, _, _) = converter._convert_model_to_component_list(
+        (renewables_components, _, _, _) = converter._convert_model_to_component_list(
             resource_content
         )
 
@@ -769,7 +772,7 @@ class TestConverter:
             resource_content = parse_conversion_template(template)
 
         with caplog.at_level("WARNING"):
-            (renewables_components, _, _) = converter._convert_model_to_component_list(
+            (renewables_components, _, _, _) = converter._convert_model_to_component_list(
                 resource_content
             )
 
@@ -797,6 +800,7 @@ class TestConverter:
         (
             hydro_components,
             hydro_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
@@ -925,6 +929,7 @@ class TestConverter:
             load_components,
             load_connections,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
 
         assert load_connections == [
@@ -952,6 +957,7 @@ class TestConverter:
         (
             solar_components,
             solar_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         solar_fr_component = next(
@@ -1014,6 +1020,7 @@ class TestConverter:
             load_components,
             load_connections,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         load_fr_component = next(
             (comp for comp in load_components if comp.id == "fr_load"), None
@@ -1063,6 +1070,7 @@ class TestConverter:
         (
             wind_components,
             wind_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         wind_fr_component = next(
@@ -1132,6 +1140,7 @@ class TestConverter:
             wind_components,
             _,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert wind_components == []
 
@@ -1154,6 +1163,7 @@ class TestConverter:
             wind_components,
             _,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert wind_components == []
 
@@ -1173,6 +1183,7 @@ class TestConverter:
         (
             misc_gen_components,
             misc_gen_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
@@ -1253,6 +1264,7 @@ class TestConverter:
             misc_gen_components,
             misc_gen_connections,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert misc_gen_components == []
         assert misc_gen_connections == []
@@ -1273,6 +1285,7 @@ class TestConverter:
         (
             misc_gen_components,
             misc_gen_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
@@ -1322,6 +1335,7 @@ class TestConverter:
         (
             ror_components,
             ror_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
         ror_fr_component = next(
@@ -1389,6 +1403,7 @@ class TestConverter:
             ror_components,
             _,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert ror_components == []
 
@@ -1411,6 +1426,7 @@ class TestConverter:
             ror_components,
             _,
             _,
+            _,
         ) = converter._convert_model_to_component_list(resource_content)
         assert ror_components == []
 
@@ -1425,6 +1441,7 @@ class TestConverter:
         (
             links_components,
             links_connections,
+            _,
             _,
         ) = converter._convert_model_to_component_list(resource_content)
 
@@ -1666,6 +1683,7 @@ class TestConverter:
             binding_components,
             binding_connections,
             area_connections,
+            _,
         ) = converter._convert_model_to_component_list(
             bc_data, bc_data.get_excluded_objects_ids()
         )  # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
@@ -1708,6 +1726,7 @@ class TestConverter:
             _,
             _,
             area_connections,
+            _,
         ) = converter._convert_model_to_component_list(bc_data)
 
         output_path = converter.output_folder
