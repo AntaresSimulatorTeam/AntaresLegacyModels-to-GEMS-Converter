@@ -146,6 +146,41 @@ class TestConverterScenarioBuilder:
         )
 
     # -------------------------------------------------------------------------
+    # Case 4 — partial hybrid conversion: non-converted SB entries are preserved
+    # -------------------------------------------------------------------------
+
+    def test_hybrid_non_converted_sb_entries_preserved(self, fr_wind: Study):
+        """Converting only wind in hybrid mode must clear wind SB entries but leave
+        thermal SB entries and the thermal cluster intact in the legacy study."""
+        sb = fr_wind.get_scenario_builder()
+        sb.wind.get_area("fr").set_new_scenario([2])
+        sb.thermal.get_cluster("fr", "gaz").set_new_scenario([3])
+        fr_wind.set_scenario_builder(sb)
+
+        # Convert only wind — thermal is intentionally left in the legacy study
+        converter = self._init_converter_from_study(fr_wind, model_list=["wind"], mode="hybrid")
+        converter.process_all()
+
+        hybrid_sb = converter.study.get_scenario_builder()
+
+        # Wind SB entries must be cleared (the wind component was converted to GEMS)
+        fr_wind_scenario = hybrid_sb.wind.get_area("fr").get_scenario()
+        assert all(ts is None for ts in fr_wind_scenario), (
+            "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
+        )
+
+        # Thermal SB entries must be preserved (thermal was not converted)
+        fr_thermal_scenario = hybrid_sb.thermal.get_cluster("fr", "gaz").get_scenario()
+        assert fr_thermal_scenario[0] == 3, (
+            "Legacy SB thermal entries for 'gaz' must be preserved when thermal was not converted"
+        )
+
+        # The thermal cluster itself must also remain in the legacy study
+        assert "gaz" in converter.study.get_areas()["fr"].get_thermals(), (
+            "Thermal cluster 'gaz' must remain in the study when thermal was not converted"
+        )
+
+    # -------------------------------------------------------------------------
     # Case 5 — link SB: NTC entries produce a scenario group per link
     # -------------------------------------------------------------------------
 
