@@ -249,7 +249,10 @@ class ComponentConversionConfig(ModifiedBaseModel):
             prop.resolve_template(template_pattern, value) for prop in self.properties
         ]
         return ComponentConversionConfig(
-            id=id, scenario_group=scenario_group, parameters=parameters, properties=properties
+            id=id,
+            scenario_group=scenario_group,
+            parameters=parameters,
+            properties=properties,
         )
 
 

@@ -57,7 +57,7 @@ MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
     "solar": "solar",
     "wind": "wind",
     "hydro": "hydro",
-    "lt_storage": "hydro",  
+    "lt_storage": "hydro",
     "ror": "hydro",
 }
 

@@ -398,7 +398,10 @@ class AntaresStudyConverter:
         virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
         legacy_sb: ScenarioBuilder | None = None,
     ) -> tuple[
-        list[ComponentSchema], list[PortConnectionsSchema], list[AreaConnectionsSchema], dict[str, dict[int, int]]
+        list[ComponentSchema],
+        list[PortConnectionsSchema],
+        list[AreaConnectionsSchema],
+        dict[str, dict[int, int]],
     ]:
         components: list[ComponentSchema] = []
         connections: list[PortConnectionsSchema] = []
@@ -415,14 +418,14 @@ class AntaresStudyConverter:
 
         try:
             if model_name in LINK_TYPES:
-                # Link SB attribute 
+                # Link SB attribute
                 sb_link_attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(model_name)
                 for link in self.study.get_links().values():
                     if not self.is_virtual_link(link, virtual_objects):
                         resolved_template = conversion_template.resolve_template(
                             model_area_pattern, link.id
                         )
-                        # Link IDs are sorted alphabetically 
+                        # Link IDs are sorted alphabetically
                         if legacy_sb is not None and sb_link_attr is not None:
                             sb_obj = getattr(legacy_sb, sb_link_attr)
                             year_ts = self._read_sb_year_ts(sb_obj.get_link(link.id))
@@ -483,7 +486,10 @@ class AntaresStudyConverter:
                                             f"${{{cluster_type}}}", cluster_id
                                         )
                                     )
-                                    if legacy_sb is not None and sb_area_attr is not None:
+                                    if (
+                                        legacy_sb is not None
+                                        and sb_area_attr is not None
+                                    ):
                                         sb_obj = getattr(legacy_sb, sb_area_attr)
                                         year_ts = self._read_sb_year_ts(
                                             sb_obj.get_cluster(area.id, cluster_id)
@@ -504,7 +510,9 @@ class AntaresStudyConverter:
                         else:
                             if legacy_sb is not None and sb_area_attr is not None:
                                 sb_obj = getattr(legacy_sb, sb_area_attr)
-                                year_ts = self._read_sb_year_ts(sb_obj.get_area(area.id))
+                                year_ts = self._read_sb_year_ts(
+                                    sb_obj.get_area(area.id)
+                                )
                             else:
                                 year_ts = {}
                             # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
