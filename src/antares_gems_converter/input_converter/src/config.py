@@ -52,16 +52,22 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "misc_gen": "get_misc_gen_matrix",
 }
 
-# Not yet covered: links, hydro inflows (ror/storage), binding constraints and hydro storage levels
 MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
     "load": "load",
     "solar": "solar",
     "wind": "wind",
+    "hydro": "hydro",
+    "lt_storage": "hydro",  
+    "ror": "hydro",
 }
 
 CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
     "thermal": "thermal",
     "renewable": "renewable",
+}
+
+LINK_TYPE_TO_SB_ATTR: dict[str, str] = {
+    "link": "link",
 }
 TIMESERIES_NAME_TO_METHOD = {
     "capacity_direct": "get_capacity_direct",
