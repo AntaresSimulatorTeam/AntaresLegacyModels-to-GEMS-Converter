@@ -66,7 +66,7 @@ CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
     "renewable": "renewable",
 }
 
-LINK_TYPE_TO_SB_ATTR: dict[str, str] = {
+LINK_TYPE_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
     "link": "link",
 }
 TIMESERIES_NAME_TO_METHOD = {
