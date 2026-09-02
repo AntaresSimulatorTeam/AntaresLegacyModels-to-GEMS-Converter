@@ -52,14 +52,16 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "misc_gen": "get_misc_gen_matrix",
 }
 
+# Keyed by YAML template name (conversion_template.name) — used when reading the legacy SB
+# to assign scenario_group on converted components.
 MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
     "load": "load",
     "solar": "solar",
     "wind": "wind",
-    "hydro": "hydro",
     "lt_storage": "hydro",
     "ror": "hydro",
 }
+
 
 CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
     "thermal": "thermal",

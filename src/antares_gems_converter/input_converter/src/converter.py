@@ -191,7 +191,7 @@ class AntaresStudyConverter:
                         self.areas[legacy_component.area],
                         MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                     )(pd.DataFrame())
-                    if legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
+                    if legacy_component.type in {"load", "solar", "wind"}:
                         sb_cleanups.append(
                             (legacy_component.area, legacy_component.type)
                         )
@@ -230,9 +230,7 @@ class AntaresStudyConverter:
             try:
                 legacy_sb = self.study.get_scenario_builder()
                 for area, type_ in sb_cleanups:
-                    sb_area = getattr(
-                        legacy_sb, MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR[type_]
-                    )
+                    sb_area = getattr(legacy_sb, type_)
                     sb_matrix = sb_area.get_area(area)
                     sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
                 self.study.set_scenario_builder(legacy_sb)
