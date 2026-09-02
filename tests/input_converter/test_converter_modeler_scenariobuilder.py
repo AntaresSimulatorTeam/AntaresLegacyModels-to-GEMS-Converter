@@ -256,8 +256,8 @@ class TestConverterScenarioBuilder:
 
         fr_ror = [c for c in system.components if c.id == "fr_run_of_river"]
         assert fr_ror, "Expected a fr_run_of_river component"
-        assert fr_ror[0].scenario_group == "ror_fr_group", (
-            "fr_run_of_river must carry scenario_group='ror_fr_group'"
+        assert fr_ror[0].scenario_group == "run_of_river_fr_group", (
+            "fr_run_of_river must carry scenario_group='run_of_river_fr_group'"
         )
 
         other_ror = [c for c in system.components if "run_of_river" in c.id and c.id != "fr_run_of_river"]
@@ -268,8 +268,8 @@ class TestConverterScenarioBuilder:
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
         content = sb_files[0].read_text()
-        assert "ror_fr_group, 0 = 7" in content, (
-            f"Expected 'ror_fr_group, 0 = 7' in generated SB file, got:\n{content}"
+        assert "run_of_river_fr_group, 0 = 7" in content, (
+            f"Expected 'run_of_river_fr_group, 0 = 7' in generated SB file, got:\n{content}"
         )
 
 
