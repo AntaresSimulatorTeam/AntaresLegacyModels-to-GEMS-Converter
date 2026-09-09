@@ -52,14 +52,14 @@ class TestConverterScenarioBuilder:
         system = converter.convert_study_to_input_system()
 
         assert system.components, "Expected at least one component"
-        assert all(c.scenario_group is None for c in system.components), (
-            "No component must have a scenario_group when the legacy SB is empty"
-        )
+        assert all(
+            c.scenario_group is None for c in system.components
+        ), "No component must have a scenario_group when the legacy SB is empty"
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
-        assert not sb_files, (
-            "No modeler-scenariobuilder.dat should be generated when the legacy SB is empty"
-        )
+        assert (
+            not sb_files
+        ), "No modeler-scenariobuilder.dat should be generated when the legacy SB is empty"
 
     # -------------------------------------------------------------------------
     # Case 2 — legacy SB full: scenario_group set on components, SB file generated
@@ -71,31 +71,33 @@ class TestConverterScenarioBuilder:
         sb.thermal.get_cluster("fr", "gaz").set_new_scenario([3])
         fr_wind.set_scenario_builder(sb)
 
-        converter = self._init_converter_from_study(fr_wind, model_list=["wind", "thermal"])
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["wind", "thermal"]
+        )
         system = converter.convert_study_to_input_system()
 
         wind_components = [c for c in system.components if "wind" in c.id]
         assert wind_components, "Expected at least one wind component"
-        assert all(c.scenario_group == "wind_fr_group" for c in wind_components), (
-            "Wind components must carry scenario_group='wind_fr_group'"
-        )
+        assert all(
+            c.scenario_group == "wind_fr_group" for c in wind_components
+        ), "Wind components must carry scenario_group='wind_fr_group'"
 
         thermal_components = [c for c in system.components if "gaz" in c.id]
         assert thermal_components, "Expected at least one thermal component"
-        assert all(c.scenario_group == "thermal_fr_gaz_group" for c in thermal_components), (
-            "Thermal components must carry scenario_group='thermal_fr_gaz_group'"
-        )
+        assert all(
+            c.scenario_group == "thermal_fr_gaz_group" for c in thermal_components
+        ), "Thermal components must carry scenario_group='thermal_fr_gaz_group'"
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
 
         content = sb_files[0].read_text()
-        assert "wind_fr_group, 0 = 2" in content, (
-            f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
-        )
-        assert "thermal_fr_gaz_group, 0 = 3" in content, (
-            f"Expected 'thermal_fr_gaz_group, 0 = 3' in generated SB file, got:\n{content}"
-        )
+        assert (
+            "wind_fr_group, 0 = 2" in content
+        ), f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
+        assert (
+            "thermal_fr_gaz_group, 0 = 3" in content
+        ), f"Expected 'thermal_fr_gaz_group, 0 = 3' in generated SB file, got:\n{content}"
 
     # -------------------------------------------------------------------------
     # Case 3 — hybrid mode: legacy SB cleared for converted areas, modeler SB
@@ -115,35 +117,39 @@ class TestConverterScenarioBuilder:
 
         hybrid_sb = converter.study.get_scenario_builder()
         fr_scenario = hybrid_sb.wind.get_area("fr").get_scenario()
-        assert all(ts is None for ts in fr_scenario), (
-            "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
-        )
+        assert all(
+            ts is None for ts in fr_scenario
+        ), "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
 
-        assert "gaz" not in converter.study.get_areas()["fr"].get_thermals(), (
-            "Thermal cluster 'gaz' must be deleted from the study after hybrid conversion"
-        )
+        assert (
+            "gaz" not in converter.study.get_areas()["fr"].get_thermals()
+        ), "Thermal cluster 'gaz' must be deleted from the study after hybrid conversion"
 
     def test_hybrid__sb_file_generated(self, fr_wind: Study):
         sb = fr_wind.get_scenario_builder()
         sb.wind.get_area("fr").set_new_scenario([2])
         fr_wind.set_scenario_builder(sb)
 
-        converter = self._init_converter_from_study(fr_wind, model_list=["wind"], mode="hybrid")
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["wind"], mode="hybrid"
+        )
         system = converter.convert_study_to_input_system()
         converter.process_all()
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
-        assert sb_files, "modeler-scenariobuilder.dat must still be generated in hybrid mode"
+        assert (
+            sb_files
+        ), "modeler-scenariobuilder.dat must still be generated in hybrid mode"
         content = sb_files[0].read_text()
-        assert "wind_fr_group, 0 = 2" in content, (
-            f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
-        )
+        assert (
+            "wind_fr_group, 0 = 2" in content
+        ), f"Expected 'wind_fr_group, 0 = 2' in generated SB file, got:\n{content}"
 
         wind_components = [c for c in system.components if "wind" in c.id]
         assert wind_components, "Expected at least one wind component in hybrid mode"
-        assert all(c.scenario_group == "wind_fr_group" for c in wind_components), (
-            "Wind components must carry scenario_group in hybrid mode when legacy SB has entries"
-        )
+        assert all(
+            c.scenario_group == "wind_fr_group" for c in wind_components
+        ), "Wind components must carry scenario_group in hybrid mode when legacy SB has entries"
 
     # -------------------------------------------------------------------------
     # Case 4 — partial hybrid conversion: non-converted SB entries are preserved
@@ -158,27 +164,29 @@ class TestConverterScenarioBuilder:
         fr_wind.set_scenario_builder(sb)
 
         # Convert only wind — thermal is intentionally left in the legacy study
-        converter = self._init_converter_from_study(fr_wind, model_list=["wind"], mode="hybrid")
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["wind"], mode="hybrid"
+        )
         converter.process_all()
 
         hybrid_sb = converter.study.get_scenario_builder()
 
         # Wind SB entries must be cleared (the wind component was converted to GEMS)
         fr_wind_scenario = hybrid_sb.wind.get_area("fr").get_scenario()
-        assert all(ts is None for ts in fr_wind_scenario), (
-            "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
-        )
+        assert all(
+            ts is None for ts in fr_wind_scenario
+        ), "Legacy SB wind entries for 'fr' must be cleared after hybrid conversion"
 
         # Thermal SB entries must be preserved (thermal was not converted)
         fr_thermal_scenario = hybrid_sb.thermal.get_cluster("fr", "gaz").get_scenario()
-        assert fr_thermal_scenario[0] == 3, (
-            "Legacy SB thermal entries for 'gaz' must be preserved when thermal was not converted"
-        )
+        assert (
+            fr_thermal_scenario[0] == 3
+        ), "Legacy SB thermal entries for 'gaz' must be preserved when thermal was not converted"
 
         # The thermal cluster itself must also remain in the legacy study
-        assert "gaz" in converter.study.get_areas()["fr"].get_thermals(), (
-            "Thermal cluster 'gaz' must remain in the study when thermal was not converted"
-        )
+        assert (
+            "gaz" in converter.study.get_areas()["fr"].get_thermals()
+        ), "Thermal cluster 'gaz' must remain in the study when thermal was not converted"
 
     # -------------------------------------------------------------------------
     # Case 5 — link SB: NTC entries produce a scenario group per link
@@ -195,21 +203,23 @@ class TestConverterScenarioBuilder:
 
         link_components = [c for c in system.components if "at_fr" in c.id]
         assert link_components, "Expected at least one at/fr link component"
-        assert all(c.scenario_group == "at_fr_ntc_group" for c in link_components), (
-            "Link components must carry scenario_group='at_fr_ntc_group'"
-        )
+        assert all(
+            c.scenario_group == "at_fr_ntc_group" for c in link_components
+        ), "Link components must carry scenario_group='at_fr_ntc_group'"
 
-        other_link_components = [c for c in system.components if "at_it" in c.id or "fr_it" in c.id]
-        assert all(c.scenario_group is None for c in other_link_components), (
-            "Links without SB entries must have scenario_group=None"
-        )
+        other_link_components = [
+            c for c in system.components if "at_it" in c.id or "fr_it" in c.id
+        ]
+        assert all(
+            c.scenario_group is None for c in other_link_components
+        ), "Links without SB entries must have scenario_group=None"
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
         content = sb_files[0].read_text()
-        assert "at_fr_ntc_group, 0 = 5" in content, (
-            f"Expected 'at_fr_ntc_group, 0 = 5' in generated SB file, got:\n{content}"
-        )
+        assert (
+            "at_fr_ntc_group, 0 = 5" in content
+        ), f"Expected 'at_fr_ntc_group, 0 = 5' in generated SB file, got:\n{content}"
 
     # -------------------------------------------------------------------------
     # Case 6 — hydro inflows SB: entries produce a scenario group for hydro
@@ -225,28 +235,34 @@ class TestConverterScenarioBuilder:
 
         fr_hydro = [c for c in system.components if c.id == "fr_hydro_storage"]
         assert fr_hydro, "Expected a fr_hydro_storage component"
-        assert fr_hydro[0].scenario_group == "hydro_inflows_fr_group", (
-            "fr_hydro_storage must carry scenario_group='hydro_inflows_fr_group'"
-        )
+        assert (
+            fr_hydro[0].scenario_group == "hydro_inflows_fr_group"
+        ), "fr_hydro_storage must carry scenario_group='hydro_inflows_fr_group'"
 
-        other_hydro = [c for c in system.components if "hydro_storage" in c.id and c.id != "fr_hydro_storage"]
-        assert all(c.scenario_group is None for c in other_hydro), (
-            "Hydro components for areas without SB entries must have scenario_group=None"
-        )
+        other_hydro = [
+            c
+            for c in system.components
+            if "hydro_storage" in c.id and c.id != "fr_hydro_storage"
+        ]
+        assert all(
+            c.scenario_group is None for c in other_hydro
+        ), "Hydro components for areas without SB entries must have scenario_group=None"
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
         content = sb_files[0].read_text()
-        assert "hydro_inflows_fr_group, 0 = 7" in content, (
-            f"Expected 'hydro_inflows_fr_group, 0 = 7' in generated SB file, got:\n{content}"
-        )
+        assert (
+            "hydro_inflows_fr_group, 0 = 7" in content
+        ), f"Expected 'hydro_inflows_fr_group, 0 = 7' in generated SB file, got:\n{content}"
 
     # -------------------------------------------------------------------------
     # Case 7 — ROR SB: hydro entries produce a separate group for run-of-river
     # -------------------------------------------------------------------------
 
     def test_full_legacy_ror_sb(self, fr_wind: Study):
-        fr_wind.get_areas()["fr"].hydro.set_ror_series(create_dataframe_from_constant(lines=8760))
+        fr_wind.get_areas()["fr"].hydro.set_ror_series(
+            create_dataframe_from_constant(lines=8760)
+        )
         sb = fr_wind.get_scenario_builder()
         sb.hydro.get_area("fr").set_new_scenario([7])
         fr_wind.set_scenario_builder(sb)
@@ -256,26 +272,111 @@ class TestConverterScenarioBuilder:
 
         fr_ror = [c for c in system.components if c.id == "fr_run_of_river"]
         assert fr_ror, "Expected a fr_run_of_river component"
-        assert fr_ror[0].scenario_group == "run_of_river_fr_group", (
-            "fr_run_of_river must carry scenario_group='run_of_river_fr_group'"
-        )
+        assert (
+            fr_ror[0].scenario_group == "run_of_river_fr_group"
+        ), "fr_run_of_river must carry scenario_group='run_of_river_fr_group'"
 
-        other_ror = [c for c in system.components if "run_of_river" in c.id and c.id != "fr_run_of_river"]
-        assert all(c.scenario_group is None for c in other_ror), (
-            "ROR components for areas without SB entries must have scenario_group=None"
-        )
+        other_ror = [
+            c
+            for c in system.components
+            if "run_of_river" in c.id and c.id != "fr_run_of_river"
+        ]
+        assert all(
+            c.scenario_group is None for c in other_ror
+        ), "ROR components for areas without SB entries must have scenario_group=None"
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert sb_files, "modeler-scenariobuilder.dat must be generated"
         content = sb_files[0].read_text()
-        assert "run_of_river_fr_group, 0 = 7" in content, (
-            f"Expected 'run_of_river_fr_group, 0 = 7' in generated SB file, got:\n{content}"
+        assert (
+            "run_of_river_fr_group, 0 = 7" in content
+        ), f"Expected 'run_of_river_fr_group, 0 = 7' in generated SB file, got:\n{content}"
+
+    # -------------------------------------------------------------------------
+    # Case 8 — hybrid mode: shared hydro/ror SB bucket must only clear when BOTH
+    # sibling fields (mod_inflows, ror) were deleted for the area this run
+    # -------------------------------------------------------------------------
+
+    def test_hybrid_ror_only_preserves_hydro_sb_when_lt_storage_not_converted(
+        self, fr_wind: Study
+    ):
+        """Converting only ror in hybrid mode must NOT clear the shared 'hydro' legacy SB
+        bucket for the area, because lt_storage (mod_inflows) was never converted/deleted
+        and may still depend on it in the legacy study."""
+        fr_wind.get_areas()["fr"].hydro.set_ror_series(
+            create_dataframe_from_constant(lines=8760)
         )
+        sb = fr_wind.get_scenario_builder()
+        sb.hydro.get_area("fr").set_new_scenario([7])
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["ror"], mode="hybrid"
+        )
+        converter.process_all()
+
+        hybrid_sb = converter.study.get_scenario_builder()
+        fr_scenario = hybrid_sb.hydro.get_area("fr").get_scenario()
+        assert (
+            fr_scenario[0] == 7
+        ), "Legacy SB hydro entries for 'fr' must be preserved when lt_storage was not converted"
+
+    def test_hybrid_lt_storage_only_preserves_hydro_sb_when_ror_not_converted(
+        self, fr_wind: Study
+    ):
+        """Symmetric counterpart of the test above: converting only lt_storage (hydro) in
+        hybrid mode must NOT clear the shared 'hydro' legacy SB bucket for the area, because
+        ror was never converted/deleted. This exercises the 'mod_inflows' branch of
+        HYDRO_SB_SHARED_FIELDS in isolation, catching an implementation that only
+        special-cased 'ror' (not 'mod_inflows') in the tracking dict."""
+        fr_wind.get_areas()["fr"].hydro.set_ror_series(
+            create_dataframe_from_constant(lines=8760)
+        )
+        sb = fr_wind.get_scenario_builder()
+        sb.hydro.get_area("fr").set_new_scenario([7])
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["hydro"], mode="hybrid"
+        )
+        converter.process_all()
+
+        hybrid_sb = converter.study.get_scenario_builder()
+        fr_scenario = hybrid_sb.hydro.get_area("fr").get_scenario()
+        assert (
+            fr_scenario[0] == 7
+        ), "Legacy SB hydro entries for 'fr' must be preserved when ror was not converted"
+
+    def test_hybrid_ror_and_lt_storage_both_converted_clears_hydro_sb(
+        self, fr_wind: Study
+    ):
+        """Converting both ror and lt_storage (hydro) in hybrid mode must clear the shared
+        'hydro' legacy SB bucket for the area, since nothing remains that depends on it.
+        Confirms the fix does not regress the pre-existing 'both deleted -> clear' case.
+        """
+        fr_wind.get_areas()["fr"].hydro.set_ror_series(
+            create_dataframe_from_constant(lines=8760)
+        )
+        sb = fr_wind.get_scenario_builder()
+        sb.hydro.get_area("fr").set_new_scenario([7])
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["ror", "hydro"], mode="hybrid"
+        )
+        converter.process_all()
+
+        hybrid_sb = converter.study.get_scenario_builder()
+        fr_scenario = hybrid_sb.hydro.get_area("fr").get_scenario()
+        assert all(
+            ts is None for ts in fr_scenario
+        ), "Legacy SB hydro entries for 'fr' must be cleared once both ror and lt_storage are converted"
 
 
 # =============================================================================
 # Two-area scenario builder combinations (ba00 / hr00)
 # =============================================================================
+
 
 class TestScenarioBuilderTwoAreas:
     """Tests covering different combinations of legacy SB entries across 2 areas (ba00, hr00)
@@ -290,7 +391,9 @@ class TestScenarioBuilderTwoAreas:
         for area_id in ["ba00", "hr00"]:
             study.create_area(
                 area_id,
-                properties=AreaProperties(energy_cost_spilled="1", energy_cost_unsupplied="0.5"),
+                properties=AreaProperties(
+                    energy_cost_spilled="1", energy_cost_unsupplied="0.5"
+                ),
             )
         hydro_props = HydroProperties(
             reservoir=True,
@@ -320,7 +423,12 @@ class TestScenarioBuilderTwoAreas:
         )
 
     def _sb_content(self, converter: AntaresStudyConverter) -> str:
-        sb_file = converter.output_folder / "input" / "data-series" / "modeler-scenariobuilder.dat"
+        sb_file = (
+            converter.output_folder
+            / "input"
+            / "data-series"
+            / "modeler-scenariobuilder.dat"
+        )
         return sb_file.read_text() if sb_file.exists() else ""
 
     # -------------------------------------------------------------------------
@@ -350,8 +458,8 @@ class TestScenarioBuilderTwoAreas:
 
     def test_hydro_sb_both_areas(self, two_area_study):
         sb = two_area_study.get_scenario_builder()
-        sb.hydro.get_area("ba00").set_new_scenario([1, 2])       # years 0→1, 1→2
-        sb.hydro.get_area("hr00").set_new_scenario([2, 1, 3])    # years 0→2, 1→1, 2→3
+        sb.hydro.get_area("ba00").set_new_scenario([1, 2])  # years 0→1, 1→2
+        sb.hydro.get_area("hr00").set_new_scenario([2, 1, 3])  # years 0→2, 1→1, 2→3
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro"])
@@ -424,8 +532,15 @@ class TestScenarioBuilderTwoAreas:
         converter = self._init_converter(two_area_study, ["hydro", "link"])
         system = converter.convert_study_to_input_system()
 
-        assert all(c.scenario_group is None for c in system.components), (
-            "All components must have scenario_group=None when the legacy SB is empty"
+        assert all(
+            c.scenario_group is None for c in system.components
+        ), "All components must have scenario_group=None when the legacy SB is empty"
+        sb_file = (
+            converter.output_folder
+            / "input"
+            / "data-series"
+            / "modeler-scenariobuilder.dat"
         )
-        sb_file = converter.output_folder / "input" / "data-series" / "modeler-scenariobuilder.dat"
-        assert not sb_file.exists(), "No SB file must be generated when the legacy SB is empty"
+        assert (
+            not sb_file.exists()
+        ), "No SB file must be generated when the legacy SB is empty"
