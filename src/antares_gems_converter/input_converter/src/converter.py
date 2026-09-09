@@ -23,6 +23,7 @@ from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
     CLUSTER_TYPE_TO_SB_ATTR,
+    HYDRO_SB_SHARED_FIELDS,
     HYDRO_TYPE_TO_SET_METHOD,
     LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
     LINK_TYPES,
@@ -148,7 +149,10 @@ class AntaresStudyConverter:
         self.legacy_objects: list[ObjectProperties] = []
 
     def _delete_legacy_objects(self) -> None:
+        # SB is read and written once at the end to avoid overwriting antares-craft's own SB updates
         sb_cleanups: list[tuple[str, str]] = []
+        # "mod_inflows" and "ror" share one "hydro" SB bucket per area; only clear it when BOTH are deleted
+        hydro_sb_fields_deleted: dict[str, set[str]] = {}
 
         for legacy_component in self.legacy_objects:
             try:
@@ -205,8 +209,11 @@ class AntaresStudyConverter:
                             self.areas[legacy_component.area].hydro,
                             HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
                         )(pd.DataFrame())
-                        if legacy_component.field in {"mod_inflows", "ror"}:
-                            sb_cleanups.append((legacy_component.area, "hydro"))
+                        # Wait the post-loop gate to clear the shared SB bucket
+                        if legacy_component.field in HYDRO_SB_SHARED_FIELDS:
+                            hydro_sb_fields_deleted.setdefault(
+                                legacy_component.area, set()
+                            ).add(legacy_component.field)
                     else:
                         self.areas[legacy_component.area].hydro.update_properties(
                             HydroPropertiesUpdate(**{legacy_component.field: False})
@@ -225,6 +232,11 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
                 )
+
+        # Clear the shared "hydro" SB bucket only when both siblings were deleted this run
+        for area, fields in hydro_sb_fields_deleted.items():
+            if HYDRO_SB_SHARED_FIELDS <= fields:
+                sb_cleanups.append((area, "hydro"))
 
         if sb_cleanups:
             try:
