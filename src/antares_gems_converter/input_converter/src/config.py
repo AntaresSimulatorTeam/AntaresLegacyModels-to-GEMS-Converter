@@ -43,6 +43,7 @@ HYDRO_TYPE_TO_SET_METHOD = {
     "mod_inflows": "set_mod_series",
     "mingen": "set_mingen",
 }
+HYDRO_SB_SHARED_FIELDS: set[str] = {"mod_inflows", "ror"}
 
 
 MATRIX_TYPES_TO_GET_METHOD = {
