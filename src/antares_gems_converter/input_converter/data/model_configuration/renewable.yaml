@@ -22,6 +22,7 @@ template:
 
   components:
     - id: ${area}_renewable_${renewable}
+      scenario-group: renewable_${area}_${renewable}_group
       parameters:
         - id: nominal_capacity
           time-dependent: false

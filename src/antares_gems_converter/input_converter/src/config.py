@@ -43,6 +43,7 @@ HYDRO_TYPE_TO_SET_METHOD = {
     "mod_inflows": "set_mod_series",
     "mingen": "set_mingen",
 }
+HYDRO_SB_SHARED_FIELDS: set[str] = {"mod_inflows", "ror"}
 
 
 MATRIX_TYPES_TO_GET_METHOD = {
@@ -50,6 +51,26 @@ MATRIX_TYPES_TO_GET_METHOD = {
     "solar": "get_solar_matrix",
     "wind": "get_wind_matrix",
     "misc_gen": "get_misc_gen_matrix",
+}
+
+# Keyed by YAML template name (conversion_template.name) — used when reading the legacy SB
+# to assign scenario_group on converted components.
+MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
+    "load": "load",
+    "solar": "solar",
+    "wind": "wind",
+    "lt_storage": "hydro",
+    "ror": "hydro",
+}
+
+
+CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
+    "thermal": "thermal",
+    "renewable": "renewable",
+}
+
+LINK_TYPE_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
+    "link": "link",
 }
 TIMESERIES_NAME_TO_METHOD = {
     "capacity_direct": "get_capacity_direct",

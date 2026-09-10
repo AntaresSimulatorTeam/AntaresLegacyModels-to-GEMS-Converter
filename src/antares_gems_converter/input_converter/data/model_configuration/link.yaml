@@ -22,6 +22,7 @@ template:
 
   components:
     - id: ${link}_link # How to specify that we want to get the link_id ?
+      scenario-group: ${link}_ntc_group
       parameters:
         - id: direct_capacity
           time-dependent: true
