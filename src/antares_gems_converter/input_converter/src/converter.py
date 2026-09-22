@@ -50,9 +50,9 @@ from antares_gems_converter.input_converter.src.parsing import (
 )
 from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
-    read_yaml_file,
     resolve_path,
 )
+from gems_craft.model.parsing import parse_yaml_library
 from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentPropertySchema,
@@ -555,9 +555,13 @@ class AntaresStudyConverter:
 
     @staticmethod
     def _extract_lib_and_model_ids(path: str) -> tuple[str, list]:
-        lib_data = read_yaml_file(Path(path))["library"]
-        models = lib_data.get("models", [])
-        return lib_data["id"], [model["id"] for model in models]
+        try:
+            with Path(path).open("r", encoding="utf-8") as file:
+                lib_data = parse_yaml_library(file)
+        except Exception as e:
+            raise ValueError(f"Failed to parse library file {path}: {e}") from e
+        models = lib_data.models
+        return lib_data.id, [model.id for model in models]
 
     def _check_converted_models_are_in_libs(
         self, model_conversion_templates: dict[str, ConversionTemplate]
