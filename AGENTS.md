@@ -50,7 +50,6 @@ src/antares_gems_converter/
 - `check_file_exists` - returns `True` only if file exists and is non-empty
 - `check_dataframe_validity` - returns `False` if DataFrame is empty or all-zeros
 - `dump_to_yaml` - serializes a Pydantic model into `system.yml`
-- `read_yaml_file` - reads a YAML file into a dict, with error handling
 - `save_to_file` - writes a DataFrame/Series to a tab-separated file, creating dirs as needed
 
       logger.py - loger factory 

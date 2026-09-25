@@ -12,14 +12,12 @@
 
 import os
 from pathlib import Path, PurePath
-from typing import Any, Union
+from typing import Union
 
 import pandas as pd
 import yaml
 from pandas import DataFrame
 from pydantic import BaseModel
-
-from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
 
 
 def resolve_path(path: Path) -> Path:
@@ -59,16 +57,6 @@ def dump_to_yaml(model: BaseModel, output_path: Path) -> None:
             yaml_file,
             allow_unicode=True,
         )
-
-
-def read_yaml_file(file_path: Path) -> dict[str, Any]:
-    if not file_path.exists():
-        raise FileNotFoundError(f"The file {file_path} does not exists")
-    with file_path.open("r", encoding="utf-8") as file:
-        try:
-            return yaml.safe_load(file)
-        except yaml.YAMLError as e:
-            raise yaml.YAMLError(f"Error trying to read yaml file {file_path}: {e}")
 
 
 def save_to_file(series: Union[pd.DataFrame, pd.Series], output_file: PurePath) -> None:
