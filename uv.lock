@@ -18,7 +18,7 @@ wheels = [
 
 [[package]]
 name = "antares-craft"
-version = "0.15.1"
+version = "0.17.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "antares-study-version" },
@@ -31,14 +31,14 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/22/c4b801b8a0d87a0092ac582d315b03c20c41e8cbcdd5dad7b5683880b90a/antares_craft-0.15.1.tar.gz", hash = "sha256:0e4422ec0d83027375b02dc43ff4f881c3e3ac012949a1c5bf51e7227b94d28c", size = 169034, upload-time = "2026-07-10T15:42:20.493Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/10/f26a8cc815e3f599ffe0b8ef5396befce03450b8d274cca5a851b98b1705/antares_craft-0.17.1.tar.gz", hash = "sha256:ac39645eee3c92310a2cc30342c03dd19ced9caddb854d0ad39a4595fe96d243", size = 169587, upload-time = "2026-09-15T08:21:59.511Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/99/05c8e96951e814b74d2425fa1aeefdab458379bd2bf0ec82ca47de7c529e/antares_craft-0.15.1-py3-none-any.whl", hash = "sha256:be3ed9708513f0ba75e61a1599d18f29e5500c9bd5d58f17c32e148b44b1ce1c", size = 245031, upload-time = "2026-07-10T15:42:19.378Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/53/efd2e728171d9a7d1310b10220cd2d5272606ff2967c111c37297c51774d/antares_craft-0.17.1-py3-none-any.whl", hash = "sha256:a90a1a76e82ce121a971239f4366dab2de3e67e321fc7cb09314e44e7c5618bd", size = 245531, upload-time = "2026-09-15T08:21:58.418Z" },
 ]
 
 [[package]]
 name = "antares-legacy-gems-converter"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "antares-craft" },
@@ -63,7 +63,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "antares-craft", specifier = "==0.15.1" },
+    { name = "antares-craft", specifier = "==0.17.1" },
     { name = "antares-study-version", specifier = "==1.0.20" },
     { name = "antares-timeseries-generation", specifier = "==0.1.9" },
     { name = "gemspy", specifier = "==0.1.3" },
@@ -616,7 +616,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.12'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
