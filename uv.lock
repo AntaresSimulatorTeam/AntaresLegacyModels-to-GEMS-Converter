@@ -31,9 +31,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/51/f5d402b2207e773f3bc7e642a758730aa675d9aa89bdd95e9239f8daf46f/antares_craft-0.17.1.tar.gz", hash = "sha256:ee65cfcd80f9a988589ee74fd5ead1ecc220dd41f1c60eb4cc6f3e05a4cd669f", size = 169646, upload-time = "2026-08-25T10:14:33.712Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/10/f26a8cc815e3f599ffe0b8ef5396befce03450b8d274cca5a851b98b1705/antares_craft-0.17.1.tar.gz", hash = "sha256:ac39645eee3c92310a2cc30342c03dd19ced9caddb854d0ad39a4595fe96d243", size = 169587, upload-time = "2026-09-15T08:21:59.511Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/f0/ccd0e76bd03fd9f83aa73cf13c18cf42fab6c116aa5eca63f8044d0e9eeb/antares_craft-0.17.1-py3-none-any.whl", hash = "sha256:e556733d7da075b550be80824c7ab5ba382c691765839879860f604cf1e5247f", size = 245599, upload-time = "2026-08-25T10:14:32.349Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/53/efd2e728171d9a7d1310b10220cd2d5272606ff2967c111c37297c51774d/antares_craft-0.17.1-py3-none-any.whl", hash = "sha256:a90a1a76e82ce121a971239f4366dab2de3e67e321fc7cb09314e44e7c5618bd", size = 245531, upload-time = "2026-09-15T08:21:58.418Z" },
 ]
 
 [[package]]
