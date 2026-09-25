@@ -4,7 +4,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Converter | Antares-Simulator | antares-craft | GemsPy | Notes |
 |-----------|-------------------|---------------|--------|-------|
-| 0.4.0     | 10.1.1            | 0.15.1        | 0.2.0  | GemsPy 0.2.0 |
+| 0.4.0     | 10.1.1            | 0.17.1        | 0.2.0  | GemsPy 0.2.0; antares-craft 0.17.1 (feature: new `create_multiple_binding_constraints` method; 0.16.0 added `get_mc_ind_binding_constraints`/`get_mc_all_binding_constraints` result readers) — additive only, no breaking changes |
 | 0.3.0     | 10.1.1            | 0.15.1        | 0.1.3  | GemsPy 0.1.3 (top-level package renamed `gems` -> `gems_craft`; hybrid-only schemas split into `gems_craft_hybrid`; `parse_yaml_components` renamed to `parse_yaml_system`); Antares-Simulator 10.1.1. antares-craft 0.15.1 (bug fix: districts issue in area deletion; unused read_outputs_api/local methods added) |
 | 0.2.1     | 10.1.0            | 0.14.0        | 0.1.2  | Packaging fix: include missing YAML files (model libraries) in the pip package |
 | 0.2.0     | 10.1.0            | 0.14.0        | 0.1.2  | GemsPy 0.1.2; Antares Legacy Models Library 2.1.2; all component properties now converted via templates (only `electricity` carrier supported)|
@@ -38,7 +38,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Package | Pinned version |
 |---------|----------------|
-| antares-craft | 0.15.1 |
+| antares-craft | 0.17.1 |
 | antares-study-version | 1.0.20 |
 | antares-timeseries-generation | 0.1.9 |
 | gemspy | 0.2.0 |
