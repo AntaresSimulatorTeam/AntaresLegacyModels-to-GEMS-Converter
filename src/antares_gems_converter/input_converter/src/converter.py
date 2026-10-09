@@ -684,21 +684,17 @@ class AntaresStudyConverter:
 
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
-            system = HybridSystemSchema(
+            return HybridSystemSchema(
                 id=self.study.name,
                 components=components,
                 connections=connections or None,
                 area_connections=area_connections or None,
             )
-            data = system.model_dump(exclude_none=True)
-            return HybridSystemSchema(**data)
-        system = SystemSchema(
+        return SystemSchema(
             id=self.study.name,
             components=components,
             connections=connections or None,
         )
-        data = system.model_dump(exclude_none=True)
-        return SystemSchema(**data)
 
     def _build_model_conversion_templates(self) -> dict[str, ConversionTemplate]:
         model_conversion_templates: dict[str, ConversionTemplate] = {}

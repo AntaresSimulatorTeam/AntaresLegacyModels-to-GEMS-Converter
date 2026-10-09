@@ -1881,3 +1881,24 @@ class TestConverter:
         operation = Operation()
         with pytest.raises(ValueError):
             operation.execute(10)
+
+    @pytest.mark.parametrize(
+        "local_study_w_thermal",
+        [DATAFRAME_PREPRO_THERMAL_CONFIG],
+        indirect=True,
+    )
+    def test_dump_to_yaml_no_python_tags(self, local_study_w_thermal: Study, tmp_path: Path):
+        """Regression: dump_to_yaml must not emit !!python object tags (breaks GemsPy safe-load)."""
+        converter = self._init_converter_from_study(
+            local_study_w_thermal,
+            model_list=["thermal"],
+        )
+        system = converter.convert_study_to_input_system()
+        yaml_path = converter.output_folder / "system.yml"
+        dump_to_yaml(model=system, output_path=yaml_path)
+
+        raw = yaml_path.read_text(encoding="utf-8")
+        assert "!!python" not in raw, "YAML output contains Python object tags"
+
+        with open(yaml_path, encoding="utf-8") as f:
+            parse_yaml_system(f)

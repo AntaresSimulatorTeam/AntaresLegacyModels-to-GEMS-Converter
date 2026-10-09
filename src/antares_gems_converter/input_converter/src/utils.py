@@ -52,7 +52,12 @@ def dump_to_yaml(model: BaseModel, output_path: Path) -> None:
     with open(output_path, "w", encoding="utf-8") as yaml_file:
         yaml.dump(
             {
-                "system": model.model_dump(by_alias=True, exclude_unset=True),
+                "system": model.model_dump(
+                    mode="json",
+                    by_alias=True,
+                    exclude_unset=True,
+                    exclude_none=True,
+                ),
             },
             yaml_file,
             allow_unicode=True,
