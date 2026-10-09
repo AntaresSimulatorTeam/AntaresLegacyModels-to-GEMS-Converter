@@ -53,7 +53,10 @@ def dump_to_yaml(model: BaseModel, output_path: Path) -> None:
         yaml.dump(
             {
                 "system": model.model_dump(
-                    mode="json", by_alias=True, exclude_unset=True
+                    mode="json",
+                    by_alias=True,
+                    exclude_unset=True,
+                    exclude_none=True,
                 ),
             },
             yaml_file,
