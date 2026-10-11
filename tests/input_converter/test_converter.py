@@ -1753,7 +1753,7 @@ class TestConverter:
         ### Compare area connections
         expected_area_connections = [
             AreaConnectionsSchema(
-                component="fr_battery", port="injection_port", area="fr"
+                component="fr_battery_gems", port="injection_port", area="fr"
             )
         ]
         assert area_connections == expected_area_connections
@@ -1820,6 +1820,7 @@ class TestConverter:
         # TODO check folder data-models is present
 
         assert obtained_data.components == expected_data.components
+        assert obtained_data.area_connections == expected_data.area_connections
 
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH

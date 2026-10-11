@@ -98,7 +98,7 @@ dependencies.json                # Antares Simulator version for CI
 ### Two Conversion Modes
 
 - **FULL** — generates a standalone GEMS study from scratch. Components are connected via port-to-port connections. The `area` model is required and is added automatically to `models_to_convert` if absent (with a warning).
-- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy. The `area` model is incompatible with this mode and is removed automatically from `models_to_convert` if present (with a warning).
+- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy. All GEMS component ids get the `_gems` suffix (`HYBRID_COMPONENT_ID_SUFFIX`), added by the converter, not the templates: Antares >= 10.2 lists the legacy objects of every area under ids such as `<area>_load` or `<area>_hydro_storage` (even blanked ones, since area-level objects cannot be deleted) and rejects GEMS components with the same id. The `area` model is incompatible with this mode and is removed automatically from `models_to_convert` if present (with a warning).
 
 ### Config Registry (`config.py`)
 

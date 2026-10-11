@@ -66,6 +66,15 @@ ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"
+# Antares >= 10.2 requires this file next to system.yml. Default content: no
+# per-model setting, so the solver defaults apply (sequential-subproblems,
+# cyclic out-of-bounds processing). Also valid for GemsPy.
+OPTIM_CONFIG_FILE = "optim-config.yml"
+DEFAULT_OPTIM_CONFIG = "models: []\n"
+# Antares >= 10.2 lists every legacy object of a hybrid study under ids such as
+# <area>_load or <area>_hydro_storage, and rejects GEMS components with the same
+# id: in hybrid mode, all GEMS component ids carry this suffix.
+HYBRID_COMPONENT_ID_SUFFIX = "_gems"
 
 # TODO: Move all global variables in a config class, that is used in AntaresStudyConverter constructor
 
@@ -145,6 +154,7 @@ class AntaresStudyConverter:
             else:
                 self.study = read_study_local(resolve_path(study_input))
         self.output_system_path = self.output_folder / "input" / "system.yml"
+        self.output_optim_config_path = self.output_folder / "input" / OPTIM_CONFIG_FILE
         self.areas = self.study.get_areas()
         self.legacy_objects: list[ObjectProperties] = []
 
@@ -296,7 +306,7 @@ class AntaresStudyConverter:
             )
             components.append(
                 ComponentSchema(
-                    id=(comp.id).replace(" / ", "_"),
+                    id=self._output_component_id(comp.id),
                     model=resolved_conversion_template.model,
                     scenario_group=comp.scenario_group,
                     parameters=parameters,
@@ -316,7 +326,7 @@ class AntaresStudyConverter:
                         )
                     else:
                         component_value = area_connection.component
-                    component_value = component_value.replace(" / ", "_")
+                    component_value = self._output_component_id(component_value)
                     if "." in area_connection.area:
                         area_parts = area_connection.area.split(".")
                         area_value = getattr(
@@ -362,6 +372,13 @@ class AntaresStudyConverter:
                             port2=connection.port2,
                         )
                     )
+
+    def _output_component_id(self, component_id: str) -> str:
+        # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
+        output_id = component_id.replace(" / ", "_")
+        if self.mode == ConversionMode.HYBRID:
+            output_id += HYBRID_COMPONENT_ID_SUFFIX
+        return output_id
 
     @staticmethod
     def _read_sb_year_ts(sb_matrix: Any) -> dict[int, int]:
@@ -723,6 +740,16 @@ class AntaresStudyConverter:
         system = self.convert_study_to_input_system()
         self.logger.info("Dumping input system into yaml file...")
         dump_to_yaml(model=system, output_path=self.output_system_path)
+        self._write_optim_config()
+
+    def _write_optim_config(self) -> None:
+        # Keep the optim-config of a hybrid input study, if it already has one
+        if self.output_optim_config_path.exists():
+            return
+        self.output_optim_config_path.write_text(DEFAULT_OPTIM_CONFIG)
+        self.logger.info(
+            f"Generated optim-config file at {self.output_optim_config_path}"
+        )
 
     def _copy_scenario_builder(self) -> None:
         if not self.modeler_scenario_builder_file:

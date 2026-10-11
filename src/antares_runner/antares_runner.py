@@ -28,12 +28,21 @@ class AntaresHybridRunner:
         self.exec_dir, self.study_dir, self.solver = exec_dir, study_dir, solver
         self.exec_path = self.exec_dir / Path("antares-solver")
         self.OUTPUT_FILE_DIR_NAME = "output"
-        self.SIMULATION_TABLE_1_FILE = "simulation_table--optim-nb-1.csv"
-        self.SIMULATION_TABLE_2_FILE = "simulation_table--optim-nb-2.csv"
+        self.SIMULATION_TABLE_1_STAGE = "optim-nb-1"
+        self.SIMULATION_TABLE_2_STAGE = "optim-nb-2"
 
     def run(self) -> None:
         # Build the command to run antares-solver.exe
-        command = [str(self.exec_path.absolute()), str(self.study_dir.absolute())]
+        # Since Antares 10.2, simulation tables are only written on request, and
+        # there is one per stage: write only the stages read below.
+        command = [
+            str(self.exec_path.absolute()),
+            str(self.study_dir.absolute()),
+            "--output",
+            "all",
+            "--simulation-table-stages",
+            f"{self.SIMULATION_TABLE_1_STAGE},{self.SIMULATION_TABLE_2_STAGE}",
+        ]
         if self.solver:
             command.append("--linear-solver")
             command.append(self.solver)
@@ -59,12 +68,27 @@ class AntaresHybridRunner:
             name for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))
         ]
         self.simulation_id = sorted(folders)[-1]
-        simulation_table_1_path, simulation_table_2_path = path / Path(
-            self.simulation_id + "/" + self.SIMULATION_TABLE_1_FILE
-        ), path / Path(self.simulation_id + "/" + self.SIMULATION_TABLE_2_FILE)
-        self.simulation_table_1, self.simulation_table_2 = pd.read_csv(
-            simulation_table_1_path
-        ), pd.read_csv(simulation_table_2_path)
+        simulation_dir = path / self.simulation_id
+        self.simulation_table_1 = self._read_simulation_table(
+            simulation_dir, self.SIMULATION_TABLE_1_STAGE
+        )
+        self.simulation_table_2 = self._read_simulation_table(
+            simulation_dir, self.SIMULATION_TABLE_2_STAGE
+        )
+
+    @staticmethod
+    def _read_simulation_table(simulation_dir: Path, stage: str) -> pd.DataFrame:
+        # Since Antares 10.2, there is one file per MC year and per stage:
+        # simulation-table-<year>-<stage>.csv. Concatenate them by year.
+        files = sorted(
+            simulation_dir.glob(f"simulation-table-*-{stage}.csv"),
+            key=lambda f: int(f.name.split("-")[2]),
+        )
+        if not files:
+            raise FileNotFoundError(
+                f"No simulation table for stage '{stage}' in {simulation_dir}"
+            )
+        return pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
 
 
 class AntaresHybridStudyBenchmarker:
