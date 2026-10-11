@@ -743,7 +743,7 @@ class AntaresStudyConverter:
         self._write_optim_config()
 
     def _write_optim_config(self) -> None:
-        # Keep the optim-config of a hybrid input study, if it already has one
+        # Keep an existing optim-config.yml (e.g. from a hybrid input study)
         if self.output_optim_config_path.exists():
             return
         self.output_optim_config_path.write_text(DEFAULT_OPTIM_CONFIG)

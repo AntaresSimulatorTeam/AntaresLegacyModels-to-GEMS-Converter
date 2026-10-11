@@ -1822,6 +1822,41 @@ class TestConverter:
         assert obtained_data.components == expected_data.components
         assert obtained_data.area_connections == expected_data.area_connections
 
+    @pytest.mark.parametrize("mode", ["full", "hybrid"])
+    def test_optim_config_generated(self, tmp_path: Path, mode: str):
+        local_path = Path(__file__).parent / "resources" / LOCAL_PATH
+        input_path = tmp_path / "input" / LOCAL_PATH
+        shutil.copytree(local_path, input_path)
+
+        converter = self._init_converter_from_path(
+            input_path,
+            tmp_path / "output" / LOCAL_PATH,
+            mode,
+            MODEL_LIST_WITH_BASE,
+            ["battery"],
+        )
+        converter.process_all()
+
+        assert converter.output_optim_config_path.read_text() == "models: []\n"
+
+    def test_hybrid_existing_optim_config_kept(self, tmp_path: Path):
+        local_path = Path(__file__).parent / "resources" / LOCAL_PATH
+        input_path = tmp_path / "input" / LOCAL_PATH
+        shutil.copytree(local_path, input_path)
+        optim_config = "models: [] # user settings\n"
+        (input_path / "input" / "optim-config.yml").write_text(optim_config)
+
+        converter = self._init_converter_from_path(
+            input_path,
+            tmp_path / "output" / LOCAL_PATH,
+            "hybrid",
+            MODEL_LIST_WITH_BASE,
+            ["battery"],
+        )
+        converter.process_all()
+
+        assert converter.output_optim_config_path.read_text() == optim_config
+
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
         ref_path = local_path / "reference.yaml"
