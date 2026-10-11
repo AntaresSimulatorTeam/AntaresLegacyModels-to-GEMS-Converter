@@ -234,6 +234,12 @@ Runs on every push to any branch:
 5. Run tests
 6. Upload test failure artifacts on failure (logs)
 
+### Dependency monitoring
+
+Upstream releases are detected by this repository's own weekly workflows (`check-antares-update.yml`, `check-antares-craft-update.yml`, `check-gemspy-update.yml`). Each opens a triage issue for the new version, runs the test suite against it (via `run-tests.yml`) and posts the result on the issue.
+
+`check-gemspy-update.yml` is the single source of `[GEMSPY UPDATE]` issues: GemsPy must not also open them here, as that produced duplicate issues. It keeps one issue per version (open or closed) and adopts, by adding the `gemspy-update` label, any such issue opened outside the workflow instead of creating a second one.
+
 ---
 
 ## Git & Branching Model

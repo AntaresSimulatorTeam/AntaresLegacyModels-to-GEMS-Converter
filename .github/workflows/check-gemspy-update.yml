@@ -1,5 +1,8 @@
 name: Check GemsPy Update
 
+# Single source of the `[GEMSPY UPDATE]` triage issues in this repository: GemsPy
+# releases are detected here by polling PyPI, GemsPy does not open issues here.
+
 on:
   schedule:
     - cron: "0 6 * * 1"
@@ -13,9 +16,9 @@ jobs:
   check-update:
     runs-on: ubuntu-latest
     outputs:
-      new_issue: ${{ steps.create_issue.outputs.new_issue }}
+      run_tests: ${{ steps.issue.outputs.run_tests }}
       latest_version: ${{ steps.latest.outputs.version }}
-      issue_number: ${{ steps.create_issue.outputs.issue_number }}
+      issue_number: ${{ steps.issue.outputs.issue_number }}
 
     steps:
       - name: Checkout repository
@@ -62,27 +65,47 @@ jobs:
             echo "New version detected: $LATEST"
           fi
 
-      - name: Create GitHub Issue
-        id: create_issue
+      - name: Find or create GitHub Issue
+        id: issue
         if: steps.compare.outputs.update == 'true'
         uses: actions/github-script@v9
         with:
           script: |
             const latest = '${{ steps.latest.outputs.version }}';
             const title = `[GEMSPY UPDATE] New release: v${latest}`;
+            const label = 'gemspy-update';
 
-            const existing = await github.rest.issues.listForRepo({
+            // One triage issue per GemsPy version: look at open and closed issues,
+            // whoever opened them, so closing an issue does not make it reappear.
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: 'open',
-              labels: 'gemspy-update',
+              state: 'all',
+              per_page: 100,
             });
 
-            const duplicate = existing.data.find(i => i.title.includes(latest));
-            if (duplicate) {
-              console.log(`Issue already exists: #${duplicate.number} - ${duplicate.html_url}`);
-              core.setOutput('new_issue', 'false');
-              core.setOutput('issue_number', String(duplicate.number));
+            const existing = issues.find(i => !i.pull_request && i.title.trim() === title);
+            if (existing) {
+              const labelled = existing.labels.some(l => (typeof l === 'string' ? l : l.name) === label);
+              if (labelled) {
+                console.log(`Issue already exists: #${existing.number} - ${existing.html_url}`);
+                core.setOutput('run_tests', 'false');
+                core.setOutput('issue_number', String(existing.number));
+                return;
+              }
+
+              // Opened outside this workflow (by hand, or by GemsPy's former
+              // notify-gemspy-release workflow): adopt it instead of opening a
+              // duplicate, so the test results are posted there.
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                labels: [label],
+              });
+              console.log(`Adopted existing issue: #${existing.number} - ${existing.html_url}`);
+              core.setOutput('run_tests', 'true');
+              core.setOutput('issue_number', String(existing.number));
               return;
             }
 
@@ -95,6 +118,7 @@ jobs:
               '|---|---|',
               `| **New version** | \`${latest}\` |`,
               `| **PyPI page** | https://pypi.org/project/gemspy/${latest}/ |`,
+              `| **Release notes** | https://github.com/${context.repo.owner}/GemsPy/releases/tag/v${latest} |`,
               '',
               '## Triage',
               '',
@@ -112,17 +136,17 @@ jobs:
               repo: context.repo.repo,
               title: title,
               body: body,
-              labels: ['gemspy-update'],
+              labels: [label],
             });
 
-            core.setOutput('new_issue', 'true');
+            core.setOutput('run_tests', 'true');
             core.setOutput('issue_number', String(result.data.number));
             console.log(`Issue created: #${result.data.number} - ${result.data.html_url}`);
 
   run_tests:
     name: Tests against GemsPy v${{ needs.check-update.outputs.latest_version }}
     needs: check-update
-    if: needs.check-update.outputs.new_issue == 'true'
+    if: needs.check-update.outputs.run_tests == 'true'
     uses: ./.github/workflows/run-tests.yml
     with:
       gemspy_version: ${{ needs.check-update.outputs.latest_version }}
@@ -132,7 +156,7 @@ jobs:
     name: Post test results to issue
     runs-on: ubuntu-22.04
     needs: [check-update, run_tests]
-    if: always() && needs.check-update.outputs.new_issue == 'true'
+    if: always() && needs.check-update.outputs.run_tests == 'true'
 
     steps:
       - name: Post results to issue
