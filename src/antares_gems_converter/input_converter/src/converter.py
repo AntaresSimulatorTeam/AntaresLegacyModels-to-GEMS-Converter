@@ -22,6 +22,7 @@ from antares.craft.model.study import Study, read_study_local
 from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
+    BLANKED_LEGACY_OBJECT_TYPES,
     CLUSTER_TYPE_TO_SB_ATTR,
     HYDRO_SB_SHARED_FIELDS,
     HYDRO_TYPE_TO_SET_METHOD,
@@ -71,9 +72,11 @@ SERIES_FOLDER = "data-series"
 # cyclic out-of-bounds processing). Also valid for GemsPy.
 OPTIM_CONFIG_FILE = "optim-config.yml"
 DEFAULT_OPTIM_CONFIG = "models: []\n"
-# Antares >= 10.2 lists every legacy object of a hybrid study under ids such as
-# <area>_load or <area>_hydro_storage, and rejects GEMS components with the same
-# id: in hybrid mode, all GEMS component ids carry this suffix.
+# Antares >= 10.2 gives legacy objects the same ids as the templates (e.g.
+# <area>_thermal_<cluster>, <area>_load) and rejects GEMS components that reuse
+# the id of a legacy object still in the study. Hybrid mode deletes the replaced
+# clusters and links, so their GEMS components keep the legacy id, but it only
+# blanks area-level objects: the GEMS components replacing them get this suffix.
 HYBRID_COMPONENT_ID_SUFFIX = "_gems"
 
 # TODO: Move all global variables in a config class, that is used in AntaresStudyConverter constructor
@@ -272,6 +275,7 @@ class AntaresStudyConverter:
         mp: ModelConversionPreprocessor,
     ) -> None:
         components_connections_to_avoid: List[str] = []
+        id_suffix = self._component_id_suffix(resolved_conversion_template)
         for comp in resolved_conversion_template.components:
             if resolved_conversion_template.name in MATRIX_TYPES:
                 if not all(
@@ -306,7 +310,7 @@ class AntaresStudyConverter:
             )
             components.append(
                 ComponentSchema(
-                    id=self._output_component_id(comp.id),
+                    id=self._output_component_id(comp.id, id_suffix),
                     model=resolved_conversion_template.model,
                     scenario_group=comp.scenario_group,
                     parameters=parameters,
@@ -326,7 +330,9 @@ class AntaresStudyConverter:
                         )
                     else:
                         component_value = area_connection.component
-                    component_value = self._output_component_id(component_value)
+                    component_value = self._output_component_id(
+                        component_value, id_suffix
+                    )
                     if "." in area_connection.area:
                         area_parts = area_connection.area.split(".")
                         area_value = getattr(
@@ -373,12 +379,20 @@ class AntaresStudyConverter:
                         )
                     )
 
-    def _output_component_id(self, component_id: str) -> str:
+    def _component_id_suffix(self, conversion_template: ConversionTemplate) -> str:
+        # In hybrid mode, a blanked (not deleted) legacy object stays in the study
+        # under the id that the GEMS components replacing it would have.
+        if self.mode == ConversionMode.HYBRID and any(
+            item.object_properties.type in BLANKED_LEGACY_OBJECT_TYPES
+            for item in conversion_template.legacy_objects_to_delete
+        ):
+            return HYBRID_COMPONENT_ID_SUFFIX
+        return ""
+
+    @staticmethod
+    def _output_component_id(component_id: str, suffix: str) -> str:
         # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
-        output_id = component_id.replace(" / ", "_")
-        if self.mode == ConversionMode.HYBRID:
-            output_id += HYBRID_COMPONENT_ID_SUFFIX
-        return output_id
+        return component_id.replace(" / ", "_") + suffix
 
     @staticmethod
     def _read_sb_year_ts(sb_matrix: Any) -> dict[int, int]:

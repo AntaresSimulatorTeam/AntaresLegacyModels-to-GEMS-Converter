@@ -1753,7 +1753,7 @@ class TestConverter:
         ### Compare area connections
         expected_area_connections = [
             AreaConnectionsSchema(
-                component="fr_battery_gems", port="injection_port", area="fr"
+                component="fr_battery", port="injection_port", area="fr"
             )
         ]
         assert area_connections == expected_area_connections
@@ -1821,6 +1821,24 @@ class TestConverter:
 
         assert obtained_data.components == expected_data.components
         assert obtained_data.area_connections == expected_data.area_connections
+
+    def test_hybrid_component_ids(self, fr_load: Study):
+        # The legacy load is blanked, not deleted: it keeps its id in the study,
+        # so the GEMS load gets the suffix. The legacy thermal cluster is
+        # deleted: the GEMS thermal cluster keeps the legacy id.
+        converter = self._init_converter_from_study(
+            fr_load, model_list=["load", "thermal"], mode="hybrid"
+        )
+        system = converter.convert_study_to_input_system()
+
+        assert sorted(c.id for c in system.components) == [
+            "fr_load_gems",
+            "fr_thermal_gaz",
+        ]
+        assert sorted(c.component for c in system.area_connections) == [
+            "fr_load_gems",
+            "fr_thermal_gaz",
+        ]
 
     @pytest.mark.parametrize("mode", ["full", "hybrid"])
     def test_optim_config_generated(self, tmp_path: Path, mode: str):

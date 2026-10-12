@@ -1,10 +1,10 @@
 system:
   area-connections:
   - area: fr
-    component: fr_battery_gems
+    component: fr_battery
     port: injection_port
   components:
-  - id: fr_battery_gems
+  - id: fr_battery
     model: andromede-v1-models.battery
     parameters:
     - id: reservoir_capacity
