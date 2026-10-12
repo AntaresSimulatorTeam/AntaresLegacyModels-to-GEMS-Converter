@@ -12,7 +12,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ## [2.2.0]
 
-- `thermal` model: `min_up_duration` and `min_down_duration` are now declared `time-dependent: false`. Both are used in the bounds of the minimum up/down time sums, and GEMS requires time-sum bounds to be declared time-independent in the library. A system can no longer give them a time series.
+- `thermal` model: `min_up_duration` and `min_down_duration` are now declared `time-dependent: false` and `scenario-dependent: false`. Both are used in the bounds of the minimum up/down time sums, and GEMS requires time-sum bounds to be declared time-independent in the library. A system can no longer give them a time series or scenario-dependent values.
 
 ---
 

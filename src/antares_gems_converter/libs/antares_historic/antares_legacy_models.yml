@@ -218,10 +218,10 @@ library:
         - id: fixed_cost
         - id: min_up_duration # Bound of a time sum, so must not depend on time.
           time-dependent: false
-          scenario-dependent: true
+          scenario-dependent: false
         - id: min_down_duration # Bound of a time sum, so must not depend on time.
           time-dependent: false
-          scenario-dependent: true
+          scenario-dependent: false
         - id: num_units
         - id: spinning # in percentage, taken into account in cluster_max_generation and max_power_per_unit (except when computing minimum generation)
         - id: co2_emissions_rate
