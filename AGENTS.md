@@ -75,6 +75,7 @@ src/antares_gems_converter/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
+  views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns, metrics filled per study)
   antares_runner/
     antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
 tests/
@@ -84,7 +85,6 @@ tests/
 .github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
 dependencies.json                # Antares Simulator version for CI
-views_builder_version.json       # GEMS-ViewsBuilder version the catalogs were validated against
 ```
 
 ---
@@ -219,7 +219,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template resolution, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
-| `tests/antares_historic/` | Converted models produce correct optimization results | Antares Simulator binary |
+| `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
@@ -290,7 +290,7 @@ Runs on every push to any branch:
 
 9. **Do not commit** `venv/`, `site/`, extracted Antares binaries, or `.pyc` files.
 
-10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, `views_builder_version.json` tracks the GEMS-ViewsBuilder version the catalogs were validated against; update it by hand after re-checking the catalogs when the `check-views-builder-update` workflow opens an issue.
+10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, the `gems-views-builder` pin in `pyproject.toml` is the GEMS-ViewsBuilder version the catalogs and view configs are validated against; when the `check-views-builder-update` workflow opens an issue, re-check them, then update the pin (and `uv lock`).
 
 ---
 

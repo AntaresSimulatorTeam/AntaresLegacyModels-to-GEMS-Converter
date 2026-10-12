@@ -214,6 +214,9 @@ template:
               area: ${area}
               cluster: ${st_storage}
               field: group
+        - id: name
+          value:
+            constant: ${st_storage}
 
   # For full modeler mode
   connections:

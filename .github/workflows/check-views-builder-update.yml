@@ -12,15 +12,19 @@ permissions:
 jobs:
   check-update:
     runs-on: ubuntu-latest
+    outputs:
+      new_issue: ${{ steps.create_issue.outputs.new_issue }}
+      latest_version: ${{ steps.latest.outputs.version }}
+      issue_number: ${{ steps.create_issue.outputs.issue_number }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Read last validated GEMS-ViewsBuilder version
+      - name: Read current GEMS-ViewsBuilder version
         id: current
         run: |
-          VERSION=$(jq -r '.views_builder_version' views_builder_version.json)
+          VERSION=$(grep -oP 'gems-views-builder==\K[0-9.]+' pyproject.toml)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Current version: $VERSION"
 
@@ -59,38 +63,27 @@ jobs:
           fi
 
       - name: Create GitHub Issue
+        id: create_issue
         if: steps.compare.outputs.update == 'true'
         uses: actions/github-script@v9
         with:
           script: |
             const latest = '${{ steps.latest.outputs.version }}';
-            const current = '${{ steps.current.outputs.version }}';
-            const title = `[A2G-02] GEMS-ViewsBuilder update: v${latest}`;
-            const label = 'views-builder-update';
+            const title = `[GEMS-VIEWSBUILDER UPDATE] New release: v${latest}`;
 
             const existing = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: label,
+              labels: 'views-builder-update',
             });
 
-            const duplicate = existing.data.find(i => i.title.includes(`v${latest}`));
+            const duplicate = existing.data.find(i => i.title.includes(latest));
             if (duplicate) {
               console.log(`Issue already exists: #${duplicate.number} - ${duplicate.html_url}`);
+              core.setOutput('new_issue', 'false');
+              core.setOutput('issue_number', String(duplicate.number));
               return;
-            }
-
-            // Make sure the label exists (issue creation fails on unknown labels in some setups)
-            try {
-              await github.rest.issues.createLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: label,
-                color: 'ededed',
-              });
-            } catch (e) {
-              console.log(`Label '${label}' not created (probably already exists): ${e.message}`);
             }
 
             const body = [
@@ -100,22 +93,18 @@ jobs:
               '',
               '| | |',
               '|---|---|',
-              `| **Last validated version** | \`${current}\` |`,
               `| **New version** | \`${latest}\` |`,
               `| **PyPI page** | https://pypi.org/project/gems-views-builder/${latest}/ |`,
-              '| **Repository** | https://github.com/AntaresSimulatorTeam/GEMS-ViewsBuilder |',
               '',
               '## Triage',
               '',
-              'Check that the catalogs (`src/antares_gems_converter/catalogs/`) are still in the right format and compatible with the new GEMS-ViewsBuilder version.',
+              '- [ ] GEMS-ViewsBuilder changelog reviewed',
+              '- [ ] A2G-02 issue opened (if the catalogs, taxonomies or view configs are no longer in the right format or compatible with the view builder; the `extra-locations`, `aggregations-patterns` and `metrics` fields of the view configs are filled case by case for each study)',
+              '- [ ] No action needed (if release has no impact on the converter)',
               '',
-              '- [ ] GEMS-ViewsBuilder changelog reviewed (catalog / taxonomy schema changes?)',
-              '- [ ] Catalogs (`catalogs/*.yml`) are in the expected format and compatible with the new version',
-              '- [ ] Taxonomies (`taxonomies/`, including the flattened one) are up to date; remove the flattened taxonomy if parent categories are now supported',
-              '- [ ] `uv run pytest tests/antares_historic/test_catalogs.py` passes',
-              '- [ ] `views_builder_version.json` updated to the new version',
-              '- [ ] Version bump, changelog and `COMPATIBILITY.md` updated if shipped files changed',
-              '- [ ] No action needed (if release has no impact on the catalogs)',
+              '---',
+              '',
+              '_Test results against this version will be posted below by the workflow._',
             ].join('\n');
 
             const result = await github.rest.issues.create({
@@ -123,7 +112,50 @@ jobs:
               repo: context.repo.repo,
               title: title,
               body: body,
-              labels: ['A2G-02', label],
+              labels: ['views-builder-update'],
             });
 
+            core.setOutput('new_issue', 'true');
+            core.setOutput('issue_number', String(result.data.number));
             console.log(`Issue created: #${result.data.number} - ${result.data.html_url}`);
+
+  run_tests:
+    name: Tests against GEMS-ViewsBuilder v${{ needs.check-update.outputs.latest_version }}
+    needs: check-update
+    if: needs.check-update.outputs.new_issue == 'true'
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      views_builder_version: ${{ needs.check-update.outputs.latest_version }}
+      artifact_name: test-failures-views-builder-${{ needs.check-update.outputs.latest_version }}
+
+  post-results:
+    name: Post test results to issue
+    runs-on: ubuntu-22.04
+    needs: [check-update, run_tests]
+    if: always() && needs.check-update.outputs.new_issue == 'true'
+
+    steps:
+      - name: Post results to issue
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const outcome = '${{ needs.run_tests.outputs.test_outcome }}';
+            const version = '${{ needs.check-update.outputs.latest_version }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const icon = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passed' : 'failed';
+
+            const body = [
+              `## Test Results — GEMS-ViewsBuilder v${version}`,
+              '',
+              `${icon} Tests **${status}** against GEMS-ViewsBuilder v${version}.`,
+              '',
+              `[View full run](${runUrl})`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number('${{ needs.check-update.outputs.issue_number }}'),
+              body: body,
+            });

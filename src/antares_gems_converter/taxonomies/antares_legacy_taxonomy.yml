@@ -61,6 +61,7 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
+        - id: name
 
     - id: fatal_generation
       parent-category: generation
@@ -118,6 +119,7 @@ taxonomy:
         - id: profit
       properties:
         - id: group
+        - id: name
 
     - id: link
       ports:

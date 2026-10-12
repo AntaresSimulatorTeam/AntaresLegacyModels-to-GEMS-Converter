@@ -21,7 +21,7 @@ taxonomy:
         - id: spilled_energy
       ports:
         - id: balance_port
-      binding-constraints:
+      constraints:
         - id: balance
       extra-outputs:
         - id: price
@@ -62,6 +62,7 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
+        - id: name
 
     - id: fatal_generation
       ports:
@@ -152,6 +153,7 @@ taxonomy:
         - id: profit
       properties:
         - id: group
+        - id: name
 
     - id: link
       ports:
