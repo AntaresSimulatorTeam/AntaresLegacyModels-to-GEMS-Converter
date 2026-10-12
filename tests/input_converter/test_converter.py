@@ -15,6 +15,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from antares.craft.model.binding_constraint import (
+    BindingConstraintProperties,
+    ClusterData,
+    ConstraintTerm,
+)
 from antares.craft.model.renewable import (
     RenewableClusterProperties,
     TimeSeriesInterpretation,
@@ -1839,6 +1844,40 @@ class TestConverter:
             "fr_load_gems",
             "fr_thermal_gaz",
         ]
+
+    @pytest.mark.parametrize("mode", ["full", "hybrid"])
+    @pytest.mark.parametrize("model_name", sorted(MODEL_NAME_TO_FILE_NAME))
+    def test_component_id_suffix(
+        self, local_study_w_areas: Study, mode: str, model_name: str
+    ):
+        # Only the area-level legacy objects are blanked, not deleted
+        blanked_models = {"load", "solar", "wind", "misc_gen", "ror", "hydro"}
+        converter = self._init_converter_from_study(
+            local_study_w_areas, model_list=[], mode=mode
+        )
+        template_path = RESOURCES_FOLDER / MODEL_NAME_TO_FILE_NAME[model_name]
+        with template_path.open() as template:
+            conversion_template = parse_conversion_template(template)
+
+        expected = "_gems" if mode == "hybrid" and model_name in blanked_models else ""
+        assert converter._component_id_suffix(conversion_template) == expected
+
+    def test_hybrid_cluster_in_binding_constraint(self, local_study_w_thermal: Study):
+        # The legacy cluster cannot be deleted: it would be counted twice, and
+        # Antares would reject the GEMS component that reuses its id.
+        local_study_w_thermal.create_binding_constraint(
+            name="bc_gaz",
+            properties=BindingConstraintProperties(),
+            terms=[
+                ConstraintTerm(data=ClusterData(area="fr", cluster="gaz"), weight=1)
+            ],
+        )
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=["thermal"], mode="hybrid"
+        )
+
+        with pytest.raises(ValueError, match="'gaz'.*\n.*'bc_gaz'"):
+            converter.convert_study_to_input_system()
 
     @pytest.mark.parametrize("mode", ["full", "hybrid"])
     def test_optim_config_generated(self, tmp_path: Path, mode: str):

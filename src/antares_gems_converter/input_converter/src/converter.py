@@ -166,6 +166,7 @@ class AntaresStudyConverter:
         sb_cleanups: list[tuple[str, str]] = []
         # "mod_inflows" and "ror" share one "hydro" SB bucket per area; only clear it when BOTH are deleted
         hydro_sb_fields_deleted: dict[str, set[str]] = {}
+        undeletable_objects: list[str] = []
 
         for legacy_component in self.legacy_objects:
             try:
@@ -233,10 +234,8 @@ class AntaresStudyConverter:
                         )
                 else:
                     raise NotImplementedError
-            except ReferencedObjectDeletionNotAllowed:
-                self.logger.warning(
-                    f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
-                )
+            except ReferencedObjectDeletionNotAllowed as e:
+                undeletable_objects.append(str(e))
             except (KeyError, FileNotFoundError):
                 self.logger.warning(
                     f"Item {legacy_component} not found in study; skipping deletion"
@@ -245,6 +244,16 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
                 )
+
+        # A legacy object left in the study would be counted twice, along with
+        # the GEMS component replacing it, and Antares >= 10.2 rejects a GEMS
+        # component that reuses the id of a legacy object.
+        if undeletable_objects:
+            raise ValueError(
+                "Hybrid conversion failed: some converted legacy objects cannot be"
+                " deleted. Remove these binding constraints from the study, or do"
+                " not convert these objects.\n" + "\n".join(undeletable_objects)
+            )
 
         # Clear the shared "hydro" SB bucket only when both siblings were deleted this run
         for area, fields in hydro_sb_fields_deleted.items():

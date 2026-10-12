@@ -179,7 +179,8 @@ class AntaresModelerRunner:
         # Read the objective value from the solution file
         # Since Antares 10.2, tables are written in a folder per simulation
         path = self.study_dir / Path(self.OUTPUT_FILE_DIR_NAME)
-        self.simulation_id = sorted(os.listdir(path))[-1]
+        folders = [name for name in os.listdir(path) if (path / name).is_dir()]
+        self.simulation_id = sorted(folders)[-1]
         simulation_dir = path / self.simulation_id
         simulation_table = read_simulation_tables(
             simulation_dir, "simulation-table-*.csv"
