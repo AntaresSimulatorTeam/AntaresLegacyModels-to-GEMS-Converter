@@ -135,9 +135,3 @@ taxonomy:
         - id: prop_cost
         - id: minus_flow
         - id: actual_loop_flow
-
-    - id: coupling_models
-
-    - id: capacity_investment_decisions
-      ports:
-        - id: capacity_port
