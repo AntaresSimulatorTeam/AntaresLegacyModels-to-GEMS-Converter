@@ -44,6 +44,9 @@ HYDRO_TYPE_TO_SET_METHOD = {
     "mingen": "set_mingen",
 }
 HYDRO_SB_SHARED_FIELDS: set[str] = {"mod_inflows", "ror"}
+# Legacy object types that hybrid mode blanks instead of deleting: area-level
+# objects cannot be deleted, so they stay in the study under their legacy id.
+BLANKED_LEGACY_OBJECT_TYPES: set[str] = {*MATRIX_TYPES_TO_SET_METHOD, "hydro"}
 
 
 MATRIX_TYPES_TO_GET_METHOD = {

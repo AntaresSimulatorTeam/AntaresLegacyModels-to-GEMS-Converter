@@ -42,6 +42,7 @@ src/antares_gems_converter/
 - `STUDY_LEVEL_GET/DELETION` - maps `area/link/binding_constraint` → study-level methods
 - `MATRIX_TYPES_TO_GET/SET_METHOD` - maps `load/solar/wind/misc_gen` → timeseries get/set methods
 - `HYDRO_TYPE_TO_SET_METHOD` - maps hydro field names → antares-craft hydro setter methods
+- `BLANKED_LEGACY_OBJECT_TYPES` - legacy object types that hybrid mode blanks instead of deleting; GEMS components replacing them get the `_gems` suffix
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
 - `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES / AREA_TYPES` - categorize model types for iteration logic in the converter
@@ -98,7 +99,7 @@ dependencies.json                # Antares Simulator version for CI
 ### Two Conversion Modes
 
 - **FULL** — generates a standalone GEMS study from scratch. Components are connected via port-to-port connections. The `area` model is required and is added automatically to `models_to_convert` if absent (with a warning).
-- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy. The `area` model is incompatible with this mode and is removed automatically from `models_to_convert` if present (with a warning).
+- **HYBRID** — copies the original Antares study, replaces selected components with GEMS equivalents using area-connections, and deletes the replaced legacy objects from the copy. Antares >= 10.2 gives legacy objects the same ids as the templates (e.g. `<area>_thermal_<cluster>`, `<area>_load`) and rejects GEMS components that reuse the id of a legacy object still in the study. Replaced clusters and links are deleted, so their GEMS components keep the template id. When antares-craft refuses a deletion because a binding constraint references the object, the conversion fails with a `ValueError`: the legacy object would be counted twice, and Antares would reject the GEMS id. Area-level objects (load, wind, solar, misc gen, hydro, ror) cannot be deleted, only blanked: the GEMS components that replace them get the `_gems` suffix (`HYBRID_COMPONENT_ID_SUFFIX`, e.g. `fr_load_gems`). The converter adds it, not the templates, for every template whose `legacy-objects-to-delete` has a type in `BLANKED_LEGACY_OBJECT_TYPES` (`config.py`). The `area` model is incompatible with this mode and is removed automatically from `models_to_convert` if present (with a warning).
 
 ### Config Registry (`config.py`)
 

@@ -22,6 +22,7 @@ from antares.craft.model.study import Study, read_study_local
 from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.config import (
+    BLANKED_LEGACY_OBJECT_TYPES,
     CLUSTER_TYPE_TO_SB_ATTR,
     HYDRO_SB_SHARED_FIELDS,
     HYDRO_TYPE_TO_SET_METHOD,
@@ -66,6 +67,17 @@ ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"
+# Antares >= 10.2 requires this file next to system.yml. Default content: no
+# per-model setting, so the solver defaults apply (sequential-subproblems,
+# cyclic out-of-bounds processing). Also valid for GemsPy.
+OPTIM_CONFIG_FILE = "optim-config.yml"
+DEFAULT_OPTIM_CONFIG = "models: []\n"
+# Antares >= 10.2 gives legacy objects the same ids as the templates (e.g.
+# <area>_thermal_<cluster>, <area>_load) and rejects GEMS components that reuse
+# the id of a legacy object still in the study. Hybrid mode deletes the replaced
+# clusters and links, so their GEMS components keep the legacy id, but it only
+# blanks area-level objects: the GEMS components replacing them get this suffix.
+HYBRID_COMPONENT_ID_SUFFIX = "_gems"
 
 # TODO: Move all global variables in a config class, that is used in AntaresStudyConverter constructor
 
@@ -145,6 +157,7 @@ class AntaresStudyConverter:
             else:
                 self.study = read_study_local(resolve_path(study_input))
         self.output_system_path = self.output_folder / "input" / "system.yml"
+        self.output_optim_config_path = self.output_folder / "input" / OPTIM_CONFIG_FILE
         self.areas = self.study.get_areas()
         self.legacy_objects: list[ObjectProperties] = []
 
@@ -153,6 +166,7 @@ class AntaresStudyConverter:
         sb_cleanups: list[tuple[str, str]] = []
         # "mod_inflows" and "ror" share one "hydro" SB bucket per area; only clear it when BOTH are deleted
         hydro_sb_fields_deleted: dict[str, set[str]] = {}
+        undeletable_objects: list[str] = []
 
         for legacy_component in self.legacy_objects:
             try:
@@ -220,10 +234,8 @@ class AntaresStudyConverter:
                         )
                 else:
                     raise NotImplementedError
-            except ReferencedObjectDeletionNotAllowed:
-                self.logger.warning(
-                    f"Item {legacy_component} will not be deleted because it is referenced in a binding constraint"
-                )
+            except ReferencedObjectDeletionNotAllowed as e:
+                undeletable_objects.append(str(e))
             except (KeyError, FileNotFoundError):
                 self.logger.warning(
                     f"Item {legacy_component} not found in study; skipping deletion"
@@ -232,6 +244,16 @@ class AntaresStudyConverter:
                 self.logger.warning(
                     f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
                 )
+
+        # A legacy object left in the study would be counted twice, along with
+        # the GEMS component replacing it, and Antares >= 10.2 rejects a GEMS
+        # component that reuses the id of a legacy object.
+        if undeletable_objects:
+            raise ValueError(
+                "Hybrid conversion failed: some converted legacy objects cannot be"
+                " deleted. Remove these binding constraints from the study, or do"
+                " not convert these objects.\n" + "\n".join(undeletable_objects)
+            )
 
         # Clear the shared "hydro" SB bucket only when both siblings were deleted this run
         for area, fields in hydro_sb_fields_deleted.items():
@@ -262,6 +284,7 @@ class AntaresStudyConverter:
         mp: ModelConversionPreprocessor,
     ) -> None:
         components_connections_to_avoid: List[str] = []
+        id_suffix = self._component_id_suffix(resolved_conversion_template)
         for comp in resolved_conversion_template.components:
             if resolved_conversion_template.name in MATRIX_TYPES:
                 if not all(
@@ -296,7 +319,7 @@ class AntaresStudyConverter:
             )
             components.append(
                 ComponentSchema(
-                    id=(comp.id).replace(" / ", "_"),
+                    id=self._output_component_id(comp.id, id_suffix),
                     model=resolved_conversion_template.model,
                     scenario_group=comp.scenario_group,
                     parameters=parameters,
@@ -316,7 +339,9 @@ class AntaresStudyConverter:
                         )
                     else:
                         component_value = area_connection.component
-                    component_value = component_value.replace(" / ", "_")
+                    component_value = self._output_component_id(
+                        component_value, id_suffix
+                    )
                     if "." in area_connection.area:
                         area_parts = area_connection.area.split(".")
                         area_value = getattr(
@@ -362,6 +387,21 @@ class AntaresStudyConverter:
                             port2=connection.port2,
                         )
                     )
+
+    def _component_id_suffix(self, conversion_template: ConversionTemplate) -> str:
+        # In hybrid mode, a blanked (not deleted) legacy object stays in the study
+        # under the id that the GEMS components replacing it would have.
+        if self.mode == ConversionMode.HYBRID and any(
+            item.object_properties.type in BLANKED_LEGACY_OBJECT_TYPES
+            for item in conversion_template.legacy_objects_to_delete
+        ):
+            return HYBRID_COMPONENT_ID_SUFFIX
+        return ""
+
+    @staticmethod
+    def _output_component_id(component_id: str, suffix: str) -> str:
+        # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
+        return component_id.replace(" / ", "_") + suffix
 
     @staticmethod
     def _read_sb_year_ts(sb_matrix: Any) -> dict[int, int]:
@@ -723,6 +763,16 @@ class AntaresStudyConverter:
         system = self.convert_study_to_input_system()
         self.logger.info("Dumping input system into yaml file...")
         dump_to_yaml(model=system, output_path=self.output_system_path)
+        self._write_optim_config()
+
+    def _write_optim_config(self) -> None:
+        # Keep an existing optim-config.yml (e.g. from a hybrid input study)
+        if self.output_optim_config_path.exists():
+            return
+        self.output_optim_config_path.write_text(DEFAULT_OPTIM_CONFIG)
+        self.logger.info(
+            f"Generated optim-config file at {self.output_optim_config_path}"
+        )
 
     def _copy_scenario_builder(self) -> None:
         if not self.modeler_scenario_builder_file:

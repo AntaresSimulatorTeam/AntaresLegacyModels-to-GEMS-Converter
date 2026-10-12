@@ -4,6 +4,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Converter | Antares-Simulator | antares-craft | GemsPy | Notes |
 |-----------|-------------------|---------------|--------|-------|
+| 0.5.0     | 10.2.0            | 0.17.1        | 0.2.0  | Antares-Simulator 10.2.0: `optim-config.yml` generated next to `system.yml`; in HYBRID mode, the GEMS components replacing load, wind, solar, misc gen, hydro and ror end with `_gems` (Antares rejects ids of legacy objects still in the study, e.g. `fr_load`); HYBRID conversion fails when a converted legacy object is referenced by a binding constraint; `antares_runner` requires Antares >= 10.2 and its hybrid runner writes only the simulation tables (no mc-ind / mc-all results) |
 | 0.4.0     | 10.1.1            | 0.17.1        | 0.2.0  | GemsPy 0.2.0; antares-craft 0.17.1 (feature: new `create_multiple_binding_constraints` method; 0.16.0 added `get_mc_ind_binding_constraints`/`get_mc_all_binding_constraints` result readers) — additive only, no breaking changes |
 | 0.3.0     | 10.1.1            | 0.15.1        | 0.1.3  | GemsPy 0.1.3 (top-level package renamed `gems` -> `gems_craft`; hybrid-only schemas split into `gems_craft_hybrid`; `parse_yaml_components` renamed to `parse_yaml_system`); Antares-Simulator 10.1.1. antares-craft 0.15.1 (bug fix: districts issue in area deletion; unused read_outputs_api/local methods added) |
 | 0.2.1     | 10.1.0            | 0.14.0        | 0.1.2  | Packaging fix: include missing YAML files (model libraries) in the pip package |
@@ -62,8 +63,8 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
-| Converter | 0.4.0 | `pyproject.toml` |
+| Converter | 0.5.0 | `pyproject.toml` |
 | Antares Legacy Models Library | 2.2.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
-| Antares-Simulator | 10.1.1 | `dependencies.json` |
+| Antares-Simulator | 10.2.0 | `dependencies.json` |
 | antares-craft | 0.17.1 | `pyproject.toml` |
 | GemsPy | 0.2.0 | `pyproject.toml` |
