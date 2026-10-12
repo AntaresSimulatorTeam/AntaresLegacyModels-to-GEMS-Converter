@@ -73,14 +73,18 @@ src/antares_gems_converter/
       antares_legacy_models.yml   # GEMS model definitions for Antares legacy components
     reference_models/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
+  catalogs/                       # GEMS-ViewsBuilder metric catalogs
+  taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
   antares_runner/
     antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
 .github/workflows/ci.yml        # CI pipeline
+.github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
 dependencies.json                # Antares Simulator version for CI
+views_builder_version.json       # GEMS-ViewsBuilder version the catalogs were validated against
 ```
 
 ---
@@ -286,7 +290,7 @@ Runs on every push to any branch:
 
 9. **Do not commit** `venv/`, `site/`, extracted Antares binaries, or `.pyc` files.
 
-10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references.
+10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, `views_builder_version.json` tracks the GEMS-ViewsBuilder version the catalogs were validated against; update it by hand after re-checking the catalogs when the `check-views-builder-update` workflow opens an issue.
 
 ---
 

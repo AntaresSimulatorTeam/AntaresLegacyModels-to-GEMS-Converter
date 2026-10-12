@@ -6,6 +6,7 @@ import yaml
 
 CATALOGS_DIR = Path("src/antares_gems_converter/catalogs")
 TAXONOMIES_DIR = Path("src/antares_gems_converter/taxonomies")
+FLATTENED_TAXONOMY_FILE = TAXONOMIES_DIR / "antares_legacy_taxonomy_flattened.yml"
 
 
 def load_yaml(path):
@@ -68,7 +69,11 @@ def has_property(category_id, property_id, taxonomy_index):
 
 
 def load_taxonomy_by_id(taxonomy_id):
+    # The flattened taxonomy shares its id with the main one: skip it here.
     for path in TAXONOMIES_DIR.glob("*.yml"):
+        if path == FLATTENED_TAXONOMY_FILE:
+            continue
+
         taxonomy = load_yaml(path)
 
         if taxonomy["taxonomy"]["id"] == taxonomy_id:
@@ -79,7 +84,6 @@ def load_taxonomy_by_id(taxonomy_id):
 
 CATALOG_FILES = list(CATALOGS_DIR.glob("*.yml"))
 
-FLATTENED_TAXONOMY_FILE = TAXONOMIES_DIR / "antares_legacy_taxonomy_flattened.yml"
 
 @pytest.mark.parametrize("catalog_file", CATALOG_FILES)
 def test_metrics_output_ids_and_properties_are_declared(catalog_file):
@@ -98,7 +102,9 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
 # The flattened taxonomy is provisional: it exists only until the view builder
 # supports parent categories, at which point it can be removed.
 @pytest.mark.parametrize("catalog_file", CATALOG_FILES)
-def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(catalog_file):
+def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(
+    catalog_file,
+):
     catalog = load_yaml(catalog_file)
 
     taxonomy = load_yaml(FLATTENED_TAXONOMY_FILE)
@@ -107,6 +113,38 @@ def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(ca
     errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
 
     assert not errors, "\n".join(errors)
+
+
+def resolve_category(category_id, taxonomy_index):
+    """Return the ids and properties of a category, parents included."""
+    ids, properties = set(), set()
+    current = category_id
+
+    while current:
+        category = taxonomy_index[current]
+        ids |= category["ids"]
+        properties |= category["properties"]
+        current = category["parent"]
+
+    return ids, properties
+
+
+# The flattened taxonomy is maintained by hand: it must stay equivalent to the
+# main one once parent categories are resolved.
+def test_flattened_taxonomy_matches_main_taxonomy():
+    main_index = build_taxonomy_index(
+        load_yaml(TAXONOMIES_DIR / "antares_legacy_taxonomy.yml")
+    )
+    flattened_index = build_taxonomy_index(load_yaml(FLATTENED_TAXONOMY_FILE))
+
+    assert flattened_index.keys() == main_index.keys()
+
+    for category_id, category in flattened_index.items():
+        assert category["parent"] is None, f"'{category_id}' still has a parent"
+        assert (category["ids"], category["properties"]) == resolve_category(
+            category_id, main_index
+        ), f"'{category_id}' differs between main and flattened taxonomies"
+
 
 def find_taxonomy_errors(catalog, catalog_file, taxonomy_index):
     errors = []
