@@ -1,25 +1,29 @@
 catalog:
-  id: antares_thermal_cluster_metrics
+  id: antares_legacy_thermal_cluster_catalog
 
   taxonomy: antares_legacy_taxonomy
 
   location:
-    taxonomy-category: dispatchable_generation
+    taxonomy-category: balance
 
   metrics-definition:
     - id: GENERATION
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: generation_power
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
-    - id: MIN.GEN
+    - id: MIN_GEN
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: min_gen_power
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
@@ -27,7 +31,9 @@ catalog:
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: profit
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
@@ -35,14 +41,18 @@ catalog:
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: actual_num_units_on
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
-    - id: NP.COST
+    - id: NP_COST
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: non_prop_cost
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum

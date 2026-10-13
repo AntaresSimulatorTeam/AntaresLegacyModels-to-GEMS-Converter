@@ -1,0 +1,21 @@
+view:
+
+  id: view_area
+
+  scope:
+    location:
+      taxonomy-category: balance # category of the taxonomy, the components of which serves as locational objects. Main case is 'area'.
+    calendar: calendar_file # change this in for test purposes
+    extra-locations:
+    # to be filled in
+
+  taxonomy: antares_legacy_taxonomy
+  
+  aggregations-patterns:
+    # to be filled in
+
+  catalogs: #Pointer to "catalogs" = "Business Metrics definitions files".
+      - id: antares_legacy_area_catalog
+
+  metrics:  #reference to the selected metric among the catalog
+    # to be filled in

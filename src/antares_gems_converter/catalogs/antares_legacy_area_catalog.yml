@@ -1,5 +1,5 @@
 catalog:
-  id: antares_area_metrics
+  id: antares_legacy_area_catalog
 
   taxonomy: antares_legacy_taxonomy
 
@@ -7,7 +7,7 @@ catalog:
     taxonomy-category: balance
 
   metrics-definition:
-    - id: OV.COST
+    - id: OV_COST
       terms:
         - taxonomy-category: balance
           output-id: imbalance_cost
@@ -21,7 +21,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP.COST
+    - id: OP_COST
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: prop_cost
@@ -32,7 +32,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: MRG.PRICE
+    - id: MRG_PRICE
       terms:
         - taxonomy-category: balance
           output-id: price
@@ -40,7 +40,7 @@ catalog:
       terms-operator: avg
       time-operator: avg
 
-    - id: CO2.EMIS
+    - id: CO2_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: co2_emissions
@@ -48,7 +48,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: NH3.EMIS
+    - id: NH3_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: nh3_emissions
@@ -56,7 +56,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: SO2.EMIS
+    - id: SO2_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: so2_emissions
@@ -64,7 +64,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: NOX.EMIS
+    - id: NOX_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: nox_emissions
@@ -72,7 +72,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: PM2_5.EMIS
+    - id: PM2_5_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: pm2_5_emissions
@@ -80,7 +80,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: PM5.EMIS
+    - id: PM5_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: pm5_emissions
@@ -88,7 +88,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: PM10.EMIS
+    - id: PM10_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: pm10_emissions
@@ -96,7 +96,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: NMVOC.EMIS
+    - id: NMVOC_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: nmvoc_emissions
@@ -104,7 +104,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP1.EMIS
+    - id: OP1_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: op1_emissions
@@ -112,7 +112,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP2.EMIS
+    - id: OP2_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: op2_emissions
@@ -120,7 +120,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP3.EMIS
+    - id: OP3_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: op3_emissions
@@ -128,7 +128,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP4.EMIS
+    - id: OP4_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: op4_emissions
@@ -136,7 +136,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: OP5.EMIS
+    - id: OP5_EMIS
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: op5_emissions
@@ -152,7 +152,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: RES.LOAD
+    - id: RES_LOAD
       terms:
         - taxonomy-category: fatal_consumption
           output-id: actual_load
@@ -166,7 +166,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: DTG.BY.TECHNOLOGY
+    - id: DTG_BY_TECHNOLOGY
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: generation_power
@@ -187,7 +187,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: RES.GENERATION
+    - id: RES_GENERATION
       terms:
         - taxonomy-category: renewable_fatal_generation
           output-id: generation_power
@@ -197,7 +197,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: STS.INJECTION
+    - id: STS_INJECTION
       terms:
         - taxonomy-category: short_term_storage
           output-id: injection_power
@@ -207,7 +207,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: STS.WITHDRAWAL
+    - id: STS_WITHDRAWAL
       terms:
         - taxonomy-category: short_term_storage
           output-id: withdrawal_power
@@ -217,7 +217,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: STS.LEVEL
+    - id: STS_LEVEL
       terms:
         - taxonomy-category: short_term_storage
           output-id: level
@@ -227,7 +227,7 @@ catalog:
       terms-operator: avg
       time-operator: avg
 
-    - id: UNSP.ENRG
+    - id: UNSP_ENRG
       terms:
         - taxonomy-category: balance
           output-id: unsupplied_energy
@@ -235,7 +235,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: SPIL.ENRG
+    - id: SPIL_ENRG
       terms:
         - taxonomy-category: balance
           output-id: spilled_energy
@@ -251,7 +251,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: NP.COST
+    - id: NP_COST
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: non_prop_cost
@@ -259,7 +259,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: AVL.DTG
+    - id: AVL_DTG
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: cluster_availability
@@ -267,7 +267,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: DTG.MRG
+    - id: DTG_MRG
       terms:
         - taxonomy-category: dispatchable_generation
           output-id: up_margin
@@ -291,7 +291,7 @@ catalog:
       terms-operator: avg
       time-operator: avg
 
-    - id: NPCAP.HOURS
+    - id: NPCAP_HOURS
       terms:
         - taxonomy-category: balance
           output-id: is_near_loss_of_load
@@ -299,7 +299,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: ROW.BAL
+    - id: ROW_BAL
       terms:
         - taxonomy-category: miscellaneous_fatal_generation
           output-id: generation_power
@@ -310,7 +310,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: MISC.NDG
+    - id: MISC_NDG
       terms:
         - taxonomy-category: miscellaneous_fatal_generation
           output-id: generation_power
@@ -332,7 +332,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: H.STOR
+    - id: H_STOR
       terms:
         - taxonomy-category: long_term_storage
           output-id: withdrawal_power
@@ -340,7 +340,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: H.PUMP
+    - id: H_PUMP
       terms:
         - taxonomy-category: long_term_storage
           output-id: injection_power
@@ -348,7 +348,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: H.OVFL
+    - id: H_OVFL
       terms:
         - taxonomy-category: long_term_storage
           output-id: overflow
@@ -356,7 +356,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: H.INFL
+    - id: H_INFL
       terms:
         - taxonomy-category: long_term_storage
           output-id: actual_inflows
@@ -364,7 +364,7 @@ catalog:
       terms-operator: sum
       time-operator: sum
 
-    - id: H.LEV
+    - id: H_LEV
       terms:
         - taxonomy-category: long_term_storage
           output-id: level_percentage
@@ -372,7 +372,7 @@ catalog:
       terms-operator: avg
       time-operator: avg
 
-    - id: H.VAL # WARNING : metric different from the one in Antares
+    - id: H_VAL # WARNING : metric different from the one in Antares
       terms:
         - taxonomy-category: long_term_storage_with_watervalues
           output-id: hydro_shadow_price
@@ -380,7 +380,7 @@ catalog:
       terms-operator: avg
       time-operator: avg
 
-    - id: H.COST # WARNING : metric different from the one in Antares
+    - id: H_COST # WARNING : metric different from the one in Antares
       terms:
         - taxonomy-category: long_term_storage_with_watervalues
           output-id: bellman_value

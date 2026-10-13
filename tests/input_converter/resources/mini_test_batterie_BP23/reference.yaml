@@ -178,6 +178,8 @@ system:
           value: electricity
         - id: technology
           value: nuclear
+        - id: name
+          value: fr_nuclear_epr
   connections:
     - component1: fr_battery
       component2: fr_node

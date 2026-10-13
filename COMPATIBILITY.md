@@ -33,6 +33,8 @@ This table maps converter versions to the tool versions they are compatible with
 
 - **GemsPy** — pinned version in `pyproject.toml`. The GEMS interpreter used for study generation and validation.
 
+- **GEMS-ViewsBuilder** — pinned version in `pyproject.toml` (dev dependency, tests only). Checks that catalogs, taxonomies and view configs are compatible with the view builder.
+
 ## Python library dependencies
 
 Runtime and development Python packages are pinned to exact versions in `pyproject.toml`. Resolved versions are recorded in `uv.lock` (regenerate with `uv lock` after changing pins).
@@ -43,6 +45,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | antares-study-version | 1.0.20 |
 | antares-timeseries-generation | 0.1.9 |
 | gemspy | 0.2.0 |
+| gems-views-builder | 0.0.1 |
 | numpy | 2.2.6 |
 | pandas | 2.2.3 |
 | pydantic | 2.11.10 |

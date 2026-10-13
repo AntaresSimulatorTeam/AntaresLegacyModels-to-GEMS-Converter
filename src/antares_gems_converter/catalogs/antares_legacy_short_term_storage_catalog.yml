@@ -1,27 +1,31 @@
 catalog:
   # TO DO : this catalog should be improved, correctness of the Metrics should be checked
 
-  id: antares_sts_metrics
+  id: antares_legacy_short_term_storage_catalog
 
   taxonomy: antares_legacy_taxonomy
 
   location:
-    taxonomy-category: short_term_storage
+    taxonomy-category: balance
 
   metrics-definition:
-    - id: P.INJECTION
+    - id: P_INJECTION
       terms:
         - taxonomy-category: short_term_storage
           output-id: injection_power
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
-    - id: P.WITHDRAWAL
+    - id: P_WITHDRAWAL
       terms:
         - taxonomy-category: short_term_storage
           output-id: withdrawal_power
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: sum
       time-operator: sum
 
@@ -29,7 +33,9 @@ catalog:
       terms:
         - taxonomy-category: short_term_storage
           output-id: level
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: avg
       time-operator: avg
 
@@ -37,6 +43,8 @@ catalog:
       terms:
         - taxonomy-category: short_term_storage
           output-id: profit
-          location-port: null
+          location-port: balance_port
+      breakdown:
+        - key: name
       terms-operator: avg
       time-operator: avg

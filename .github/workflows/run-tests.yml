@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ''
+      views_builder_version:
+        description: 'GEMS-ViewsBuilder version to override the pinned version (leave empty to use pinned)'
+        required: false
+        type: string
+        default: ''
       artifact_name:
         description: 'Name for the uploaded artifact on failure'
         required: false
@@ -72,6 +77,10 @@ jobs:
       - name: Override GemsPy version
         if: inputs.gemspy_version != ''
         run: uv pip install "gemspy==${{ inputs.gemspy_version }}"
+
+      - name: Override GEMS-ViewsBuilder version
+        if: inputs.views_builder_version != ''
+        run: uv pip install "gems-views-builder==${{ inputs.views_builder_version }}"
 
       - name: Resolve Antares version for downstream steps
         id: resolve_version

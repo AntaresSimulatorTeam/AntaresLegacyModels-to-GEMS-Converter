@@ -478,6 +478,7 @@ class TestConverter:
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
                     ComponentPropertySchema(id="group", value="other1"),
+                    ComponentPropertySchema(id="name", value="storage_1"),
                 ],
             )
         ]
@@ -639,6 +640,7 @@ class TestConverter:
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
                     ComponentPropertySchema(id="technology", value="other 1"),
+                    ComponentPropertySchema(id="name", value="gaz"),
                 ],
             )
         ]

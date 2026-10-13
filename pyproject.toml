@@ -51,6 +51,7 @@ dev = [
     "mypy>=2.1.0",
     "types-pyyaml>=6.0.12",
     "black>=23.7.0",
+    "gems-views-builder==0.0.1",
 ]
 
 
