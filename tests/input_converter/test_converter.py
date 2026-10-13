@@ -15,6 +15,11 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from antares.craft.model.binding_constraint import (
+    BindingConstraintProperties,
+    ClusterData,
+    ConstraintTerm,
+)
 from antares.craft.model.renewable import (
     RenewableClusterProperties,
     TimeSeriesInterpretation,
@@ -1822,6 +1827,94 @@ class TestConverter:
         # TODO check folder data-models is present
 
         assert obtained_data.components == expected_data.components
+        assert obtained_data.area_connections == expected_data.area_connections
+
+    def test_hybrid_component_ids(self, fr_load: Study):
+        # The legacy load is blanked, not deleted: it keeps its id in the study,
+        # so the GEMS load gets the suffix. The legacy thermal cluster is
+        # deleted: the GEMS thermal cluster keeps the legacy id.
+        converter = self._init_converter_from_study(
+            fr_load, model_list=["load", "thermal"], mode="hybrid"
+        )
+        system = converter.convert_study_to_input_system()
+
+        assert sorted(c.id for c in system.components) == [
+            "fr_load_gems",
+            "fr_thermal_gaz",
+        ]
+        assert sorted(c.component for c in system.area_connections) == [
+            "fr_load_gems",
+            "fr_thermal_gaz",
+        ]
+
+    @pytest.mark.parametrize("mode", ["full", "hybrid"])
+    @pytest.mark.parametrize("model_name", sorted(MODEL_NAME_TO_FILE_NAME))
+    def test_component_id_suffix(
+        self, local_study_w_areas: Study, mode: str, model_name: str
+    ):
+        # Only the area-level legacy objects are blanked, not deleted
+        blanked_models = {"load", "solar", "wind", "misc_gen", "ror", "hydro"}
+        converter = self._init_converter_from_study(
+            local_study_w_areas, model_list=[], mode=mode
+        )
+        template_path = RESOURCES_FOLDER / MODEL_NAME_TO_FILE_NAME[model_name]
+        with template_path.open() as template:
+            conversion_template = parse_conversion_template(template)
+
+        expected = "_gems" if mode == "hybrid" and model_name in blanked_models else ""
+        assert converter._component_id_suffix(conversion_template) == expected
+
+    def test_hybrid_cluster_in_binding_constraint(self, local_study_w_thermal: Study):
+        # The legacy cluster cannot be deleted: it would be counted twice, and
+        # Antares would reject the GEMS component that reuses its id.
+        local_study_w_thermal.create_binding_constraint(
+            name="bc_gaz",
+            properties=BindingConstraintProperties(),
+            terms=[
+                ConstraintTerm(data=ClusterData(area="fr", cluster="gaz"), weight=1)
+            ],
+        )
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=["thermal"], mode="hybrid"
+        )
+
+        with pytest.raises(ValueError, match="'gaz'.*\n.*'bc_gaz'"):
+            converter.convert_study_to_input_system()
+
+    @pytest.mark.parametrize("mode", ["full", "hybrid"])
+    def test_optim_config_generated(self, tmp_path: Path, mode: str):
+        local_path = Path(__file__).parent / "resources" / LOCAL_PATH
+        input_path = tmp_path / "input" / LOCAL_PATH
+        shutil.copytree(local_path, input_path)
+
+        converter = self._init_converter_from_path(
+            input_path,
+            tmp_path / "output" / LOCAL_PATH,
+            mode,
+            MODEL_LIST_WITH_BASE,
+            ["battery"],
+        )
+        converter.process_all()
+
+        assert converter.output_optim_config_path.read_text() == "models: []\n"
+
+    def test_hybrid_existing_optim_config_kept(self, tmp_path: Path):
+        local_path = Path(__file__).parent / "resources" / LOCAL_PATH
+        input_path = tmp_path / "input" / LOCAL_PATH
+        shutil.copytree(local_path, input_path)
+        optim_config = "models: [] # user settings\n"
+        (input_path / "input" / "optim-config.yml").write_text(optim_config)
+
+        converter = self._init_converter_from_path(
+            input_path,
+            tmp_path / "output" / LOCAL_PATH,
+            "hybrid",
+            MODEL_LIST_WITH_BASE,
+            ["battery"],
+        )
+        converter.process_all()
+
+        assert converter.output_optim_config_path.read_text() == optim_config
 
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH

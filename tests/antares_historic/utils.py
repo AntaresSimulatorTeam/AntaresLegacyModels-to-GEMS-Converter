@@ -55,6 +55,11 @@ def first_optim_relgap(
     )
     benchmarker.run()
     rel_gaps = benchmarker.weekly_rel_gaps()
+    # Since Antares 10.2, simulation tables also hold the legacy variables
+    # (~50 MB per table): free the disk once the gap is computed, keep the logs.
+    for study_path in [study_path_1, study_path_2]:
+        for table in (study_path / "output").glob("*/simulation-table-*.csv"):
+            table.unlink()
     return rel_gaps[0].max()
 
 
