@@ -1916,6 +1916,33 @@ class TestConverter:
 
         assert converter.output_optim_config_path.read_text() == optim_config
 
+    @pytest.mark.parametrize(
+        "mode, schema", [("full", SystemSchema), ("hybrid", HybridSystemSchema)]
+    )
+    def test_dumped_system_yaml_has_no_python_tags(
+        self, tmp_path: Path, mode: str, schema: type[SystemSchema]
+    ):
+        local_path = Path(__file__).parent / "resources" / LOCAL_PATH
+        input_path = tmp_path / "input" / LOCAL_PATH
+        shutil.copytree(local_path, input_path)
+
+        converter = self._init_converter_from_path(
+            input_path,
+            tmp_path / "output" / LOCAL_PATH,
+            mode,
+            MODEL_LIST_WITH_BASE,
+            ["battery"],
+        )
+        converter.process_all()
+
+        raw_yaml = converter.output_system_path.read_text(encoding="utf-8")
+        assert "!!python" not in raw_yaml
+        # The converter never sets an integer strategy, so the default must not be written
+        assert "integer-strategy" not in raw_yaml
+        # GemsPy reads the system with yaml.safe_load
+        with converter.output_system_path.open(encoding="utf-8") as system_file:
+            parse_yaml_system(system_file, schema)
+
     def test_convert_study_path_to_input_study(self, tmp_path: Path):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
         ref_path = local_path / "reference.yaml"
