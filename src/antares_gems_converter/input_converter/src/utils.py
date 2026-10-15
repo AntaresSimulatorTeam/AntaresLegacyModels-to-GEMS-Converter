@@ -50,9 +50,13 @@ def check_dataframe_validity(df: DataFrame) -> bool:
 
 def dump_to_yaml(model: BaseModel, output_path: Path) -> None:
     with open(output_path, "w", encoding="utf-8") as yaml_file:
-        yaml.dump(
+        # mode="json" turns enums into plain strings; safe_dump refuses any
+        # remaining Python object instead of writing a !!python tag.
+        yaml.safe_dump(
             {
-                "system": model.model_dump(by_alias=True, exclude_unset=True),
+                "system": model.model_dump(
+                    by_alias=True, exclude_unset=True, exclude_none=True, mode="json"
+                ),
             },
             yaml_file,
             allow_unicode=True,

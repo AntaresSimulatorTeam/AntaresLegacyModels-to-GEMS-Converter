@@ -730,14 +730,15 @@ class AntaresStudyConverter:
                 connections=connections or None,
                 area_connections=area_connections or None,
             )
-            data = system.model_dump(exclude_none=True)
+            # exclude_unset keeps defaults (e.g. integer_strategy) unset, so they are not dumped
+            data = system.model_dump(exclude_none=True, exclude_unset=True)
             return HybridSystemSchema(**data)
         system = SystemSchema(
             id=self.study.name,
             components=components,
             connections=connections or None,
         )
-        data = system.model_dump(exclude_none=True)
+        data = system.model_dump(exclude_none=True, exclude_unset=True)
         return SystemSchema(**data)
 
     def _build_model_conversion_templates(self) -> dict[str, ConversionTemplate]:

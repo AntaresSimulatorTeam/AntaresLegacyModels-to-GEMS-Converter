@@ -50,7 +50,7 @@ src/antares_gems_converter/
 - `resolve_path` - resolves a `Path` to absolute, raises if it doesn't exist
 - `check_file_exists` - returns `True` only if file exists and is non-empty
 - `check_dataframe_validity` - returns `False` if DataFrame is empty or all-zeros
-- `dump_to_yaml` - serializes a Pydantic model into `system.yml`
+- `dump_to_yaml` - serializes a Pydantic model into `system.yml` (`mode="json"` + `yaml.safe_dump`: plain YAML only, unset and `None` fields omitted)
 - `save_to_file` - writes a DataFrame/Series to a tab-separated file, creating dirs as needed
 
       logger.py - loger factory 
@@ -292,6 +292,8 @@ Runs on every push to any branch:
 9. **Do not commit** `venv/`, `site/`, extracted Antares binaries, or `.pyc` files.
 
 10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, the `gems-views-builder` pin in `pyproject.toml` is the GEMS-ViewsBuilder version the catalogs and view configs are validated against; when the `check-views-builder-update` workflow opens an issue, re-check them, then update the pin (and `uv lock`).
+
+11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
 
 ---
 
