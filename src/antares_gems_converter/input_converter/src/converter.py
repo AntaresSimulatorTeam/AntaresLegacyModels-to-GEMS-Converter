@@ -53,7 +53,7 @@ from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
     resolve_path,
 )
-from gems_craft.model.parsing import parse_yaml_library
+from gems_craft.model.parsing import LibrarySchema, ModelSchema, parse_yaml_library
 from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentPropertySchema,
@@ -594,33 +594,76 @@ class AntaresStudyConverter:
         )
 
     @staticmethod
-    def _extract_lib_and_model_ids(path: str) -> tuple[str, list]:
+    def _parse_library(path: str) -> LibrarySchema:
         try:
             with Path(path).open("r", encoding="utf-8") as file:
-                lib_data = parse_yaml_library(file)
+                return parse_yaml_library(file)
         except Exception as e:
             raise ValueError(f"Failed to parse library file {path}: {e}") from e
-        models = lib_data.models
-        return lib_data.id, [model.id for model in models]
+
+    @staticmethod
+    def _extract_lib_and_model_ids(path: str) -> tuple[str, list]:
+        lib_data = AntaresStudyConverter._parse_library(path)
+        return lib_data.id, [model.id for model in lib_data.models]
 
     def _check_converted_models_are_in_libs(
         self, model_conversion_templates: dict[str, ConversionTemplate]
     ) -> None:
-        lib_to_model_ids = {}
+        lib_to_models: dict[str, dict[str, ModelSchema]] = {}
         for lib_path in self.lib_paths:
-            lib_id, model_ids = self._extract_lib_and_model_ids(lib_path)
-            lib_to_model_ids[lib_id] = model_ids
+            lib_data = self._parse_library(lib_path)
+            lib_to_models[lib_data.id] = {model.id: model for model in lib_data.models}
 
+        mismatches: list[str] = []
         for model in self.models_to_convert:
-            lib_id, model_id = model_conversion_templates[model].model.split(".")
-            if lib_id not in lib_to_model_ids:
+            conversion_template = model_conversion_templates[model]
+            lib_id, model_id = conversion_template.model.split(".")
+            if lib_id not in lib_to_models:
                 raise ValueError(
                     f"Library {lib_id} has not been found in provided libraries"
                 )
-            if model_id not in lib_to_model_ids[lib_id]:
+            if model_id not in lib_to_models[lib_id]:
                 raise ValueError(
                     f"Model {model_id} has not been found in library {lib_id}"
                 )
+            mismatches += self._template_mismatches_with_model(
+                conversion_template, lib_to_models[lib_id][model_id]
+            )
+
+        # A mismatch would otherwise only surface later, in GEMS or the solver,
+        # far from the template, or go unnoticed
+        if mismatches:
+            raise ValueError(
+                "Conversion templates do not match the parameters and properties"
+                " of their library models:\n" + "\n".join(mismatches)
+            )
+
+    @staticmethod
+    def _template_mismatches_with_model(
+        conversion_template: ConversionTemplate, model: ModelSchema
+    ) -> list[str]:
+        model_ids = {
+            "parameter": {param.id for param in model.parameters},
+            "property": {prop.id for prop in model.properties},
+        }
+        mismatches = []
+        for comp in conversion_template.components:
+            template_ids = {
+                "parameter": {param.id for param in comp.parameters},
+                "property": {prop.id for prop in comp.properties},
+            }
+            for kind in ("parameter", "property"):
+                for issue, ids in (
+                    ("unknown", template_ids[kind] - model_ids[kind]),
+                    ("missing", model_ids[kind] - template_ids[kind]),
+                ):
+                    if ids:
+                        mismatches.append(
+                            f"- template '{conversion_template.name}', component"
+                            f" '{comp.id}', model '{conversion_template.model}':"
+                            f" {issue} {kind}(s) {sorted(ids)}"
+                        )
+        return mismatches
 
     # TODO: Does not depend on self for now, but will be once the config is a class attribute
     def _get_model_conversion_template(self, model: str) -> ConversionTemplate:
