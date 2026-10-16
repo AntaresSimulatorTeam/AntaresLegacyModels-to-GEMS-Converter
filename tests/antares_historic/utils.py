@@ -208,6 +208,7 @@ def createSTSTestAntaresStudy(
     load_time_serie_file: Path,
     sts_properties: STStorageProperties,
     sts_timeseries: Optional[dict[str, pd.DataFrame]] = None,
+    extra_sts_properties: Optional[dict[str, STStorageProperties]] = None,
 ) -> None:
     study = create_study_local(
         study_name=study_name,
@@ -231,6 +232,8 @@ def createSTSTestAntaresStudy(
     if sts_timeseries:
         for key, df in sts_timeseries.items():
             getattr(cluster3, STS_TIMESERIES_SETTER_MAP[key])(df)
+    for sts_name, properties in (extra_sts_properties or {}).items():
+        area.create_st_storage(sts_name, properties)
     addHybridBehavior(parent_dir_path / study_name)
 
 
