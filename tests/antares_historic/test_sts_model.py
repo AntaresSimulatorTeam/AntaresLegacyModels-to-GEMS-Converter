@@ -41,7 +41,7 @@ BASE_STS_PROPERTIES = STStorageProperties(
 
 # Testing Boolean/discrete parameters
 ## initial_level_optim [TODO]
-## enabled [TODO]
+## enabled [OK : test_disabled_sts]
 ## penalize_variation_injection [OK : test_penalize_variation_injection]
 ## penalize_variation_withdrawal [OK : test_penalize_variation_withdrawal]
 ## allow_overflow [OK : test_allow_overflow]
@@ -632,3 +632,49 @@ def test_penalize_variation_withdrawal(
         antares_exec_folder,
         sts_timeseries=sts_timeseries,
     )
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
+def test_disabled_sts(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    # The base storage stays enabled; a second storage is disabled
+    disabled_sts_properties = replace(BASE_STS_PROPERTIES, enabled=False)
+
+    # Run base test: the disabled storage must not be converted
+    study_name_base = f"e2e_disabled_base_{str(int(100*time()))}"
+    createSTSTestAntaresStudy(
+        study_name_base,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        BASE_STS_PROPERTIES,
+        extra_sts_properties={"sts_disabled": disabled_sts_properties},
+    )
+    original_study_path, converted_study_path = convert_study(
+        auto_generated_studies_path, study_name_base, ["short-term-storage"]
+    )
+    rel_gap = first_optim_relgap(
+        antares_exec_folder, original_study_path, converted_study_path, STS_TEST_SOLVER
+    )
+    assert rel_gap < STS_TEST_REL_ACCURACY
+
+    # Same study with the second storage enabled: it must change the optimum
+    study_name_enabled = f"e2e_disabled_enabled_{str(int(100*time()))}"
+    createSTSTestAntaresStudy(
+        study_name_enabled,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        BASE_STS_PROPERTIES,
+        extra_sts_properties={
+            "sts_disabled": replace(disabled_sts_properties, enabled=True)
+        },
+    )
+    rel_gap_enabled = first_optim_relgap(
+        antares_exec_folder,
+        auto_generated_studies_path / study_name_enabled,
+        converted_study_path,
+        STS_TEST_SOLVER,
+    )
+    assert rel_gap_enabled > 100 * STS_TEST_REL_ACCURACY

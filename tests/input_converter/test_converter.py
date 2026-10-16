@@ -11,6 +11,7 @@
 # This file is part of the Antares project.
 import os
 import shutil
+from dataclasses import replace
 from pathlib import Path
 
 import pandas as pd
@@ -24,7 +25,9 @@ from antares.craft.model.renewable import (
     RenewableClusterProperties,
     TimeSeriesInterpretation,
 )
+from antares.craft.model.st_storage import STStorageProperties
 from antares.craft.model.study import Study
+from antares.craft.model.thermal import ThermalClusterProperties
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
@@ -791,6 +794,101 @@ class TestConverter:
             "disabled_wind" in record.message and "disabled" in record.message
             for record in caplog.records
         )
+
+    def test_convert_disabled_thermal_is_skipped(
+        self, local_study_w_thermal: Study, caplog: pytest.LogCaptureFixture
+    ):
+        local_study_w_thermal.get_areas()["fr"].create_thermal_cluster(
+            "gaz_2",
+            ThermalClusterProperties(enabled=False, unit_count=1, nominal_capacity=2.0),
+        )
+
+        converter = self._init_converter_from_study(
+            local_study_w_thermal, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "thermal.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        with caplog.at_level("WARNING"):
+            (
+                thermals_components,
+                thermals_connections,
+                _,
+                _,
+            ) = converter._convert_model_to_component_list(resource_content)
+
+        # Only the enabled cluster is converted
+        assert [component.id for component in thermals_components] == ["fr_thermal_gaz"]
+        assert [connection.component1 for connection in thermals_connections] == [
+            "fr_thermal_gaz"
+        ]
+        assert any(
+            "'gaz_2'" in record.message and "is disabled" in record.message
+            for record in caplog.records
+        )
+
+    def test_convert_disabled_st_storage_is_skipped(
+        self,
+        local_study_with_st_storage: Study,
+        default_storage_cluster_properties: STStorageProperties,
+        caplog: pytest.LogCaptureFixture,
+    ):
+        local_study_with_st_storage.get_areas()["fr"].create_st_storage(
+            "storage_2", replace(default_storage_cluster_properties, enabled=False)
+        )
+
+        converter = self._init_converter_from_study(
+            local_study_with_st_storage, model_list=[]
+        )
+        path_load = RESOURCES_FOLDER / "st-storage.yaml"
+        with path_load.open() as template:
+            resource_content = parse_conversion_template(template)
+
+        with caplog.at_level("WARNING"):
+            (
+                storage_components,
+                storage_connections,
+                _,
+                _,
+            ) = converter._convert_model_to_component_list(resource_content)
+
+        # Only the enabled storage is converted
+        assert [component.id for component in storage_components] == [
+            "fr_short_term_storage_storage_1"
+        ]
+        assert [connection.component1 for connection in storage_connections] == [
+            "fr_short_term_storage_storage_1"
+        ]
+        assert any(
+            "'storage_2'" in record.message and "is disabled" in record.message
+            for record in caplog.records
+        )
+
+    def test_hybrid_disabled_clusters_are_kept(
+        self,
+        local_study_with_st_storage: Study,
+        default_storage_cluster_properties: STStorageProperties,
+    ):
+        # A disabled cluster is not converted, so it is not deleted either:
+        # it stays, still disabled, in the hybrid study
+        area_fr = local_study_with_st_storage.get_areas()["fr"]
+        area_fr.create_thermal_cluster("gaz_2", ThermalClusterProperties(enabled=False))
+        area_fr.create_st_storage(
+            "storage_2", replace(default_storage_cluster_properties, enabled=False)
+        )
+        converter = self._init_converter_from_study(
+            local_study_with_st_storage,
+            model_list=["thermal", "short-term-storage"],
+            mode="hybrid",
+        )
+        system = converter.convert_study_to_input_system()
+
+        converted_ids = ["fr_short_term_storage_storage_1", "fr_thermal_gaz"]
+        assert sorted(c.id for c in system.components) == converted_ids
+        assert sorted(c.component for c in system.area_connections) == converted_ids
+        assert list(converter.areas["fr"].get_thermals()) == ["gaz_2"]
+        assert list(converter.areas["fr"].get_st_storages()) == ["storage_2"]
 
     def test_convert_hydro_to_component(
         self,
