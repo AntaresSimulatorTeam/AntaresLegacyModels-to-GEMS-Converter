@@ -114,7 +114,7 @@ def study_objects(
 ) -> Iterator[StudyObject]:
     """Yield, in study order, the links, areas or clusters that
     `conversion_template` is instantiated for, except those it excludes and the
-    disabled renewable clusters."""
+    disabled clusters."""
     kind = conversion_template.for_each
     exclusions = conversion_template.excluded_objects
     if kind == ObjectKind.LINK:
@@ -143,9 +143,11 @@ def study_objects(
             cluster_object = StudyObject(kind, area=area.id, cluster=cluster_id)
             if is_excluded(cluster_object, exclusions):
                 continue
-            if kind == ObjectKind.RENEWABLE and not cluster.properties.enabled:
+            # A disabled cluster contributes nothing in Antares: no component, and
+            # in hybrid mode it is not deleted, so it stays, disabled, in the study
+            if not cluster.properties.enabled:
                 logger.warning(
-                    f"Renewable cluster '{cluster_id}' in area "
+                    f"{kind} cluster '{cluster_id}' in area "
                     f"'{area.id}' is disabled; skipping conversion."
                 )
                 continue
