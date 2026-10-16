@@ -174,7 +174,7 @@ template:
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
 
-Both use the `flow` port-type with a single `flow` field for power balance connections.
+Both use a `flow` port-type for power balance connections. In `antares_legacy_models.yml`, its `area-connection` (HYBRID mode) maps the `flow`, `spillage_bound` and `unsupplied_energy_bound` fields to the balance, the bound on spilled energy and the bound on unsupplied energy of the legacy area, after the legacy constraints. Antares fails when a model connected to an area does not define all three (define `0` when a model does not contribute).
 
 ---
 
