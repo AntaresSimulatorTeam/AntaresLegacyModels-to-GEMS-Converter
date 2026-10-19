@@ -63,7 +63,6 @@ from gems_craft.study.parsing import (
 )
 from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
 
-ANTARES_HISTORIC_LIB_ID = "antares_legacy_models"
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"
@@ -601,11 +600,6 @@ class AntaresStudyConverter:
         except Exception as e:
             raise ValueError(f"Failed to parse library file {path}: {e}") from e
 
-    @staticmethod
-    def _extract_lib_and_model_ids(path: str) -> tuple[str, list]:
-        lib_data = AntaresStudyConverter._parse_library(path)
-        return lib_data.id, [model.id for model in lib_data.models]
-
     def _check_converted_models_are_in_libs(
         self, model_conversion_templates: dict[str, ConversionTemplate]
     ) -> None:
@@ -688,13 +682,6 @@ class AntaresStudyConverter:
     def _create_dataseries_dir(self) -> None:
         dest_dir = self.output_folder / "input" / SERIES_FOLDER
         dest_dir.mkdir(parents=True, exist_ok=True)
-
-    def get_model_name_among_libs(self, model_name: str) -> str:
-        for lib_path in self.lib_paths:
-            lib_name, file_model = self._extract_lib_and_model_ids(lib_path)
-            if model_name in file_model:
-                return lib_name
-        return ANTARES_HISTORIC_LIB_ID
 
     def _convert_single_model(
         self,
