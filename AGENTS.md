@@ -21,7 +21,7 @@ src/antares_gems_converter/
       main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
-- Loads YAML model templates and validates them against provided lib files
+- Loads YAML model templates and validates them against provided lib files (model ids, and parameter/property ids in both directions)
 - Iterates areas/links/clusters → builds ComponentSchema + port connection lists
 - Hybrid: deletes converted Antares objects from the study copy in-place
 - Full: also converts areas themselves into GEMS components
@@ -273,7 +273,7 @@ Runs on every push to any branch:
 
 ## Critical Rules for AI Agents
 
-1. **Template ↔ model parameter ids must match.** Every parameter in a conversion template's `component.parameters` must correspond to a parameter in the referenced GEMS model. A mismatch causes silent failures at runtime.
+1. **Template ↔ model parameter and property ids must match, both ways.** Each component of a conversion template declares exactly the parameters and properties of the referenced GEMS model: no unknown id, none missing. `_check_converted_models_are_in_libs` checks this for the templates in `models_to_convert` and raises a `ValueError` naming the template, component, model and ids. `test_templates_match_library_models` runs it on all templates.
 
 2. **`config.py` is the single source of truth for mappings.** Adding a new model type requires entries in `MODEL_NAME_TO_FILE_NAME`, and possibly `TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD`, `TIMESERIES_NAME_TO_METHOD`, and other mapping dictionaries. Missing entries cause `KeyError` at runtime.
 

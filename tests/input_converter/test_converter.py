@@ -1979,6 +1979,65 @@ class TestConverter:
         with pytest.raises(ValueError, match="'gaz'.*\n.*'bc_gaz'"):
             converter.convert_study_to_input_system()
 
+    def test_templates_match_library_models(self, local_study_w_areas: Study):
+        converter = self._init_converter_from_study(local_study_w_areas)
+        converter._check_converted_models_are_in_libs(
+            converter._build_model_conversion_templates()
+        )
+
+    def test_template_with_unknown_parameter(self, local_study_w_areas: Study):
+        converter = self._init_converter_from_study(
+            local_study_w_areas, model_list=["link"]
+        )
+        templates = converter._build_model_conversion_templates()
+        link_component = templates["link"].components[0]
+        parameters = [
+            param.model_copy(update={"id": "direct_capasity"})
+            if param.id == "direct_capacity"
+            else param
+            for param in link_component.parameters
+        ]
+        templates["link"] = templates["link"].model_copy(
+            update={
+                "components": [
+                    link_component.model_copy(update={"parameters": parameters})
+                ]
+            }
+        )
+
+        prefix = (
+            "- template 'link', component '${link}_link',"
+            " model 'antares_legacy_models.link': "
+        )
+        with pytest.raises(ValueError) as error:
+            converter._check_converted_models_are_in_libs(templates)
+        assert prefix + "unknown parameter(s) ['direct_capasity']" in str(error.value)
+        assert prefix + "missing parameter(s) ['direct_capacity']" in str(error.value)
+
+    def test_template_with_missing_property(self, local_study_w_areas: Study):
+        converter = self._init_converter_from_study(
+            local_study_w_areas, model_list=["thermal"]
+        )
+        templates = converter._build_model_conversion_templates()
+        thermal_component = templates["thermal"].components[0]
+        properties = [
+            prop for prop in thermal_component.properties if prop.id != "carrier"
+        ]
+        templates["thermal"] = templates["thermal"].model_copy(
+            update={
+                "components": [
+                    thermal_component.model_copy(update={"properties": properties})
+                ]
+            }
+        )
+
+        with pytest.raises(ValueError) as error:
+            converter._check_converted_models_are_in_libs(templates)
+        assert str(error.value).endswith(
+            "- template 'thermal', component '${area}_thermal_${thermal}',"
+            " model 'antares_legacy_models.thermal': missing property(s) ['carrier']"
+        )
+
     @pytest.mark.parametrize("mode", ["full", "hybrid"])
     def test_optim_config_generated(self, tmp_path: Path, mode: str):
         local_path = Path(__file__).parent / "resources" / LOCAL_PATH
