@@ -195,7 +195,7 @@ library:
           definition: available_power # Must-run generation may be spilled
         - port: balance_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       extra-outputs:
         - id: minus_generation
           expression: -available_power
@@ -223,7 +223,7 @@ library:
           definition: available_power # Must-run generation may be spilled
         - port: balance_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       extra-outputs:
         - id: minus_generation
           expression: -available_power
@@ -301,7 +301,7 @@ library:
           definition: generation_power # Dispatchable generation may be spilled
         - port: balance_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       constraints:
         - id: max_generation
           expression: generation_power <= num_units_on * max_power_per_unit*(1-spinning/100)
@@ -464,7 +464,7 @@ library:
           definition: withdrawal_power # Withdrawn energy may be spilled, injected energy does not reduce the bound
         - port: balance_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       constraints:
         - id: initial_level_constraint
           expression: level[167] = initial_level * reservoir_capacity # 167 = last timestep of the week (168h - 1); enforces end-of-week level target
@@ -551,7 +551,7 @@ library:
           definition: withdrawal_power # Withdrawn energy may be spilled, injected energy does not reduce the bound
         - port: balance_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       constraints:
         - id: level_equation
           expression: level = level[t-1] + pumping_efficiency * injection_power + inflows - withdrawal_power - overflow
