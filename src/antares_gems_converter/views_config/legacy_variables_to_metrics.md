@@ -83,7 +83,7 @@ The detail by `name` requires the system for views to write this property on the
 | `view_storage` | `STS inj by plant` | `P_INJECTION` |  |
 | `view_storage` | `STS withdrawal by plant` | `P_WITHDRAWAL` |  |
 | `view_storage` | `STS lvl by plant` | `LEVELS` |  |
-| `view_storage` | `STS Cashflow By Cluster` | `CASHFLOW` | Averaged over time by the catalog: to be checked |
+| `view_storage` | `STS Cashflow By Cluster` | `CASHFLOW` | Antares sums it over time; the catalog averaged it, fixed in [AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter#136](https://github.com/AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter/pull/136) |
 | `view_renewable` (to be created) | `RES generation by plant` | `GENERATION` (to be created) | New renewable catalog, detailed by `name`: see [AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter#134](https://github.com/AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter/issues/134), which also covers the `name` property of renewables |
 
 ## Legacy variables without a metric
