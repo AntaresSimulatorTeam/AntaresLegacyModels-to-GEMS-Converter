@@ -146,7 +146,7 @@ library:
           definition: "0"
         - port: in_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
       objective-contributions:
         - id: objective
           expression: sum(direct_hurdle_cost * direct_flow + indirect_hurdle_cost * indirect_flow)
