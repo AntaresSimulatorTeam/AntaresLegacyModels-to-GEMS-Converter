@@ -140,10 +140,10 @@ library:
           definition: 0
         - port: in_port
           field: spillage_bound
-          definition: "0"
+          definition: 0
         - port: out_port
           field: unsupplied_energy_bound
-          definition: "0"
+          definition: 0
         - port: in_port
           field: unsupplied_energy_bound
           definition: 0
