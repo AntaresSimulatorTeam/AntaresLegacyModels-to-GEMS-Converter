@@ -46,5 +46,5 @@ catalog:
           location-port: balance_port
       breakdown:
         - key: name
-      terms-operator: avg
-      time-operator: avg
+      terms-operator: sum
+      time-operator: sum
