@@ -137,7 +137,7 @@ library:
         # Imports may neither be spilled nor left unsupplied
         - port: out_port
           field: spillage_bound
-          definition: "0"
+          definition: 0
         - port: in_port
           field: spillage_bound
           definition: "0"
