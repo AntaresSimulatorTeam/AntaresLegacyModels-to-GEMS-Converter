@@ -1,5 +1,6 @@
 import logging
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -82,10 +83,13 @@ def _create_area_with_base_clusters(
     cluster1_cost: int = 10,
     cluster2_capacity: int = 200,
     cluster2_cost: int = 20,
+    energy_cost_spilled: float = 1,
 ):
     area = study.create_area(
         area_name=area_name,
-        properties=AreaProperties(energy_cost_unsupplied=20000, energy_cost_spilled=1),
+        properties=AreaProperties(
+            energy_cost_unsupplied=20000, energy_cost_spilled=energy_cost_spilled
+        ),
     )
     area.set_load(load_timeserie)
     cluster1 = area.create_thermal_cluster(
@@ -300,6 +304,81 @@ def createHydroTestAntaresStudy(
     if hydro_properties is not None:
         area.hydro.update_properties(hydro_properties)
 
+    addHybridBehavior(parent_dir_path / study_name)
+
+
+@dataclass
+class AreaTestSetup:
+    """One area of a study created by createAreaConnectionTestAntaresStudy.
+
+    The area holds the two base thermal clusters, a constant load, an optional
+    constant misc gen (first misc gen column), an optional short-term storage and an
+    optional managed hydro reservoir, whose generation and pumping max power is
+    hydro_max_power (lossless pumping, levels kept at half of the reservoir capacity).
+    """
+
+    name: str
+    load: float
+    misc_gen: float = 0
+    cluster1_capacity: int = 150
+    cluster1_cost: int = 10
+    cluster2_capacity: int = 200
+    cluster2_cost: int = 20
+    energy_cost_spilled: float = 1
+    sts_properties: Optional[STStorageProperties] = None
+    hydro_max_power: Optional[float] = None
+
+
+def createAreaConnectionTestAntaresStudy(
+    study_name: str,
+    parent_dir_path: Path,
+    areas: list[AreaTestSetup],
+    link_capacity: Optional[float] = None,
+) -> None:
+    """Create a study with the given areas, linking the first two areas when a link capacity is given (same capacity in both directions, no hurdle cost)."""
+    study = create_study_local(
+        study_name=study_name,
+        version=ANTARES_VERSION_CREATED_STUDIES,
+        parent_directory=parent_dir_path,
+    )
+    for setup in areas:
+        area = _create_area_with_base_clusters(
+            study,
+            pd.DataFrame(setup.load * np.ones((8760, 1))),
+            area_name=setup.name,
+            cluster1_capacity=setup.cluster1_capacity,
+            cluster1_cost=setup.cluster1_cost,
+            cluster2_capacity=setup.cluster2_capacity,
+            cluster2_cost=setup.cluster2_cost,
+            energy_cost_spilled=setup.energy_cost_spilled,
+        )
+        if setup.misc_gen:
+            misc_gen = np.zeros((8760, 8))
+            misc_gen[:, 0] = setup.misc_gen
+            area.set_misc_gen(pd.DataFrame(misc_gen))
+        if setup.sts_properties is not None:
+            area.create_st_storage("sts", setup.sts_properties)
+        if setup.hydro_max_power is not None:
+            maxpower = pd.DataFrame(np.zeros((365, 4)))
+            maxpower.loc[:, 0] = setup.hydro_max_power
+            maxpower.loc[:, 1] = 24
+            maxpower.loc[:, 2] = setup.hydro_max_power
+            maxpower.loc[:, 3] = 24
+            area.hydro.set_maxpower(maxpower)
+            area.hydro.set_reservoir(pd.DataFrame(np.ones((365, 3)) * 0.5))
+            area.hydro.update_properties(
+                HydroPropertiesUpdate(
+                    reservoir=True,
+                    reservoir_capacity=5000,
+                    pumping_efficiency=1,
+                    overflow_spilled_cost_difference=0,
+                )
+            )
+    if link_capacity is not None:
+        link = study.create_link(area_from=areas[0].name, area_to=areas[1].name)
+        capacity = pd.DataFrame(link_capacity * np.ones((8760, 1)))
+        link.set_capacity_direct(capacity)
+        link.set_capacity_indirect(capacity)
     addHybridBehavior(parent_dir_path / study_name)
 
 
