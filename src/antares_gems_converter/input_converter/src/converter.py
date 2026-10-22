@@ -13,7 +13,7 @@ import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator, Optional, Union, List
+from typing import Any, Iterator, Optional, Union
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
@@ -319,7 +319,7 @@ class AntaresStudyConverter:
     ) -> list[str]:
         """Add the template's components to `result` and return the ids of
         those skipped because their time series are empty or all zeros."""
-        skipped_components: List[str] = []
+        skipped_components: list[str] = []
         for comp in resolved_conversion_template.components:
             if resolved_conversion_template.name in MATRIX_TYPES:
                 if not all(
@@ -405,8 +405,9 @@ class AntaresStudyConverter:
 
     def _resolve_ref(self, ref: str, suffix: str = "") -> str:
         # A reference "<link id>.<attribute>[.<rest>]" is replaced by that
-        # attribute of the link, followed by the rest: with the link "at / fr",
-        # "at / fr.area_from_id._node" becomes "at_node".
+        # attribute of the link, directly followed by the rest: with
+        # the link "at / fr", "at / fr.area_from_id._node" becomes "at_node".
+        # Link ids must not contain "."
         if "." in ref:
             link_id, attribute, *rest = ref.split(".")
             ref = getattr(self.study.get_links()[link_id], attribute) + ".".join(rest)
@@ -520,7 +521,7 @@ class AntaresStudyConverter:
             for link in self.study.get_links().values():
                 if self.is_virtual_link(link, virtual_objects):
                     continue
-                # Link IDs are sorted alphabetically
+                # SB link ids are sorted alphabetically
                 year_ts = (
                     self._read_sb_year_ts(sb_links.get_link(link.id))
                     if sb_links is not None
@@ -583,6 +584,7 @@ class AntaresStudyConverter:
 
     @staticmethod
     def _sb_attr(legacy_sb: ScenarioBuilder | None, attr: Optional[str]) -> Any:
+        # None when there is no legacy SB or no SB attribute for this model
         if legacy_sb is None or attr is None:
             return None
         return getattr(legacy_sb, attr)

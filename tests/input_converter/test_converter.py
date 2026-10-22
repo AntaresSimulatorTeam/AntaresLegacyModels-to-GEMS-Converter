@@ -1627,12 +1627,13 @@ class TestConverter:
 
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
+        # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
         result = converter.convert_template(
             bc_data, bc_data.get_excluded_objects_ids()
         )
         binding_components = result.components
         binding_connections = result.connections
-        area_connections = result.area_connections  # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
+        area_connections = result.area_connections
 
         assert area_connections == []
         assert binding_connections == [
