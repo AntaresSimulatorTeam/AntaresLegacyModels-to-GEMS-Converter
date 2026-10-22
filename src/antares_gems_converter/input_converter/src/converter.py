@@ -496,10 +496,14 @@ class AntaresStudyConverter:
                     resolved_template, model_preprocessor, fragment
                 )
         except (KeyError, FileNotFoundError) as e:
-            raise ValueError(
+            # Not raised: a template is applied to every area, so the battery
+            # template fails on any area without the battery artefact (e.g. a
+            # study with no battery, while battery is converted by default).
+            # This also stops the model's conversion at the first such area.
+            self.logger.error(
                 f"Error while converting model '{conversion_template.name}' to "
                 f"component list: {e!r}. Please check the model configuration file."
-            ) from e
+            )
         return fragment
 
     def _resolved_templates(
