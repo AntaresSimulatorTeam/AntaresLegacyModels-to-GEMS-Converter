@@ -15,27 +15,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
 
-import pandas as pd
-from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
 from antares.craft.model.scenario_builder import ScenarioBuilder
 from antares.craft.model.study import Study, read_study_local
-from antares.craft.model.hydro import HydroPropertiesUpdate
 
 from antares_gems_converter.input_converter.src.checks import (
     check_converted_models_are_in_libs,
 )
 from antares_gems_converter.input_converter.src.config import (
     BLANKED_LEGACY_OBJECT_TYPES,
-    HYDRO_SB_SHARED_FIELDS,
-    HYDRO_TYPE_TO_SET_METHOD,
     MATRIX_TYPES,
-    MATRIX_TYPES_TO_SET_METHOD,
-    MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
     MODEL_NAME_TO_FILE_NAME,
-    STUDY_LEVEL_DELETION,
-    STUDY_LEVEL_GET,
-    TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD,
-    TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
 from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
     ConversionMode,
@@ -43,6 +32,7 @@ from antares_gems_converter.input_converter.src.data_preprocessing.data_classes 
 from antares_gems_converter.input_converter.src.data_preprocessing.preprocessing import (
     ModelConversionPreprocessor,
 )
+from antares_gems_converter.input_converter.src.deletion import delete_legacy_objects
 from antares_gems_converter.input_converter.src.optim_config import (
     OPTIM_CONFIG_FILE,
     write_optim_config,
@@ -180,120 +170,6 @@ class AntaresStudyConverter:
         self.output_optim_config_path = self.output_folder / "input" / OPTIM_CONFIG_FILE
         self.areas = self.study.get_areas()
         self.legacy_objects: list[ObjectProperties] = []
-
-    def _delete_legacy_objects(self) -> None:
-        # SB is read and written once at the end to avoid overwriting antares-craft's own SB updates
-        sb_cleanups: list[tuple[str, str]] = []
-        # "mod_inflows" and "ror" share one "hydro" SB bucket per area; only clear it when BOTH are deleted
-        hydro_sb_fields_deleted: dict[str, set[str]] = {}
-        undeletable_objects: list[str] = []
-
-        for legacy_component in self.legacy_objects:
-            try:
-                if legacy_component.type in STUDY_LEVEL_DELETION:
-                    if legacy_component.type == "area":
-                        id = legacy_component.area
-                    elif legacy_component.type == "link":
-                        id = legacy_component.link
-                    elif legacy_component.type == "binding_constraint":
-                        id = legacy_component.binding_constraint_id
-                    else:
-                        continue
-                    target = getattr(
-                        self.study, STUDY_LEVEL_GET[legacy_component.type]
-                    )()[id]
-                    delete_method = STUDY_LEVEL_DELETION[legacy_component.type]
-                    if legacy_component.type == "binding_constraint":
-                        getattr(self.study, delete_method)([target])
-                    else:
-                        getattr(self.study, delete_method)(target)
-                elif (
-                    legacy_component.type in TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD
-                    and legacy_component.area is not None
-                ):
-                    getattr(
-                        self.areas[legacy_component.area],
-                        TEMPLATE_CLUSTER_TYPE_TO_DELETE_METHOD[legacy_component.type],
-                    )(
-                        getattr(
-                            self.areas[legacy_component.area],
-                            TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[legacy_component.type],
-                        )()[legacy_component.cluster]
-                    )
-                elif (
-                    legacy_component.type in MATRIX_TYPES_TO_SET_METHOD
-                    and legacy_component.area is not None
-                ):
-                    # To "delete" legacy wind, solar or load object, we simply set an empty timeseries
-                    getattr(
-                        self.areas[legacy_component.area],
-                        MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
-                    )(pd.DataFrame())
-                    if legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
-                        sb_cleanups.append(
-                            (legacy_component.area, legacy_component.type)
-                        )
-                elif (
-                    legacy_component.type == "hydro"
-                    and legacy_component.area is not None
-                    and legacy_component.field is not None
-                ):
-                    if legacy_component.field in HYDRO_TYPE_TO_SET_METHOD:
-                        getattr(
-                            self.areas[legacy_component.area].hydro,
-                            HYDRO_TYPE_TO_SET_METHOD[legacy_component.field],
-                        )(pd.DataFrame())
-                        # Wait the post-loop gate to clear the shared SB bucket
-                        if legacy_component.field in HYDRO_SB_SHARED_FIELDS:
-                            hydro_sb_fields_deleted.setdefault(
-                                legacy_component.area, set()
-                            ).add(legacy_component.field)
-                    else:
-                        self.areas[legacy_component.area].hydro.update_properties(
-                            HydroPropertiesUpdate(**{legacy_component.field: False})
-                        )
-                else:
-                    raise NotImplementedError
-            except ReferencedObjectDeletionNotAllowed as e:
-                undeletable_objects.append(str(e))
-            except (KeyError, FileNotFoundError):
-                self.logger.warning(
-                    f"Item {legacy_component} not found in study; skipping deletion"
-                )
-            except NotImplementedError:
-                self.logger.warning(
-                    f"Failure to delete {legacy_component} because the method is not implemented yet on antares craft"
-                )
-
-        # A legacy object left in the study would be counted twice, along with
-        # the GEMS component replacing it, and Antares >= 10.2 rejects a GEMS
-        # component that reuses the id of a legacy object.
-        if undeletable_objects:
-            raise ValueError(
-                "Hybrid conversion failed: some converted legacy objects cannot be"
-                " deleted. Remove these binding constraints from the study, or do"
-                " not convert these objects.\n" + "\n".join(undeletable_objects)
-            )
-
-        # Clear the shared "hydro" SB bucket only when both siblings were deleted this run
-        for area, fields in hydro_sb_fields_deleted.items():
-            if HYDRO_SB_SHARED_FIELDS <= fields:
-                sb_cleanups.append((area, "hydro"))
-
-        if sb_cleanups:
-            try:
-                legacy_sb = self.study.get_scenario_builder()
-                for area, type_ in sb_cleanups:
-                    sb_area = getattr(legacy_sb, type_)
-                    sb_matrix = sb_area.get_area(area)
-                    sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
-                self.study.set_scenario_builder(legacy_sb)
-            except Exception as e:
-                self.logger.warning(
-                    f"Failed to persist cleaned legacy scenario builder: {e}"
-                )
-
-        self.legacy_objects = []
 
     def _convert_resolved_template(
         self,
@@ -525,7 +401,10 @@ class AntaresStudyConverter:
             )
 
         if self.mode == ConversionMode.HYBRID:
-            self._delete_legacy_objects()
+            delete_legacy_objects(
+                self.study, self.areas, self.legacy_objects, self.logger
+            )
+            self.legacy_objects = []
             system = HybridSystemSchema(
                 id=self.study.name,
                 components=converted.components,

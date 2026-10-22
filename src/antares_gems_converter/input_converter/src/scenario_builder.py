@@ -104,6 +104,23 @@ def apply_sb_groups(
     return resolved_template
 
 
+def clear_legacy_sb_entries(
+    study: Study, sb_cleanups: list[tuple[str, str]], logger: logging.Logger
+) -> None:
+    """Clear the legacy SB entries of each (area, SB attribute) in `sb_cleanups`."""
+    if not sb_cleanups:
+        return
+    try:
+        legacy_sb = study.get_scenario_builder()
+        for area, type_ in sb_cleanups:
+            sb_area = getattr(legacy_sb, type_)
+            sb_matrix = sb_area.get_area(area)
+            sb_matrix.set_new_scenario([None] * len(sb_matrix.get_scenario()))
+        study.set_scenario_builder(legacy_sb)
+    except Exception as e:
+        logger.warning(f"Failed to persist cleaned legacy scenario builder: {e}")
+
+
 def copy_scenario_builder_file(
     source_file: Path, series_folder: Path, logger: logging.Logger
 ) -> None:
