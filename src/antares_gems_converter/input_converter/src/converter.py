@@ -11,8 +11,9 @@
 # This file is part of the Antares project.
 import logging
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union, List
+from typing import Any, Iterator, Optional, Union, List
 
 import pandas as pd
 from antares.craft.exceptions.exceptions import ReferencedObjectDeletionNotAllowed
@@ -79,6 +80,23 @@ DEFAULT_OPTIM_CONFIG = "models: []\n"
 HYBRID_COMPONENT_ID_SUFFIX = "_gems"
 
 # TODO: Move all global variables in a config class, that is used in AntaresStudyConverter constructor
+
+
+@dataclass
+class ConversionResult:
+    """What the conversion of one or more templates adds to the output system."""
+
+    components: list[ComponentSchema] = field(default_factory=list)
+    connections: list[PortConnectionsSchema] = field(default_factory=list)
+    area_connections: list[AreaConnectionsSchema] = field(default_factory=list)
+    # {scenario group: {year: ts index}}, written to modeler-scenariobuilder.dat
+    group_data: dict[str, dict[int, int]] = field(default_factory=dict)
+
+    def merge(self, other: "ConversionResult") -> None:
+        self.components.extend(other.components)
+        self.connections.extend(other.connections)
+        self.area_connections.extend(other.area_connections)
+        self.group_data.update(other.group_data)
 
 
 class AntaresStudyConverter:
@@ -270,23 +288,45 @@ class AntaresStudyConverter:
 
         self.legacy_objects = []
 
-    def _iterate_through_model(
+    def _convert_resolved_template(
         self,
         resolved_conversion_template: ConversionTemplate,
-        components: list,
-        connections: list,
-        area_connections: list,
         mp: ModelConversionPreprocessor,
+        result: ConversionResult,
     ) -> None:
-        components_connections_to_avoid: List[str] = []
         id_suffix = self._component_id_suffix(resolved_conversion_template)
+        skipped_components = self._add_components(
+            resolved_conversion_template, mp, id_suffix, result
+        )
+        if self.mode == ConversionMode.HYBRID:
+            self._add_area_connections(
+                resolved_conversion_template, skipped_components, id_suffix, result
+            )
+            # TODO : Simplify usage, use directly legacy_objectis_to_delete
+            for item in resolved_conversion_template.legacy_objects_to_delete:
+                self.legacy_objects.append(item.object_properties)
+        else:
+            self._add_port_connections(
+                resolved_conversion_template, skipped_components, id_suffix, result
+            )
+
+    def _add_components(
+        self,
+        resolved_conversion_template: ConversionTemplate,
+        mp: ModelConversionPreprocessor,
+        id_suffix: str,
+        result: ConversionResult,
+    ) -> list[str]:
+        """Add the template's components to `result` and return the ids of
+        those skipped because their time series are empty or all zeros."""
+        skipped_components: List[str] = []
         for comp in resolved_conversion_template.components:
             if resolved_conversion_template.name in MATRIX_TYPES:
                 if not all(
                     mp.check_timeseries_validity(param.value)
                     for param in comp.parameters
                 ):
-                    components_connections_to_avoid.append(comp.id)
+                    skipped_components.append(comp.id)
                     continue
             parameters = [
                 ComponentParameterSchema(
@@ -312,7 +352,7 @@ class AntaresStudyConverter:
                 if comp.properties
                 else None
             )
-            components.append(
+            result.components.append(
                 ComponentSchema(
                     id=self._output_component_id(comp.id, id_suffix),
                     model=resolved_conversion_template.model,
@@ -321,67 +361,56 @@ class AntaresStudyConverter:
                     properties=properties,
                 )
             )
+        return skipped_components
 
-        if self.mode == ConversionMode.HYBRID:
-            for area_connection in resolved_conversion_template.area_connections:
-                # TODO: Improve logic
-                if area_connection.component not in components_connections_to_avoid:
-                    if "." in area_connection.component:
-                        component_parts = area_connection.component.split(".")
-                        component_value = getattr(
-                            self.study.get_links()[component_parts[0]],
-                            component_parts[1],
-                        )
-                    else:
-                        component_value = area_connection.component
-                    component_value = self._output_component_id(
-                        component_value, id_suffix
-                    )
-                    if "." in area_connection.area:
-                        area_parts = area_connection.area.split(".")
-                        area_value = getattr(
-                            self.study.get_links()[area_parts[0]], area_parts[1]
-                        )
-                    else:
-                        area_value = area_connection.area
-                    area_value = area_value.replace(" / ", "_")
-                    area_connections.append(
-                        AreaConnectionsSchema(
-                            component=component_value,
-                            port=area_connection.port,
-                            area=area_value,
-                        )
-                    )
-            # TODO : Simplify usage, use directly legacy_objectis_to_delete
-            for item in resolved_conversion_template.legacy_objects_to_delete:
-                self.legacy_objects.append(item.object_properties)
-        else:
-            for connection in resolved_conversion_template.connections:
-                # TODO: Factorize logic with previous connections
-                if (
-                    connection.component1 not in components_connections_to_avoid
-                    and connection.component2 not in components_connections_to_avoid
-                ):
-                    treated_components = []
-                    for component in [connection.component1, connection.component2]:
-                        if "." in component:
-                            component_parts = component.split(".")
-                            component_value = getattr(
-                                self.study.get_links()[component_parts[0]],
-                                component_parts[1],
-                            ) + ".".join(component_parts[2:])
-                        else:
-                            component_value = component
-                        treated_components.append(component_value.replace(" / ", "_"))
+    def _add_area_connections(
+        self,
+        resolved_conversion_template: ConversionTemplate,
+        skipped_components: list[str],
+        id_suffix: str,
+        result: ConversionResult,
+    ) -> None:
+        for area_connection in resolved_conversion_template.area_connections:
+            if area_connection.component in skipped_components:
+                continue
+            result.area_connections.append(
+                AreaConnectionsSchema(
+                    component=self._resolve_ref(area_connection.component, id_suffix),
+                    port=area_connection.port,
+                    area=self._resolve_ref(area_connection.area),
+                )
+            )
 
-                    connections.append(
-                        PortConnectionsSchema(
-                            component1=treated_components[0],
-                            port1=connection.port1,
-                            component2=treated_components[1],
-                            port2=connection.port2,
-                        )
-                    )
+    def _add_port_connections(
+        self,
+        resolved_conversion_template: ConversionTemplate,
+        skipped_components: list[str],
+        id_suffix: str,
+        result: ConversionResult,
+    ) -> None:
+        for connection in resolved_conversion_template.connections:
+            if (
+                connection.component1 in skipped_components
+                or connection.component2 in skipped_components
+            ):
+                continue
+            result.connections.append(
+                PortConnectionsSchema(
+                    component1=self._resolve_ref(connection.component1, id_suffix),
+                    port1=connection.port1,
+                    component2=self._resolve_ref(connection.component2, id_suffix),
+                    port2=connection.port2,
+                )
+            )
+
+    def _resolve_ref(self, ref: str, suffix: str = "") -> str:
+        # A reference "<link id>.<attribute>[.<rest>]" is replaced by that
+        # attribute of the link, followed by the rest: with the link "at / fr",
+        # "at / fr.area_from_id._node" becomes "at_node".
+        if "." in ref:
+            link_id, attribute, *rest = ref.split(".")
+            ref = getattr(self.study.get_links()[link_id], attribute) + ".".join(rest)
+        return self._output_component_id(ref, suffix)
 
     def _component_id_suffix(self, conversion_template: ConversionTemplate) -> str:
         # In hybrid mode, a blanked (not deleted) legacy object stays in the study
@@ -437,147 +466,126 @@ class AntaresStudyConverter:
             return resolved_template.model_copy(update={"components": new_components})
         return resolved_template
 
-    def _convert_model_to_component_list(
+    def convert_template(
         self,
         conversion_template: ConversionTemplate,
-        virtual_objects: VirtualObjectsRepository = VirtualObjectsRepository(),
+        virtual_objects: Optional[VirtualObjectsRepository] = None,
         legacy_sb: ScenarioBuilder | None = None,
-    ) -> tuple[
-        list[ComponentSchema],
-        list[PortConnectionsSchema],
-        list[AreaConnectionsSchema],
-        dict[str, dict[int, int]],
-    ]:
-        components: list[ComponentSchema] = []
-        connections: list[PortConnectionsSchema] = []
-        area_connections: list[AreaConnectionsSchema] = []
-        group_data: dict[str, dict[int, int]] = {}
+    ) -> ConversionResult:
+        """Convert the study objects that `conversion_template` applies to.
 
-        model_area_pattern = f"${{{conversion_template.template_parameters[0].name}}}"
-
+        In hybrid mode, also record the legacy objects to delete. Objects in
+        `virtual_objects` are skipped; `legacy_sb` gives the scenario groups.
+        """
+        if virtual_objects is None:
+            virtual_objects = VirtualObjectsRepository()
+        result = ConversionResult()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
         )
-
-        model_name = conversion_template.name
-
         try:
-            if model_name in LINK_TYPES:
-                # Link SB attribute
-                sb_link_attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(model_name)
-                for link in self.study.get_links().values():
-                    if not self.is_virtual_link(link, virtual_objects):
-                        resolved_template = conversion_template.resolve_template(
-                            model_area_pattern, link.id
-                        )
-                        # Link IDs are sorted alphabetically
-                        if legacy_sb is not None and sb_link_attr is not None:
-                            sb_obj = getattr(legacy_sb, sb_link_attr)
-                            year_ts = self._read_sb_year_ts(sb_obj.get_link(link.id))
-                        else:
-                            year_ts = {}
-                        # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
-                        resolved_template = self._apply_sb_groups(
-                            resolved_template, year_ts, group_data
-                        )
-                        self._iterate_through_model(
-                            resolved_template,
-                            components,
-                            connections,
-                            area_connections,
-                            model_preprocessor,
-                        )
-            else:
-                cluster_type = next(
-                    (
-                        template.cluster_type
-                        for template in conversion_template.template_parameters
-                    ),
-                    None,
+            for resolved_template, year_ts in self._resolved_templates(
+                conversion_template, virtual_objects, legacy_sb
+            ):
+                # Always called: clears scenario_group to None when year_ts is empty
+                resolved_template = self._apply_sb_groups(
+                    resolved_template, year_ts, result.group_data
                 )
-                # Resolve the SB attribute name for cluster types (thermal/renewable)
-                # or area matrix types (wind/solar/load/hydro/ror)
-                sb_area_attr = (
-                    CLUSTER_TYPE_TO_SB_ATTR.get(cluster_type)
-                    if cluster_type
-                    else MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(model_name)
+                self._convert_resolved_template(
+                    resolved_template, model_preprocessor, result
                 )
-                for area in self.areas.values():
-                    if area.id not in virtual_objects.areas:
-                        area_resolved_template = conversion_template.resolve_template(
-                            model_area_pattern, area.id
-                        )
-                        resolved_virtual_objects = virtual_objects.resolve_template(
-                            "${area}", area.id
-                        )
-                        if cluster_type:
-                            clusters = getattr(
-                                area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
-                            )()
-                            for cluster_id, cluster in clusters.items():
-                                if cluster_id not in resolved_virtual_objects.thermals:
-                                    if (
-                                        cluster_type == "renewable"
-                                        and not cluster.properties.enabled
-                                    ):
-                                        self.logger.warning(
-                                            f"Renewable cluster '{cluster_id}' in area "
-                                            f"'{area.id}' is disabled; skipping conversion."
-                                        )
-                                        continue
-                                    # We have already resolved areas, now need to resolve cluster ids
-                                    cluster_resolved_template = (
-                                        area_resolved_template.resolve_template(
-                                            f"${{{cluster_type}}}", cluster_id
-                                        )
-                                    )
-                                    if (
-                                        legacy_sb is not None
-                                        and sb_area_attr is not None
-                                    ):
-                                        sb_obj = getattr(legacy_sb, sb_area_attr)
-                                        year_ts = self._read_sb_year_ts(
-                                            sb_obj.get_cluster(area.id, cluster_id)
-                                        )
-                                    else:
-                                        year_ts = {}
-                                    # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
-                                    cluster_resolved_template = self._apply_sb_groups(
-                                        cluster_resolved_template, year_ts, group_data
-                                    )
-                                    self._iterate_through_model(
-                                        cluster_resolved_template,
-                                        components,
-                                        connections,
-                                        area_connections,
-                                        model_preprocessor,
-                                    )
-                        else:
-                            if legacy_sb is not None and sb_area_attr is not None:
-                                sb_obj = getattr(legacy_sb, sb_area_attr)
-                                year_ts = self._read_sb_year_ts(
-                                    sb_obj.get_area(area.id)
-                                )
-                            else:
-                                year_ts = {}
-                            # Always call _apply_sb_groups: clears scenario_group to None when year_ts is empty
-                            area_resolved_template = self._apply_sb_groups(
-                                area_resolved_template, year_ts, group_data
-                            )
-                            self._iterate_through_model(
-                                area_resolved_template,
-                                components,
-                                connections,
-                                area_connections,
-                                model_preprocessor,
-                            )
         except (KeyError, FileNotFoundError) as e:
             raise ValueError(
-                f"Error while converting model '{model_name}' to component list: "
-                f"{e!r}. Please check the model configuration file."
+                f"Error while converting model '{conversion_template.name}' to "
+                f"component list: {e!r}. Please check the model configuration file."
             ) from e
+        return result
 
-        return components, connections, area_connections, group_data
+    def _resolved_templates(
+        self,
+        conversion_template: ConversionTemplate,
+        virtual_objects: VirtualObjectsRepository,
+        legacy_sb: ScenarioBuilder | None,
+    ) -> Iterator[tuple[ConversionTemplate, dict[int, int]]]:
+        """Yield the template resolved for each link, area or cluster it applies
+        to, with that object's legacy scenario builder {year: ts index}."""
+        model_name = conversion_template.name
+        template_parameter = conversion_template.template_parameters[0]
+        model_area_pattern = f"${{{template_parameter.name}}}"
+
+        if model_name in LINK_TYPES:
+            sb_links = self._sb_attr(
+                legacy_sb, LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(model_name)
+            )
+            for link in self.study.get_links().values():
+                if self.is_virtual_link(link, virtual_objects):
+                    continue
+                # Link IDs are sorted alphabetically
+                year_ts = (
+                    self._read_sb_year_ts(sb_links.get_link(link.id))
+                    if sb_links is not None
+                    else {}
+                )
+                yield conversion_template.resolve_template(
+                    model_area_pattern, link.id
+                ), year_ts
+            return
+
+        cluster_type = template_parameter.cluster_type
+        # Cluster types (thermal/renewable) or area matrix types
+        # (wind/solar/load/hydro/ror) have their own SB attribute
+        sb_area = self._sb_attr(
+            legacy_sb,
+            (
+                CLUSTER_TYPE_TO_SB_ATTR.get(cluster_type)
+                if cluster_type
+                else MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(model_name)
+            ),
+        )
+        for area in self.areas.values():
+            if area.id in virtual_objects.areas:
+                continue
+            area_resolved_template = conversion_template.resolve_template(
+                model_area_pattern, area.id
+            )
+            if not cluster_type:
+                year_ts = (
+                    self._read_sb_year_ts(sb_area.get_area(area.id))
+                    if sb_area is not None
+                    else {}
+                )
+                yield area_resolved_template, year_ts
+                continue
+
+            virtual_clusters = virtual_objects.resolve_template(
+                "${area}", area.id
+            ).thermals
+            clusters = getattr(
+                area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type]
+            )()
+            for cluster_id, cluster in clusters.items():
+                if cluster_id in virtual_clusters:
+                    continue
+                if cluster_type == "renewable" and not cluster.properties.enabled:
+                    self.logger.warning(
+                        f"Renewable cluster '{cluster_id}' in area "
+                        f"'{area.id}' is disabled; skipping conversion."
+                    )
+                    continue
+                year_ts = (
+                    self._read_sb_year_ts(sb_area.get_cluster(area.id, cluster_id))
+                    if sb_area is not None
+                    else {}
+                )
+                yield area_resolved_template.resolve_template(
+                    f"${{{cluster_type}}}", cluster_id
+                ), year_ts
+
+    @staticmethod
+    def _sb_attr(legacy_sb: ScenarioBuilder | None, attr: Optional[str]) -> Any:
+        if legacy_sb is None or attr is None:
+            return None
+        return getattr(legacy_sb, attr)
 
     @staticmethod
     def is_virtual_link(link: Link, virtual_objects: VirtualObjectsRepository) -> bool:
@@ -678,33 +686,6 @@ class AntaresStudyConverter:
         dest_dir = self.output_folder / "input" / SERIES_FOLDER
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-    def _convert_single_model(
-        self,
-        conversion_template: ConversionTemplate,
-        virtual_objects: VirtualObjectsRepository,
-        components: list[ComponentSchema],
-        connections: list[PortConnectionsSchema],
-        area_connections: list[AreaConnectionsSchema],
-        legacy_sb: ScenarioBuilder | None,
-    ) -> dict[str, dict[int, int]]:
-        self.logger.info(
-            f"Converting components of model {conversion_template.name}..."
-        )
-
-        (
-            components_from_model,
-            connections_from_model,
-            area_connections_from_model,
-            group_data,
-        ) = self._convert_model_to_component_list(
-            conversion_template, virtual_objects, legacy_sb
-        )
-
-        components.extend(components_from_model)
-        connections.extend(connections_from_model)
-        area_connections.extend(area_connections_from_model)
-        return group_data
-
     def _get_legacy_sb(self) -> ScenarioBuilder | None:
         # Returns None (instead of raising) when the study has no SB or it cannot be read,
         # so the rest of the conversion proceeds without SB data.
@@ -722,46 +703,38 @@ class AntaresStudyConverter:
         model_conversion_templates = self._build_model_conversion_templates()
         self._check_converted_models_are_in_libs(model_conversion_templates)
         virtual_objects = self._build_virtual_objects_repo(model_conversion_templates)
-        components: list[ComponentSchema] = []
-        connections: list[PortConnectionsSchema] = []
-        area_connections: list[AreaConnectionsSchema] = []
 
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = self._get_legacy_sb()
-        # Accumulates {group_name: {year: ts_index}} across all converted models
-        all_group_data: dict[str, dict[int, int]] = {}
-
+        result = ConversionResult()
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
-            group_data = self._convert_single_model(
-                conversion_template,
-                virtual_objects,
-                components,
-                connections,
-                area_connections,
-                legacy_sb,
+            self.logger.info(
+                f"Converting components of model {conversion_template.name}..."
             )
-            all_group_data.update(group_data)
+            result.merge(
+                self.convert_template(conversion_template, virtual_objects, legacy_sb)
+            )
 
         # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
-        if not self.modeler_scenario_builder_file and all_group_data:
-            self._generate_scenario_builder_file(all_group_data)
+        if not self.modeler_scenario_builder_file and result.group_data:
+            self._generate_scenario_builder_file(result.group_data)
 
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
             system = HybridSystemSchema(
                 id=self.study.name,
-                components=components,
-                connections=connections or None,
-                area_connections=area_connections or None,
+                components=result.components,
+                connections=result.connections or None,
+                area_connections=result.area_connections or None,
             )
             # exclude_unset keeps defaults (e.g. integer_strategy) unset, so they are not dumped
             data = system.model_dump(exclude_none=True, exclude_unset=True)
             return HybridSystemSchema(**data)
         system = SystemSchema(
             id=self.study.name,
-            components=components,
-            connections=connections or None,
+            components=result.components,
+            connections=result.connections or None,
         )
         data = system.model_dump(exclude_none=True, exclude_unset=True)
         return SystemSchema(**data)
