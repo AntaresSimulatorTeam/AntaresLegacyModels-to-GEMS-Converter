@@ -10,18 +10,11 @@
 #
 # This file is part of the Antares project.
 """Check the conversion templates against the GEMS library models."""
-from pathlib import Path
-
-from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
-from gems_craft.model.parsing import LibrarySchema, ModelSchema, parse_yaml_library
-
-
-def parse_library(path: str) -> LibrarySchema:
-    try:
-        with Path(path).open("r", encoding="utf-8") as file:
-            return parse_yaml_library(file)
-    except Exception as e:
-        raise ValueError(f"Failed to parse library file {path}: {e}") from e
+from antares_gems_converter.input_converter.src.parsing import (
+    ConversionTemplate,
+    parse_library,
+)
+from gems_craft.model.parsing import ModelSchema
 
 
 def check_converted_models_are_in_libs(

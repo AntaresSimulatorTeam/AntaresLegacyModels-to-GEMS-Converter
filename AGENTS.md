@@ -41,6 +41,7 @@ src/antares_gems_converter/
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
 - All models have resolve_template() to substitute ${area} / ${thermal} placeholders
 - parse_conversion_template() - YAML file → ConversionTemplate
+- parse_library() - GEMS library YAML file → LibrarySchema (raises ValueError naming the file)
       config.py  - lookup dictionaries used by the converter
 
 -   `TEMPLATE_CLUSTER_TYPE_TO_GET/DELETE_METHOD` - maps thermal/renewable/st_storage → antares-craft area methods
