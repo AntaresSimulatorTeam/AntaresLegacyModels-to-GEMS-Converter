@@ -572,10 +572,14 @@ class AntaresStudyConverter:
                                 model_preprocessor,
                             )
         except (KeyError, FileNotFoundError) as e:
-            raise ValueError(
+            # Not raised: a template is applied to every area, so the battery
+            # template fails on any area without the battery artefact (e.g. a
+            # study with no battery, while battery is converted by default).
+            # This also stops the model's conversion at the first such area.
+            self.logger.error(
                 f"Error while converting model '{model_name}' to component list: "
                 f"{e!r}. Please check the model configuration file."
-            ) from e
+            )
 
         return components, connections, area_connections, group_data
 
