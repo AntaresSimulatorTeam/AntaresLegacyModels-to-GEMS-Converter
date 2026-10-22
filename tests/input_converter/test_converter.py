@@ -1734,7 +1734,9 @@ class TestConverter:
             _,
             area_connections,
             _,
-        ) = converter._convert_model_to_component_list(bc_data)
+        ) = converter._convert_model_to_component_list(
+            bc_data, bc_data.get_excluded_objects_ids()
+        )
 
         output_path = converter.output_folder
         path1 = output_path / "input" / "data-series" / "marginal_cost_fr_battery.tsv"
