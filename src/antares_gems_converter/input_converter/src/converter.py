@@ -366,22 +366,22 @@ class AntaresStudyConverter:
         dest_dir = self.output_folder / "input" / SERIES_FOLDER
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-    def convert_study_to_input_system(self) -> SystemSchema | HybridSystemSchema:
-        self._copy_libs_to_model_librairies()
-        # Copy a pre-existing modeler SB file if one was provided (skips auto-generation below)
-        if self.modeler_scenario_builder_file:
-            copy_scenario_builder_file(
-                self.modeler_scenario_builder_file,
-                self.output_folder / "input" / SERIES_FOLDER,
-                self.logger,
-            )
-        self._create_dataseries_dir()
+    def system_and_scenario_groups(
+        self,
+    ) -> tuple[SystemSchema | HybridSystemSchema, dict[str, dict[int, int]]]:
+        """Convert the study to a GEMS system, and return it with the scenario
+        groups of its components: {scenario group: {year: ts index}}.
+
+        In hybrid mode, also record the legacy objects to delete in
+        `self.legacy_objects`.
+        """
         model_conversion_templates = load_conversion_templates(self.models_to_convert)
         check_converted_models_are_in_libs(model_conversion_templates, self.lib_paths)
         virtual_objects = build_virtual_objects_repo(model_conversion_templates)
 
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = get_legacy_sb(self.study, self.logger)
+        self.legacy_objects = []
         converted = SystemFragment()
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
@@ -392,19 +392,7 @@ class AntaresStudyConverter:
                 self.convert_template(conversion_template, virtual_objects, legacy_sb)
             )
 
-        # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
-        if not self.modeler_scenario_builder_file and converted.group_data:
-            write_scenario_builder_file(
-                converted.group_data,
-                self.output_folder / "input" / SERIES_FOLDER,
-                self.logger,
-            )
-
         if self.mode == ConversionMode.HYBRID:
-            delete_legacy_objects(
-                self.study, self.areas, self.legacy_objects, self.logger
-            )
-            self.legacy_objects = []
             system = HybridSystemSchema(
                 id=self.study.name,
                 components=converted.components,
@@ -413,17 +401,37 @@ class AntaresStudyConverter:
             )
             # exclude_unset keeps defaults (e.g. integer_strategy) unset, so they are not dumped
             data = system.model_dump(exclude_none=True, exclude_unset=True)
-            return HybridSystemSchema(**data)
+            return HybridSystemSchema(**data), converted.group_data
         system = SystemSchema(
             id=self.study.name,
             components=converted.components,
             connections=converted.connections or None,
         )
         data = system.model_dump(exclude_none=True, exclude_unset=True)
-        return SystemSchema(**data)
+        return SystemSchema(**data), converted.group_data
 
     def process_all(self) -> None:
-        system = self.convert_study_to_input_system()
+        self._copy_libs_to_model_librairies()
+        series_folder = self.output_folder / "input" / SERIES_FOLDER
+        # Copy a pre-existing modeler SB file if one was provided (skips auto-generation below)
+        if self.modeler_scenario_builder_file:
+            copy_scenario_builder_file(
+                self.modeler_scenario_builder_file, series_folder, self.logger
+            )
+        self._create_dataseries_dir()
+
+        system, scenario_groups = self.system_and_scenario_groups()
+
+        # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
+        if not self.modeler_scenario_builder_file and scenario_groups:
+            write_scenario_builder_file(scenario_groups, series_folder, self.logger)
+
+        if self.mode == ConversionMode.HYBRID:
+            delete_legacy_objects(
+                self.study, self.areas, self.legacy_objects, self.logger
+            )
+            self.legacy_objects = []
+
         self.logger.info("Dumping input system into yaml file...")
         dump_to_yaml(model=system, output_path=self.output_system_path)
         write_optim_config(self.output_optim_config_path, self.logger)

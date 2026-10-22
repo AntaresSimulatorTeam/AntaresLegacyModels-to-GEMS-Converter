@@ -125,7 +125,7 @@ class TestConverter:
 
     def test_convert_study_to_input_study(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        input_study = converter.convert_study_to_input_system()
+        input_study, _ = converter.system_and_scenario_groups()
 
         expected_input_study = SystemSchema(
             id="studyTest",
@@ -1741,7 +1741,9 @@ class TestConverter:
         assert thermal_cluster_filepath.stat().st_size > 0
         assert bc_filepath.stat().st_size > 0
         assert links_filepath.stat().st_size > 0
-        obtained_data = converter.convert_study_to_input_system()
+        obtained_data, _ = converter.system_and_scenario_groups()
+        # The legacy objects are deleted by process_all()
+        converter.process_all()
 
         # Check files have been correctly deleted
         thermal_cluster_filepath = (
@@ -1776,7 +1778,7 @@ class TestConverter:
         converter = self._init_converter_from_study(
             fr_load, model_list=["load", "thermal"], mode="hybrid"
         )
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
 
         assert sorted(c.id for c in system.components) == [
             "fr_load_gems",
@@ -1819,7 +1821,7 @@ class TestConverter:
         )
 
         with pytest.raises(ValueError, match="'gaz'.*\n.*'bc_gaz'"):
-            converter.convert_study_to_input_system()
+            converter.process_all()
 
     def test_templates_match_library_models(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas)
@@ -1957,7 +1959,7 @@ class TestConverter:
                 model for model in MODEL_NAME_TO_FILE_NAME.keys() if model != "hydro"
             ],
         )
-        obtained_sys = converter.convert_study_to_input_system()
+        obtained_sys, _ = converter.system_and_scenario_groups()
         with open(ref_path) as system_file:
             expected_sys = parse_yaml_system(system_file)
         assert obtained_sys.components == expected_sys.components

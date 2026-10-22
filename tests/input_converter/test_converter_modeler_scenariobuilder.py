@@ -49,7 +49,8 @@ class TestConverterScenarioBuilder:
 
     def test_empty_legacy_sb_no_scenario_builder(self, fr_wind: Study):
         converter = self._init_converter_from_study(fr_wind, model_list=["wind"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         assert system.components, "Expected at least one component"
         assert all(
@@ -74,7 +75,8 @@ class TestConverterScenarioBuilder:
         converter = self._init_converter_from_study(
             fr_wind, model_list=["wind", "thermal"]
         )
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         wind_components = [c for c in system.components if "wind" in c.id]
         assert wind_components, "Expected at least one wind component"
@@ -133,7 +135,7 @@ class TestConverterScenarioBuilder:
         converter = self._init_converter_from_study(
             fr_wind, model_list=["wind"], mode="hybrid"
         )
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
         converter.process_all()
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
@@ -199,7 +201,8 @@ class TestConverterScenarioBuilder:
         fr_wind.set_scenario_builder(sb)
 
         converter = self._init_converter_from_study(fr_wind, model_list=["link"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         link_components = [c for c in system.components if "at_fr" in c.id]
         assert link_components, "Expected at least one at/fr link component"
@@ -231,7 +234,8 @@ class TestConverterScenarioBuilder:
         fr_wind.set_scenario_builder(sb)
 
         converter = self._init_converter_from_study(fr_wind, model_list=["hydro"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         fr_hydro = [c for c in system.components if c.id == "fr_hydro_storage"]
         assert fr_hydro, "Expected a fr_hydro_storage component"
@@ -268,7 +272,8 @@ class TestConverterScenarioBuilder:
         fr_wind.set_scenario_builder(sb)
 
         converter = self._init_converter_from_study(fr_wind, model_list=["ror"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         fr_ror = [c for c in system.components if c.id == "fr_run_of_river"]
         assert fr_ror, "Expected a fr_run_of_river component"
@@ -441,7 +446,8 @@ class TestScenarioBuilderTwoAreas:
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
         comp = {c.id: c for c in system.components}
 
         assert comp["ba00_hydro_storage"].scenario_group == "hydro_inflows_ba00_group"
@@ -463,7 +469,8 @@ class TestScenarioBuilderTwoAreas:
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
         comp = {c.id: c for c in system.components}
 
         assert comp["ba00_hydro_storage"].scenario_group == "hydro_inflows_ba00_group"
@@ -486,7 +493,8 @@ class TestScenarioBuilderTwoAreas:
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["link"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
         comp = {c.id: c for c in system.components}
 
         assert comp["ba00_hr00_link"].scenario_group == "ba00_hr00_ntc_group"
@@ -506,7 +514,8 @@ class TestScenarioBuilderTwoAreas:
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro", "link"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
         comp = {c.id: c for c in system.components}
 
         assert comp["ba00_hydro_storage"].scenario_group == "hydro_inflows_ba00_group"
@@ -530,7 +539,8 @@ class TestScenarioBuilderTwoAreas:
 
     def test_no_sb(self, two_area_study):
         converter = self._init_converter(two_area_study, ["hydro", "link"])
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups()
+        converter.process_all()
 
         assert all(
             c.scenario_group is None for c in system.components
