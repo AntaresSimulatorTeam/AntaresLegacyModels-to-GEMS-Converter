@@ -47,6 +47,10 @@ from antares_gems_converter.input_converter.src.data_preprocessing.data_classes 
 from antares_gems_converter.input_converter.src.data_preprocessing.preprocessing import (
     ModelConversionPreprocessor,
 )
+from antares_gems_converter.input_converter.src.optim_config import (
+    OPTIM_CONFIG_FILE,
+    write_optim_config,
+)
 from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectProperties,
@@ -69,11 +73,6 @@ from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemS
 MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuration"
 LIBS_FOLDER = "model-libraries"
 SERIES_FOLDER = "data-series"
-# Antares >= 10.2 requires this file next to system.yml. Default content: no
-# per-model setting, so the solver defaults apply (sequential-subproblems,
-# cyclic out-of-bounds processing). Also valid for GemsPy.
-OPTIM_CONFIG_FILE = "optim-config.yml"
-DEFAULT_OPTIM_CONFIG = "models: []\n"
 # Antares >= 10.2 gives legacy objects the same ids as the templates (e.g.
 # <area>_thermal_<cluster>, <area>_load) and rejects GEMS components that reuse
 # the id of a legacy object still in the study. Hybrid mode deletes the replaced
@@ -703,16 +702,7 @@ class AntaresStudyConverter:
         system = self.convert_study_to_input_system()
         self.logger.info("Dumping input system into yaml file...")
         dump_to_yaml(model=system, output_path=self.output_system_path)
-        self._write_optim_config()
-
-    def _write_optim_config(self) -> None:
-        # Keep an existing optim-config.yml (e.g. from a hybrid input study)
-        if self.output_optim_config_path.exists():
-            return
-        self.output_optim_config_path.write_text(DEFAULT_OPTIM_CONFIG)
-        self.logger.info(
-            f"Generated optim-config file at {self.output_optim_config_path}"
-        )
+        write_optim_config(self.output_optim_config_path, self.logger)
 
     def _copy_scenario_builder(self) -> None:
         if not self.modeler_scenario_builder_file:
