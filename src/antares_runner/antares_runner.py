@@ -13,7 +13,6 @@
 
 import os
 import subprocess
-import time
 from pathlib import Path
 from typing import Tuple
 
@@ -59,7 +58,6 @@ class AntaresHybridRunner:
             command.append(self.solver)
         # Run the command and wait for it to finish
         try:
-            start = time.time()
             subprocess.run(
                 command,
                 check=True,  # raise CalledProcessError on failure
@@ -67,8 +65,6 @@ class AntaresHybridRunner:
                 text=True,  # decode bytes to string
             )
             # Log or inspect result.stdout / result.stderr here if desired
-            end = time.time()
-            self.total_execution_time = end - start
         except subprocess.CalledProcessError as e:
             raise RuntimeError(
                 f"Antares execution failed with code {e.returncode}: {e.stderr}"
@@ -144,47 +140,3 @@ class AntaresHybridStudyBenchmarker:
             (self.weekly_objectives_2[0] - self.weekly_objectives_2[1])
             / self.weekly_objectives_2[0]
         )
-
-    def weekly_abs_gaps(self) -> Tuple[np.ndarray, np.ndarray]:
-        return np.abs(
-            self.weekly_objectives_1[0] - self.weekly_objectives_1[1]
-        ), np.abs(self.weekly_objectives_2[0] - self.weekly_objectives_2[1])
-
-
-class AntaresModelerRunner:
-    def __init__(self, exec_dir: str, study_dir: str) -> None:
-        self.exec_dir, self.study_dir = exec_dir, study_dir
-        self.exec_path = self.exec_dir / Path("antares-modeler")
-        self.OUTPUT_FILE_DIR_NAME = "output"
-
-    def run(self) -> None:
-        # Build the command to run antares-modeler.exe
-        command = [str(self.exec_path), str(self.study_dir)]
-        # Run the command and wait for it to finish
-        try:
-            start = time.time()
-            subprocess.run(
-                command,
-                check=True,  # raise CalledProcessError on failure
-                capture_output=True,  # capture stdout/stderr if needed
-                text=True,  # decode bytes to string
-            )
-            # Log or inspect result.stdout / result.stderr here if desired
-            end = time.time()
-            self.total_execution_time = end - start
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"Antares execution failed with code {e.returncode}: {e.stderr}"
-            )
-        # Read the objective value from the solution file
-        # Since Antares 10.2, tables are written in a folder per simulation
-        path = self.study_dir / Path(self.OUTPUT_FILE_DIR_NAME)
-        folders = [name for name in os.listdir(path) if (path / name).is_dir()]
-        self.simulation_id = sorted(folders)[-1]
-        simulation_dir = path / self.simulation_id
-        simulation_table = read_simulation_tables(
-            simulation_dir, "simulation-table-*.csv"
-        )
-        if simulation_table is None:
-            raise FileNotFoundError(f"No simulation table in {simulation_dir}")
-        self.simulation_table = simulation_table

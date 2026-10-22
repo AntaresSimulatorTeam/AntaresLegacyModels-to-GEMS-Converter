@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from time import time
 from types import NoneType
@@ -9,7 +8,6 @@ import pandas as pd
 import pytest
 from antares.craft import ThermalClusterGroup, ThermalClusterProperties
 
-from antares_gems_converter.input_converter.src.logger import Logger
 from tests.antares_historic.utils import (
     convert_study,
     createThermalTestAntaresStudy,

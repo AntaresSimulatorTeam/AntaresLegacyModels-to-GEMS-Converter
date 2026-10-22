@@ -45,7 +45,7 @@ src/antares_gems_converter/
 - `BLANKED_LEGACY_OBJECT_TYPES` - legacy object types that hybrid mode blanks instead of deleting; GEMS components replacing them get the `_gems` suffix
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
-- `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES / AREA_TYPES` - categorize model types for iteration logic in the converter
+- `MATRIX_TYPES / LINK_TYPES` - categorize model types for iteration logic in the converter
       utils.py - small I/O helpers
 - `resolve_path` - resolves a `Path` to absolute, raises if it doesn't exist
 - `check_file_exists` - returns `True` only if file exists and is non-empty
@@ -78,7 +78,7 @@ src/antares_gems_converter/
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
   views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns, metrics filled per study)
   antares_runner/
-    antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
+    antares_runner.py             # AntaresHybridRunner, benchmarker
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)

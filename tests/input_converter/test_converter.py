@@ -37,7 +37,6 @@ from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
 )
-from gems_craft.model.resolve_library import resolve_library
 from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentSchema,
@@ -46,7 +45,6 @@ from gems_craft.study.parsing import (
     SystemSchema,
     parse_yaml_system,
 )
-from gems_craft.study.resolve_components import resolve_system
 from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
 from tests.input_converter.conftest import create_dataframe_from_constant
 import numpy as np
@@ -67,10 +65,6 @@ DATAFRAME_PREPRO_THERMAL_CONFIG = (
     create_dataframe_from_constant(lines=8760),  # series
 )
 
-DATAFRAME_PREPRO_BC_CONFIG = (
-    create_dataframe_from_constant(lines=8760, columns=6),  # modulation
-    create_dataframe_from_constant(lines=8760, columns=4),  # series
-)
 LIB_PATHS = [
     "src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml",
     "src/antares_gems_converter/libs/reference_models/andromede_v1_models.yml",

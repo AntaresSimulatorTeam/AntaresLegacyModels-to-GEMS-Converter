@@ -100,32 +100,6 @@ TIMESERIES_NAME_TO_METHOD = {
     "mod_inflows": "get_mod_series",
     "ror": "get_ror_series",
 }
-TEMPLATE_CLUSTER_TYPE_TO_CLUSTER_PATH = {
-    "thermal": "thermal",
-    "renewable": "renewables",
-    "st_storage": "st-storage",
-}
-TEMPLATE_LINK_TO_TIMESERIES_FILE_TYPE = {
-    "links_parameters": "LINKS_PARAMETERS",
-    "capacity_direct": "LINKS_CAPACITIES_DIRECT",
-    "capacity_indirect": "LINKS_CAPACITIES_INDIRECT",
-}
-TEMPLATE_TO_TIMESERIES_FILE_TYPE = {
-    "pmax_injection": "ST_STORAGE_PMAX_INJECTION",
-    "pmax_withdrawal": "ST_STORAGE_PMAX_WITHDRAWAL",
-    "lower_rule_curve": "ST_STORAGE_LOWER_RULE_CURVE",
-    "upper_rule_curve": "ST_STORAGE_UPPER_RULE_CURVE",
-    "storage_inflows": "ST_STORAGE_INFLOWS",
-    "cost_injection": "ST_STORAGE_COST_INJECTION",
-    "cost_withdrawal": "ST_STORAGE_COST_WITHDRAWAL",
-    "cost_level": "ST_STORAGE_COST_LEVEL",
-    "cost_variation_injection": "ST_STORAGE_COST_VARIATION_INJECTION",
-    "cost_variation_withdrawal": "ST_STORAGE_COST_VARIATION_WITHDRAWAL",
-    "thermal_series": "THERMAL_SERIES",
-    "series_co2_cost": "THERMAL_CO2",
-    "series_fuel_cost": "THERMAL_FUEL",
-    "renewable_series": "RENEWABLE_SERIES",
-}
 
 MODEL_NAME_TO_FILE_NAME = {
     "area": "area.yaml",
@@ -143,6 +117,4 @@ MODEL_NAME_TO_FILE_NAME = {
 }
 
 MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "ror"]
-CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
 LINK_TYPES = ["link"]
-AREA_TYPES = ["area"]

@@ -11,7 +11,6 @@
 # This file is part of the Antares project.
 import json
 import os
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -47,11 +46,6 @@ def antares_exec_folder() -> Path:
         return posix_path
     else:
         raise RuntimeError("Unsupported OS")
-
-
-def assert_antares_exec_exists(antares_exec_folder: Path) -> None:
-    antares_exec = antares_exec_folder / "antares-modeler"
-    assert antares_exec.exists(), f"Antares executable not found at {antares_exec}"
 
 
 @pytest.fixture(scope="session")
@@ -109,21 +103,6 @@ def default_thermal_cluster_properties() -> ThermalClusterProperties:
         efficiency=100,
         variable_o_m_cost=0,
     )
-
-
-@pytest.fixture
-def local_study_end_to_end_simple(local_study):
-    """
-    Create an empty study
-    Create an area with custom area properties
-    """
-    areas_to_create = ["fr"]
-    for area in areas_to_create:
-        area_properties = AreaProperties(
-            energy_cost_spilled="0", energy_cost_unsupplied="1"
-        )
-        local_study.create_area(area, properties=area_properties)
-    return local_study
 
 
 @pytest.fixture

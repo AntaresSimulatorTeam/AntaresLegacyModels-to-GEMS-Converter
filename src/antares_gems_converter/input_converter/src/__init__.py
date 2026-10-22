@@ -10,8 +10,4 @@
 #
 # This file is part of the Antares project.
 
-from pathlib import Path
-
 __version__ = "0.0.1"
-
-ROOT_DIR: Path = Path(__file__).resolve().parent

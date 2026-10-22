@@ -287,7 +287,7 @@ def test_minimum_generation(
     inflow_ts.loc[364, 0] = 0  # to force the result of hydro heuristic
     random_daily_profile = np.random.random((24, 1))
     actual_daily_profile = np.minimum(
-        random_daily_profile / sum(random_daily_profile) * 24 * 50, 100
+        random_daily_profile / sum(random_daily_profile) * 24 * base_mingen, 100
     )
     mingen_ts = pd.DataFrame(np.tile(actual_daily_profile, (365, 1)))
     mingen_ts.loc[8736:8760, 0] = 0  # to force the result of hydro heuristic
