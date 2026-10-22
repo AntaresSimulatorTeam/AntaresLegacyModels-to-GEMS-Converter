@@ -22,7 +22,8 @@ src/antares_gems_converter/
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
 - `convert_template()` converts one template into a `SystemFragment` (components, connections, area connections, scenario groups)
-- `system_and_scenario_groups()` loads and checks the templates, converts them all, and returns the GEMS system with its scenario groups; it writes no output file other than the data series
+- `load_and_check_templates()` loads the templates of `models_to_convert`, checks them against the lib files, and returns them with the virtual objects they exclude
+- `system_and_scenario_groups(templates, virtual_objects)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
 - `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
 

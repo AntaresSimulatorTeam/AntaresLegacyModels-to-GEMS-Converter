@@ -366,8 +366,20 @@ class AntaresStudyConverter:
         dest_dir = self.output_folder / "input" / SERIES_FOLDER
         dest_dir.mkdir(parents=True, exist_ok=True)
 
+    def load_and_check_templates(
+        self,
+    ) -> tuple[dict[str, ConversionTemplate], VirtualObjectsRepository]:
+        """Load the templates of `models_to_convert`, check them against the
+        libraries, and return them with the objects they exclude."""
+        model_conversion_templates = load_conversion_templates(self.models_to_convert)
+        check_converted_models_are_in_libs(model_conversion_templates, self.lib_paths)
+        virtual_objects = build_virtual_objects_repo(model_conversion_templates)
+        return model_conversion_templates, virtual_objects
+
     def system_and_scenario_groups(
         self,
+        model_conversion_templates: dict[str, ConversionTemplate],
+        virtual_objects: VirtualObjectsRepository,
     ) -> tuple[SystemSchema | HybridSystemSchema, dict[str, dict[int, int]]]:
         """Convert the study to a GEMS system, and return it with the scenario
         groups of its components: {scenario group: {year: ts index}}.
@@ -375,16 +387,11 @@ class AntaresStudyConverter:
         In hybrid mode, also record the legacy objects to delete in
         `self.legacy_objects`.
         """
-        model_conversion_templates = load_conversion_templates(self.models_to_convert)
-        check_converted_models_are_in_libs(model_conversion_templates, self.lib_paths)
-        virtual_objects = build_virtual_objects_repo(model_conversion_templates)
-
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = get_legacy_sb(self.study, self.logger)
         self.legacy_objects = []
         converted = SystemFragment()
-        for model in self.models_to_convert:
-            conversion_template = model_conversion_templates[model]
+        for conversion_template in model_conversion_templates.values():
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
@@ -420,7 +427,10 @@ class AntaresStudyConverter:
             )
         self._create_dataseries_dir()
 
-        system, scenario_groups = self.system_and_scenario_groups()
+        model_conversion_templates, virtual_objects = self.load_and_check_templates()
+        system, scenario_groups = self.system_and_scenario_groups(
+            model_conversion_templates, virtual_objects
+        )
 
         # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
         if not self.modeler_scenario_builder_file and scenario_groups:
