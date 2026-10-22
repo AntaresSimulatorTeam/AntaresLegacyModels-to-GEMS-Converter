@@ -83,8 +83,8 @@ HYBRID_COMPONENT_ID_SUFFIX = "_gems"
 
 
 @dataclass
-class ConversionResult:
-    """What the conversion of one or more templates adds to the output system."""
+class SystemFragment:
+    """Part of the output system: what one or more converted templates add to it."""
 
     components: list[ComponentSchema] = field(default_factory=list)
     connections: list[PortConnectionsSchema] = field(default_factory=list)
@@ -92,7 +92,7 @@ class ConversionResult:
     # {scenario group: {year: ts index}}, written to modeler-scenariobuilder.dat
     group_data: dict[str, dict[int, int]] = field(default_factory=dict)
 
-    def merge(self, other: "ConversionResult") -> None:
+    def merge(self, other: "SystemFragment") -> None:
         self.components.extend(other.components)
         self.connections.extend(other.connections)
         self.area_connections.extend(other.area_connections)
@@ -292,22 +292,22 @@ class AntaresStudyConverter:
         self,
         resolved_conversion_template: ConversionTemplate,
         mp: ModelConversionPreprocessor,
-        result: ConversionResult,
+        fragment: SystemFragment,
     ) -> None:
         id_suffix = self._component_id_suffix(resolved_conversion_template)
         skipped_components = self._add_components(
-            resolved_conversion_template, mp, id_suffix, result
+            resolved_conversion_template, mp, id_suffix, fragment
         )
         if self.mode == ConversionMode.HYBRID:
             self._add_area_connections(
-                resolved_conversion_template, skipped_components, id_suffix, result
+                resolved_conversion_template, skipped_components, id_suffix, fragment
             )
             # TODO : Simplify usage, use directly legacy_objectis_to_delete
             for item in resolved_conversion_template.legacy_objects_to_delete:
                 self.legacy_objects.append(item.object_properties)
         else:
             self._add_port_connections(
-                resolved_conversion_template, skipped_components, id_suffix, result
+                resolved_conversion_template, skipped_components, id_suffix, fragment
             )
 
     def _add_components(
@@ -315,9 +315,9 @@ class AntaresStudyConverter:
         resolved_conversion_template: ConversionTemplate,
         mp: ModelConversionPreprocessor,
         id_suffix: str,
-        result: ConversionResult,
+        fragment: SystemFragment,
     ) -> list[str]:
-        """Add the template's components to `result` and return the ids of
+        """Add the template's components to `fragment` and return the ids of
         those skipped because their time series are empty or all zeros."""
         skipped_components: list[str] = []
         for comp in resolved_conversion_template.components:
@@ -352,7 +352,7 @@ class AntaresStudyConverter:
                 if comp.properties
                 else None
             )
-            result.components.append(
+            fragment.components.append(
                 ComponentSchema(
                     id=self._output_component_id(comp.id, id_suffix),
                     model=resolved_conversion_template.model,
@@ -368,12 +368,12 @@ class AntaresStudyConverter:
         resolved_conversion_template: ConversionTemplate,
         skipped_components: list[str],
         id_suffix: str,
-        result: ConversionResult,
+        fragment: SystemFragment,
     ) -> None:
         for area_connection in resolved_conversion_template.area_connections:
             if area_connection.component in skipped_components:
                 continue
-            result.area_connections.append(
+            fragment.area_connections.append(
                 AreaConnectionsSchema(
                     component=self._resolve_ref(area_connection.component, id_suffix),
                     port=area_connection.port,
@@ -386,7 +386,7 @@ class AntaresStudyConverter:
         resolved_conversion_template: ConversionTemplate,
         skipped_components: list[str],
         id_suffix: str,
-        result: ConversionResult,
+        fragment: SystemFragment,
     ) -> None:
         for connection in resolved_conversion_template.connections:
             if (
@@ -394,7 +394,7 @@ class AntaresStudyConverter:
                 or connection.component2 in skipped_components
             ):
                 continue
-            result.connections.append(
+            fragment.connections.append(
                 PortConnectionsSchema(
                     component1=self._resolve_ref(connection.component1, id_suffix),
                     port1=connection.port1,
@@ -472,7 +472,7 @@ class AntaresStudyConverter:
         conversion_template: ConversionTemplate,
         virtual_objects: Optional[VirtualObjectsRepository] = None,
         legacy_sb: ScenarioBuilder | None = None,
-    ) -> ConversionResult:
+    ) -> SystemFragment:
         """Convert the study objects that `conversion_template` applies to.
 
         In hybrid mode, also record the legacy objects to delete. Objects in
@@ -480,7 +480,7 @@ class AntaresStudyConverter:
         """
         if virtual_objects is None:
             virtual_objects = VirtualObjectsRepository()
-        result = ConversionResult()
+        fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
         )
@@ -490,17 +490,17 @@ class AntaresStudyConverter:
             ):
                 # Always called: clears scenario_group to None when year_ts is empty
                 resolved_template = self._apply_sb_groups(
-                    resolved_template, year_ts, result.group_data
+                    resolved_template, year_ts, fragment.group_data
                 )
                 self._convert_resolved_template(
-                    resolved_template, model_preprocessor, result
+                    resolved_template, model_preprocessor, fragment
                 )
         except (KeyError, FileNotFoundError) as e:
             raise ValueError(
                 f"Error while converting model '{conversion_template.name}' to "
                 f"component list: {e!r}. Please check the model configuration file."
             ) from e
-        return result
+        return fragment
 
     def _resolved_templates(
         self,
@@ -708,35 +708,35 @@ class AntaresStudyConverter:
 
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = self._get_legacy_sb()
-        result = ConversionResult()
+        converted = SystemFragment()
         for model in self.models_to_convert:
             conversion_template = model_conversion_templates[model]
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
-            result.merge(
+            converted.merge(
                 self.convert_template(conversion_template, virtual_objects, legacy_sb)
             )
 
         # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data
-        if not self.modeler_scenario_builder_file and result.group_data:
-            self._generate_scenario_builder_file(result.group_data)
+        if not self.modeler_scenario_builder_file and converted.group_data:
+            self._generate_scenario_builder_file(converted.group_data)
 
         if self.mode == ConversionMode.HYBRID:
             self._delete_legacy_objects()
             system = HybridSystemSchema(
                 id=self.study.name,
-                components=result.components,
-                connections=result.connections or None,
-                area_connections=result.area_connections or None,
+                components=converted.components,
+                connections=converted.connections or None,
+                area_connections=converted.area_connections or None,
             )
             # exclude_unset keeps defaults (e.g. integer_strategy) unset, so they are not dumped
             data = system.model_dump(exclude_none=True, exclude_unset=True)
             return HybridSystemSchema(**data)
         system = SystemSchema(
             id=self.study.name,
-            components=result.components,
-            connections=result.connections or None,
+            components=converted.components,
+            connections=converted.connections or None,
         )
         data = system.model_dump(exclude_none=True, exclude_unset=True)
         return SystemSchema(**data)
