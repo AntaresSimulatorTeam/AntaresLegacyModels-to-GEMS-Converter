@@ -26,6 +26,9 @@ from antares.craft.model.renewable import (
 )
 from antares.craft.model.study import Study
 
+from antares_gems_converter.input_converter.src.checks import (
+    check_converted_models_are_in_libs,
+)
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.logger import Logger
@@ -1628,9 +1631,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
         # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
-        result = converter.convert_template(
-            bc_data, bc_data.get_excluded_objects_ids()
-        )
+        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
         binding_components = result.components
         binding_connections = result.connections
         area_connections = result.area_connections
@@ -1669,9 +1670,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
 
-        result = converter.convert_template(
-            bc_data, bc_data.get_excluded_objects_ids()
-        )
+        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
         area_connections = result.area_connections
 
         output_path = converter.output_folder
@@ -1821,8 +1820,8 @@ class TestConverter:
 
     def test_templates_match_library_models(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas)
-        converter._check_converted_models_are_in_libs(
-            converter._build_model_conversion_templates()
+        check_converted_models_are_in_libs(
+            converter._build_model_conversion_templates(), converter.lib_paths
         )
 
     def test_template_with_unknown_parameter(self, local_study_w_areas: Study):
@@ -1850,7 +1849,7 @@ class TestConverter:
             " model 'antares_legacy_models.link': "
         )
         with pytest.raises(ValueError) as error:
-            converter._check_converted_models_are_in_libs(templates)
+            check_converted_models_are_in_libs(templates, converter.lib_paths)
         assert prefix + "unknown parameter(s) ['direct_capasity']" in str(error.value)
         assert prefix + "missing parameter(s) ['direct_capacity']" in str(error.value)
 
@@ -1872,7 +1871,7 @@ class TestConverter:
         )
 
         with pytest.raises(ValueError) as error:
-            converter._check_converted_models_are_in_libs(templates)
+            check_converted_models_are_in_libs(templates, converter.lib_paths)
         assert str(error.value).endswith(
             "- template 'thermal', component '${area}_thermal_${thermal}',"
             " model 'antares_legacy_models.thermal': missing property(s) ['carrier']"

@@ -22,6 +22,9 @@ from antares.craft.model.scenario_builder import ScenarioBuilder
 from antares.craft.model.study import Study, read_study_local
 from antares.craft.model.hydro import HydroPropertiesUpdate
 
+from antares_gems_converter.input_converter.src.checks import (
+    check_converted_models_are_in_libs,
+)
 from antares_gems_converter.input_converter.src.config import (
     BLANKED_LEGACY_OBJECT_TYPES,
     CLUSTER_TYPE_TO_SB_ATTR,
@@ -54,7 +57,6 @@ from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
     resolve_path,
 )
-from gems_craft.model.parsing import LibrarySchema, ModelSchema, parse_yaml_library
 from gems_craft.study.parsing import (
     ComponentParameterSchema,
     ComponentPropertySchema,
@@ -601,73 +603,6 @@ class AntaresStudyConverter:
             or link.area_to_id in virtual_objects.areas
         )
 
-    @staticmethod
-    def _parse_library(path: str) -> LibrarySchema:
-        try:
-            with Path(path).open("r", encoding="utf-8") as file:
-                return parse_yaml_library(file)
-        except Exception as e:
-            raise ValueError(f"Failed to parse library file {path}: {e}") from e
-
-    def _check_converted_models_are_in_libs(
-        self, model_conversion_templates: dict[str, ConversionTemplate]
-    ) -> None:
-        lib_to_models: dict[str, dict[str, ModelSchema]] = {}
-        for lib_path in self.lib_paths:
-            lib_data = self._parse_library(lib_path)
-            lib_to_models[lib_data.id] = {model.id: model for model in lib_data.models}
-
-        mismatches: list[str] = []
-        for model in self.models_to_convert:
-            conversion_template = model_conversion_templates[model]
-            lib_id, model_id = conversion_template.model.split(".")
-            if lib_id not in lib_to_models:
-                raise ValueError(
-                    f"Library {lib_id} has not been found in provided libraries"
-                )
-            if model_id not in lib_to_models[lib_id]:
-                raise ValueError(
-                    f"Model {model_id} has not been found in library {lib_id}"
-                )
-            mismatches += self._template_mismatches_with_model(
-                conversion_template, lib_to_models[lib_id][model_id]
-            )
-
-        # A mismatch would otherwise only surface later, in GEMS or the solver,
-        # far from the template, or go unnoticed
-        if mismatches:
-            raise ValueError(
-                "Conversion templates do not match the parameters and properties"
-                " of their library models:\n" + "\n".join(mismatches)
-            )
-
-    @staticmethod
-    def _template_mismatches_with_model(
-        conversion_template: ConversionTemplate, model: ModelSchema
-    ) -> list[str]:
-        model_ids = {
-            "parameter": {param.id for param in model.parameters},
-            "property": {prop.id for prop in model.properties},
-        }
-        mismatches = []
-        for comp in conversion_template.components:
-            template_ids = {
-                "parameter": {param.id for param in comp.parameters},
-                "property": {prop.id for prop in comp.properties},
-            }
-            for kind in ("parameter", "property"):
-                for issue, ids in (
-                    ("unknown", template_ids[kind] - model_ids[kind]),
-                    ("missing", model_ids[kind] - template_ids[kind]),
-                ):
-                    if ids:
-                        mismatches.append(
-                            f"- template '{conversion_template.name}', component"
-                            f" '{comp.id}', model '{conversion_template.model}':"
-                            f" {issue} {kind}(s) {sorted(ids)}"
-                        )
-        return mismatches
-
     # TODO: Does not depend on self for now, but will be once the config is a class attribute
     def _get_model_conversion_template(self, model: str) -> ConversionTemplate:
         model_conversion_template_file = (
@@ -707,7 +642,7 @@ class AntaresStudyConverter:
         self._copy_scenario_builder()
         self._create_dataseries_dir()
         model_conversion_templates = self._build_model_conversion_templates()
-        self._check_converted_models_are_in_libs(model_conversion_templates)
+        check_converted_models_are_in_libs(model_conversion_templates, self.lib_paths)
         virtual_objects = self._build_virtual_objects_repo(model_conversion_templates)
 
         # Read the legacy SB once and pass it to every model conversion
