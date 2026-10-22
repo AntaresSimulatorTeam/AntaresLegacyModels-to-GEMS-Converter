@@ -36,6 +36,9 @@ from antares_gems_converter.input_converter.src.parsing import (
     Operation,
     parse_conversion_template,
 )
+from antares_gems_converter.input_converter.src.templates import (
+    load_conversion_templates,
+)
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
     dump_to_yaml,
@@ -1821,14 +1824,14 @@ class TestConverter:
     def test_templates_match_library_models(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas)
         check_converted_models_are_in_libs(
-            converter._build_model_conversion_templates(), converter.lib_paths
+            load_conversion_templates(converter.models_to_convert), converter.lib_paths
         )
 
     def test_template_with_unknown_parameter(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(
             local_study_w_areas, model_list=["link"]
         )
-        templates = converter._build_model_conversion_templates()
+        templates = load_conversion_templates(converter.models_to_convert)
         link_component = templates["link"].components[0]
         parameters = [
             param.model_copy(update={"id": "direct_capasity"})
@@ -1857,7 +1860,7 @@ class TestConverter:
         converter = self._init_converter_from_study(
             local_study_w_areas, model_list=["thermal"]
         )
-        templates = converter._build_model_conversion_templates()
+        templates = load_conversion_templates(converter.models_to_convert)
         thermal_component = templates["thermal"].components[0]
         properties = [
             prop for prop in thermal_component.properties if prop.id != "carrier"
