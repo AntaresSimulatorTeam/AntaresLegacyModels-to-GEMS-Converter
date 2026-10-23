@@ -150,11 +150,7 @@ class AntaresStudyConverter:
             study_input.path = self.output_folder
             self.study = study_input
         else:
-            # TODO: Check whether this dinstinction is needed
-            if mode == ConversionMode.HYBRID:
-                self.study = read_study_local(resolve_path(self.output_folder))
-            else:
-                self.study = read_study_local(resolve_path(study_input))
+            self.study = read_study_local(resolve_path(study_input))
         self.output_system_path = self.output_folder / "input" / "system.yml"
         self.output_optim_config_path = self.output_folder / "input" / OPTIM_CONFIG_FILE
         self.areas = self.study.get_areas()
@@ -576,11 +572,14 @@ class AntaresStudyConverter:
                                 model_preprocessor,
                             )
         except (KeyError, FileNotFoundError) as e:
+            # Not raised: a template is applied to every area, so the battery
+            # template fails on any area without the battery artefact (e.g. a
+            # study with no battery, while battery is converted by default).
+            # This also stops the model's conversion at the first such area.
             self.logger.error(
-                f"Error while converting model to component list: {e}. "
-                "Please check the model configuration file."
+                f"Error while converting model '{model_name}' to component list: "
+                f"{e!r}. Please check the model configuration file."
             )
-            return components, connections, area_connections, group_data
 
         return components, connections, area_connections, group_data
 
