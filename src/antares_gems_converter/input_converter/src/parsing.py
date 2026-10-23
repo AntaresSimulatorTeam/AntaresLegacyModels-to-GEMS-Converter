@@ -11,9 +11,11 @@
 # This file is part of the Antares project.
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional, TextIO, Union
 
 import pandas as pd
+from gems_craft.model.parsing import LibrarySchema, parse_yaml_library
 from pydantic import BaseModel, Field
 from yaml import safe_load
 
@@ -377,3 +379,11 @@ class ConversionTemplate(ModifiedBaseModel):
 def parse_conversion_template(input_template: TextIO) -> ConversionTemplate:
     tree = safe_load(input_template)
     return ConversionTemplate.model_validate(tree["template"])
+
+
+def parse_library(path: str) -> LibrarySchema:
+    try:
+        with Path(path).open("r", encoding="utf-8") as file:
+            return parse_yaml_library(file)
+    except Exception as e:
+        raise ValueError(f"Failed to parse library file {path}: {e}") from e

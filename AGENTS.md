@@ -21,11 +21,17 @@ src/antares_gems_converter/
       main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
-- Loads YAML model templates and validates them against provided lib files (model ids, and parameter/property ids in both directions)
-- Iterates areas/links/clusters → builds ComponentSchema + port connection lists
-- Hybrid: deletes converted Antares objects from the study copy in-place
+- `convert_template()` converts one template into a `SystemFragment` (components, connections, area connections, scenario groups)
+- `load_and_check_templates()` loads the templates of `models_to_convert`, checks them against the lib files, and returns them with the virtual objects they exclude
+- `system_and_scenario_groups(templates, virtual_objects)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
-- process_all() dumps the final InputSystem to output/input/system.yml
+- `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
+
+      templates.py - loads the YAML templates and resolves them for each link, area or cluster (`resolved_templates()` yields each resolved template with its `StudyObject`); builds the virtual objects repository
+      checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
+      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`), sets the components' scenario groups, clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
+      deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
+      optim_config.py - writes the default optim-config.yml unless one exists
 
 
       parsing.py - Pydantic models for YAML conversion templates
@@ -36,6 +42,7 @@ src/antares_gems_converter/
 - VirtualObjectsRepository - areas/links/thermals to skip during iteration
 - All models have resolve_template() to substitute ${area} / ${thermal} placeholders
 - parse_conversion_template() - YAML file → ConversionTemplate
+- parse_library() - GEMS library YAML file → LibrarySchema (raises ValueError naming the file)
       config.py  - lookup dictionaries used by the converter
 
 -   `TEMPLATE_CLUSTER_TYPE_TO_GET/DELETE_METHOD` - maps thermal/renewable/st_storage → antares-craft area methods
@@ -96,7 +103,7 @@ dependencies.json                # Antares Simulator version for CI
 
 1. **CLI** (`main.py`) reads an INI config specifying study path, output folder, library paths, and conversion mode.
 2. **AntaresStudyConverter** (`converter.py`) loads the Antares study via `antares-craft`, loads YAML conversion templates, and iterates through each model type.
-3. **Template resolution** (`parsing.py`) replaces `${area}`, `${thermal}`, `${link}`, etc. placeholders with actual study object IDs.
+3. **Template resolution** (`templates.py`, `parsing.py`) replaces `${area}`, `${thermal}`, `${link}`, etc. placeholders with actual study object IDs.
 4. **Data extraction** (`preprocessing.py`) reads timeseries and scalar parameters from the study, writes timeseries to TSV files in `data-series/`.
 5. **Output**: a GEMS `InputSystem` dumped to `input/system.yml`, with libraries copied to `model-libraries/` and timeseries in `data-series/`.
 
@@ -273,7 +280,7 @@ Runs on every push to any branch:
 
 ## Critical Rules for AI Agents
 
-1. **Template ↔ model parameter and property ids must match, both ways.** Each component of a conversion template declares exactly the parameters and properties of the referenced GEMS model: no unknown id, none missing. `_check_converted_models_are_in_libs` checks this for the templates in `models_to_convert` and raises a `ValueError` naming the template, component, model and ids. `test_templates_match_library_models` runs it on all templates.
+1. **Template ↔ model parameter and property ids must match, both ways.** Each component of a conversion template declares exactly the parameters and properties of the referenced GEMS model: no unknown id, none missing. `check_converted_models_are_in_libs` (`checks.py`) checks this for the templates in `models_to_convert` and raises a `ValueError` naming the template, component, model and ids. `test_templates_match_library_models` runs it on all templates.
 
 2. **`config.py` is the single source of truth for mappings.** Adding a new model type requires entries in `MODEL_NAME_TO_FILE_NAME`, and possibly `TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD`, `TIMESERIES_NAME_TO_METHOD`, and other mapping dictionaries. Missing entries cause `KeyError` at runtime.
 

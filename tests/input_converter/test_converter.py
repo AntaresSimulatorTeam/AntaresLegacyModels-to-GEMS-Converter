@@ -26,12 +26,18 @@ from antares.craft.model.renewable import (
 )
 from antares.craft.model.study import Study
 
+from antares_gems_converter.input_converter.src.checks import (
+    check_converted_models_are_in_libs,
+)
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
 from antares_gems_converter.input_converter.src.logger import Logger
 from antares_gems_converter.input_converter.src.parsing import (
     Operation,
     parse_conversion_template,
+)
+from antares_gems_converter.input_converter.src.templates import (
+    load_conversion_templates,
 )
 from antares_gems_converter.input_converter.src.utils import (
     check_file_exists,
@@ -119,7 +125,9 @@ class TestConverter:
 
     def test_convert_study_to_input_study(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
-        input_study = converter.convert_study_to_input_system()
+        input_study, _ = converter.system_and_scenario_groups(
+            *converter.load_and_check_templates()
+        )
 
         expected_input_study = SystemSchema(
             id="studyTest",
@@ -1628,9 +1636,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
         # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
-        result = converter.convert_template(
-            bc_data, bc_data.get_excluded_objects_ids()
-        )
+        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
         binding_components = result.components
         binding_connections = result.connections
         area_connections = result.area_connections
@@ -1669,9 +1675,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
 
-        result = converter.convert_template(
-            bc_data, bc_data.get_excluded_objects_ids()
-        )
+        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
         area_connections = result.area_connections
 
         output_path = converter.output_folder
@@ -1739,7 +1743,11 @@ class TestConverter:
         assert thermal_cluster_filepath.stat().st_size > 0
         assert bc_filepath.stat().st_size > 0
         assert links_filepath.stat().st_size > 0
-        obtained_data = converter.convert_study_to_input_system()
+        obtained_data, _ = converter.system_and_scenario_groups(
+            *converter.load_and_check_templates()
+        )
+        # The legacy objects are deleted by process_all()
+        converter.process_all()
 
         # Check files have been correctly deleted
         thermal_cluster_filepath = (
@@ -1774,7 +1782,9 @@ class TestConverter:
         converter = self._init_converter_from_study(
             fr_load, model_list=["load", "thermal"], mode="hybrid"
         )
-        system = converter.convert_study_to_input_system()
+        system, _ = converter.system_and_scenario_groups(
+            *converter.load_and_check_templates()
+        )
 
         assert sorted(c.id for c in system.components) == [
             "fr_load_gems",
@@ -1817,19 +1827,19 @@ class TestConverter:
         )
 
         with pytest.raises(ValueError, match="'gaz'.*\n.*'bc_gaz'"):
-            converter.convert_study_to_input_system()
+            converter.process_all()
 
     def test_templates_match_library_models(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas)
-        converter._check_converted_models_are_in_libs(
-            converter._build_model_conversion_templates()
+        check_converted_models_are_in_libs(
+            load_conversion_templates(converter.models_to_convert), converter.lib_paths
         )
 
     def test_template_with_unknown_parameter(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(
             local_study_w_areas, model_list=["link"]
         )
-        templates = converter._build_model_conversion_templates()
+        templates = load_conversion_templates(converter.models_to_convert)
         link_component = templates["link"].components[0]
         parameters = [
             param.model_copy(update={"id": "direct_capasity"})
@@ -1850,7 +1860,7 @@ class TestConverter:
             " model 'antares_legacy_models.link': "
         )
         with pytest.raises(ValueError) as error:
-            converter._check_converted_models_are_in_libs(templates)
+            check_converted_models_are_in_libs(templates, converter.lib_paths)
         assert prefix + "unknown parameter(s) ['direct_capasity']" in str(error.value)
         assert prefix + "missing parameter(s) ['direct_capacity']" in str(error.value)
 
@@ -1858,7 +1868,7 @@ class TestConverter:
         converter = self._init_converter_from_study(
             local_study_w_areas, model_list=["thermal"]
         )
-        templates = converter._build_model_conversion_templates()
+        templates = load_conversion_templates(converter.models_to_convert)
         thermal_component = templates["thermal"].components[0]
         properties = [
             prop for prop in thermal_component.properties if prop.id != "carrier"
@@ -1872,7 +1882,7 @@ class TestConverter:
         )
 
         with pytest.raises(ValueError) as error:
-            converter._check_converted_models_are_in_libs(templates)
+            check_converted_models_are_in_libs(templates, converter.lib_paths)
         assert str(error.value).endswith(
             "- template 'thermal', component '${area}_thermal_${thermal}',"
             " model 'antares_legacy_models.thermal': missing property(s) ['carrier']"
@@ -1955,7 +1965,9 @@ class TestConverter:
                 model for model in MODEL_NAME_TO_FILE_NAME.keys() if model != "hydro"
             ],
         )
-        obtained_sys = converter.convert_study_to_input_system()
+        obtained_sys, _ = converter.system_and_scenario_groups(
+            *converter.load_and_check_templates()
+        )
         with open(ref_path) as system_file:
             expected_sys = parse_yaml_system(system_file)
         assert obtained_sys.components == expected_sys.components
