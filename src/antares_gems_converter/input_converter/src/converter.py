@@ -516,12 +516,11 @@ class AntaresStudyConverter:
                             )()
                             for cluster_id, cluster in clusters.items():
                                 if cluster_id not in resolved_virtual_objects.thermals:
-                                    if (
-                                        cluster_type == "renewable"
-                                        and not cluster.properties.enabled
-                                    ):
+                                    # A disabled cluster contributes nothing in Antares:
+                                    # no component, and in hybrid mode it stays in the study
+                                    if not cluster.properties.enabled:
                                         self.logger.warning(
-                                            f"Renewable cluster '{cluster_id}' in area "
+                                            f"{cluster_type} cluster '{cluster_id}' in area "
                                             f"'{area.id}' is disabled; skipping conversion."
                                         )
                                         continue
