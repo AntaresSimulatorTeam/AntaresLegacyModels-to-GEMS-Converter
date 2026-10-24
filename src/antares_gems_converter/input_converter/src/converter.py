@@ -88,12 +88,15 @@ class SystemFragment:
     area_connections: list[AreaConnectionsSchema] = field(default_factory=list)
     # {scenario group: {year: ts index}}, written to modeler-scenariobuilder.dat
     group_data: dict[str, dict[int, int]] = field(default_factory=dict)
+    # Hybrid mode: legacy objects replaced by the components, to delete
+    legacy_objects: list[ObjectProperties] = field(default_factory=list)
 
     def merge(self, other: "SystemFragment") -> None:
         self.components.extend(other.components)
         self.connections.extend(other.connections)
         self.area_connections.extend(other.area_connections)
         self.group_data.update(other.group_data)
+        self.legacy_objects.extend(other.legacy_objects)
 
 
 class AntaresStudyConverter:
@@ -183,9 +186,9 @@ class AntaresStudyConverter:
             self._add_area_connections(
                 instance, skipped_components, id_suffix, fragment
             )
-            # TODO : Simplify usage, use directly legacy_objectis_to_delete
-            for item in instance.legacy_objects_to_delete:
-                self.legacy_objects.append(item.object_properties)
+            fragment.legacy_objects.extend(
+                item.object_properties for item in instance.legacy_objects_to_delete
+            )
         else:
             self._add_port_connections(
                 instance, skipped_components, id_suffix, fragment
@@ -313,8 +316,9 @@ class AntaresStudyConverter:
     ) -> SystemFragment:
         """Convert the study objects that `conversion_template` applies to.
 
-        In hybrid mode, also record the legacy objects to delete. Objects
-        matching `exclusions` are skipped; `legacy_sb` gives the scenario groups.
+        In hybrid mode, the fragment also lists the legacy objects to delete.
+        Objects matching `exclusions` are skipped; `legacy_sb` gives the
+        scenario groups.
         """
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
@@ -391,7 +395,6 @@ class AntaresStudyConverter:
         """
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = get_legacy_sb(self.study, self.logger)
-        self.legacy_objects = []
         converted = SystemFragment()
         for conversion_template in model_conversion_templates.values():
             self.logger.info(
@@ -400,6 +403,7 @@ class AntaresStudyConverter:
             converted.merge(
                 self.convert_template(conversion_template, exclusions, legacy_sb)
             )
+        self.legacy_objects = converted.legacy_objects
 
         if self.mode == ConversionMode.HYBRID:
             system = HybridSystemSchema(
