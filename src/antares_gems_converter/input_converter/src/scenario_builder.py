@@ -24,8 +24,8 @@ from antares_gems_converter.input_converter.src.config import (
     MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
 )
 from antares_gems_converter.input_converter.src.parsing import (
-    ConversionTemplate,
     ObjectKind,
+    TemplateInstance,
 )
 from antares_gems_converter.input_converter.src.templates import StudyObject
 
@@ -77,10 +77,10 @@ def read_year_ts(
 
 
 def apply_sb_groups(
-    resolved_template: ConversionTemplate,
+    instance: TemplateInstance,
     year_ts: dict[int, int],
     group_data: dict[str, dict[int, int]],
-) -> ConversionTemplate:
+) -> TemplateInstance:
     # For each component that carries a scenario_group placeholder from the YAML template:
     # - if year_ts is non-empty: keep the group name, register its {year: ts} data in group_data
     #   (used later to write modeler-scenariobuilder.dat)
@@ -89,7 +89,7 @@ def apply_sb_groups(
     # " / " in group names comes from link IDs (e.g. "at / fr") — normalize to "_".
     new_components = []
     changed = False
-    for comp in resolved_template.components:
+    for comp in instance.components:
         if comp.scenario_group is not None:
             normalized = comp.scenario_group.replace(" / ", "_")
             if year_ts:
@@ -102,8 +102,8 @@ def apply_sb_groups(
         else:
             new_components.append(comp)
     if changed:
-        return resolved_template.model_copy(update={"components": new_components})
-    return resolved_template
+        return instance.model_copy(update={"components": new_components})
+    return instance
 
 
 def clear_legacy_sb_entries(

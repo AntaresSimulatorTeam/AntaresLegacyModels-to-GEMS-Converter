@@ -154,6 +154,7 @@ def test_read_year_ts_by_kind(fr_wind: Study):
 
 
 FR = StudyObject(ObjectKind.AREA, area="fr")
+FR_GAZ = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
 Z_BATTERIES = StudyObject(ObjectKind.AREA, area="z_batteries")
 FR_Z_LINK = StudyObject(
     ObjectKind.LINK, link="fr / z_batteries", area_from="fr", area_to="z_batteries"
@@ -241,3 +242,47 @@ def test_battery_exclusions_only_when_battery_is_converted(tmp_path: Path, mode:
     ids = _component_ids(tmp_path, mode, ["thermal", "link"])
     assert BATTERY_ARTEFACTS <= ids
     assert ("z_batteries_node" in ids) == (mode == "full")
+
+
+def test_instantiate_thermal():
+    template = load_conversion_template("thermal")
+    instance = template.instantiate(FR_GAZ.substitutions())
+    component = instance.components[0]
+    assert component.id == "fr_thermal_gaz"
+    assert component.scenario_group == "thermal_fr_gaz_group"
+    cluster = component.parameters[0].value.object_properties
+    assert cluster is not None
+    assert (cluster.area, cluster.cluster) == ("fr", "gaz")
+    name = next(prop for prop in component.properties if prop.id == "name")
+    assert name.value.constant == "gaz"
+    deleted = instance.legacy_objects_to_delete[0].object_properties
+    assert (deleted.type, deleted.area, deleted.cluster) == ("thermal", "fr", "gaz")
+    # The template itself keeps its placeholders
+    assert template.components[0].id == "${area}_thermal_${thermal}"
+
+
+def test_instantiate_link_attributes():
+    link = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
+    instance = load_conversion_template("link").instantiate(link.substitutions())
+    assert instance.components[0].id == "at / fr_link"
+    assert [c.component2 for c in instance.connections] == ["at_node", "fr_node"]
+    assert [c.area for c in instance.area_connections] == ["at", "fr"]
+    assert instance.legacy_objects_to_delete[0].object_properties.link == "at / fr"
+
+
+def test_instantiate_battery_term_ids():
+    # "%" and "." in binding constraint term ids are not interpreted
+    instance = load_conversion_template("battery").instantiate(FR.substitutions())
+    fields = {
+        param.id: param.value.object_properties.field
+        for param in instance.components[0].parameters
+        if param.value.object_properties is not None
+    }
+    assert fields["efficiency_injection"] == "fr%z_batteries"
+    assert fields["efficiency_withdrawal"] == "fr.fr_batteries_inj"
+
+
+def test_instantiate_rejects_unresolved_placeholder():
+    template = load_conversion_template("thermal")
+    with pytest.raises(ValueError, match="unresolved placeholder"):
+        template.instantiate(FR.substitutions())

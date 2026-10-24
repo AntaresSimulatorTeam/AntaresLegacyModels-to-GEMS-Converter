@@ -56,7 +56,15 @@ class StudyObject:
         """{placeholder: value} to instantiate a template for this object,
         in the order they must be applied."""
         if self.link is not None:
-            return {"${link}": self.link}
+            assert self.area_from is not None and self.area_to is not None
+            return {
+                # "${link}.area_from_id._node" -> "<area from>_node"
+                "${link}.area_from_id.": self.area_from,
+                "${link}.area_to_id.": self.area_to,
+                "${link}.area_from_id": self.area_from,
+                "${link}.area_to_id": self.area_to,
+                "${link}": self.link,
+            }
         assert self.area is not None
         substitutions = {"${area}": self.area}
         if self.cluster is not None:
