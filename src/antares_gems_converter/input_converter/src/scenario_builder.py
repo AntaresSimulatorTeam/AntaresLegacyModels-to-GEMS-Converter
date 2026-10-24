@@ -9,8 +9,8 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""Read the legacy scenario builder (SB), turn it into the scenario groups of
-the GEMS components, and write modeler-scenariobuilder.dat."""
+"""Read the legacy scenario builder (SB) of each study object, clear the
+entries of deleted objects, and write modeler-scenariobuilder.dat."""
 import logging
 import shutil
 from pathlib import Path
@@ -23,10 +23,7 @@ from antares_gems_converter.input_converter.src.config import (
     LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
     MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
 )
-from antares_gems_converter.input_converter.src.parsing import (
-    ObjectKind,
-    TemplateInstance,
-)
+from antares_gems_converter.input_converter.src.parsing import ObjectKind
 from antares_gems_converter.input_converter.src.templates import StudyObject
 
 MODELER_SCENARIO_BUILDER_FILE = "modeler-scenariobuilder.dat"
@@ -74,36 +71,6 @@ def read_year_ts(
     return {
         year: ts for year, ts in enumerate(sb_matrix.get_scenario()) if ts is not None
     }
-
-
-def apply_sb_groups(
-    instance: TemplateInstance,
-    year_ts: dict[int, int],
-    group_data: dict[str, dict[int, int]],
-) -> TemplateInstance:
-    # For each component that carries a scenario_group placeholder from the YAML template:
-    # - if year_ts is non-empty: keep the group name, register its {year: ts} data in group_data
-    #   (used later to write modeler-scenariobuilder.dat)
-    # - if year_ts is empty (no SB entries, or no legacy SB at all): clear to None so the
-    #   placeholder value does not leak into the output system
-    # " / " in group names comes from link IDs (e.g. "at / fr") — normalize to "_".
-    new_components = []
-    changed = False
-    for comp in instance.components:
-        if comp.scenario_group is not None:
-            normalized = comp.scenario_group.replace(" / ", "_")
-            if year_ts:
-                group_data[normalized] = year_ts
-                new_comp = comp.model_copy(update={"scenario_group": normalized})
-            else:
-                new_comp = comp.model_copy(update={"scenario_group": None})
-            new_components.append(new_comp)
-            changed = True
-        else:
-            new_components.append(comp)
-    if changed:
-        return instance.model_copy(update={"components": new_components})
-    return instance
 
 
 def clear_legacy_sb_entries(

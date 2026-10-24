@@ -44,7 +44,6 @@ from antares_gems_converter.input_converter.src.parsing import (
     TemplateInstance,
 )
 from antares_gems_converter.input_converter.src.scenario_builder import (
-    apply_sb_groups,
     copy_scenario_builder_file,
     get_legacy_sb,
     read_year_ts,
@@ -177,121 +176,91 @@ class AntaresStudyConverter:
     def _convert_instance(
         self,
         instance: TemplateInstance,
+        year_ts: dict[int, int],
+        id_suffix: str,
         mp: ModelConversionPreprocessor,
         fragment: SystemFragment,
     ) -> None:
-        id_suffix = self._component_id_suffix(instance)
-        skipped_components = self._add_components(instance, mp, id_suffix, fragment)
-        if self.mode == ConversionMode.HYBRID:
-            self._add_area_connections(
-                instance, skipped_components, id_suffix, fragment
-            )
-            fragment.legacy_objects.extend(
-                item.object_properties for item in instance.legacy_objects_to_delete
-            )
-        else:
-            self._add_port_connections(
-                instance, skipped_components, id_suffix, fragment
-            )
+        """Add to `fragment` what `instance` converts its study object to.
 
-    def _add_components(
-        self,
-        instance: TemplateInstance,
-        mp: ModelConversionPreprocessor,
-        id_suffix: str,
-        fragment: SystemFragment,
-    ) -> list[str]:
-        """Add the instance's components to `fragment` and return the ids of
-        those skipped because their time series are empty or all zeros."""
-        skipped_components: list[str] = []
+        Components get their scenario group only when the legacy SB has
+        entries for the object (`year_ts`: {year: ts index}). Components of
+        a matrix type whose time series are empty or all zeros are skipped,
+        with their connections.
+        """
+        skipped_components: set[str] = set()
         for comp in instance.components:
-            if instance.name in MATRIX_TYPES:
-                if not all(
-                    mp.check_timeseries_validity(param.value)
-                    for param in comp.parameters
-                ):
-                    skipped_components.append(comp.id)
-                    continue
-            parameters = [
-                ComponentParameterSchema(
-                    id=param.id,
-                    time_dependent=bool(param.time_dependent),
-                    scenario_dependent=bool(param.scenario_dependent),
-                    value=mp.convert_param_value(
-                        param.id,
-                        param.value,
-                        comp.id,
-                    ),
-                )
-                for param in comp.parameters
-            ]
-            properties = (
-                [
-                    ComponentPropertySchema(
-                        id=prop.id,
-                        value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
-                    )
-                    for prop in comp.properties
-                ]
-                if comp.properties
-                else None
-            )
+            scenario_group = None
+            if comp.scenario_group is not None and year_ts:
+                # " / " in group names comes from link IDs (e.g. "at / fr")
+                scenario_group = comp.scenario_group.replace(" / ", "_")
+                fragment.group_data[scenario_group] = year_ts
+            if instance.name in MATRIX_TYPES and not all(
+                mp.check_timeseries_validity(param.value) for param in comp.parameters
+            ):
+                skipped_components.add(comp.id)
+                continue
             fragment.components.append(
                 ComponentSchema(
                     id=self._output_component_id(comp.id, id_suffix),
                     model=instance.model,
-                    scenario_group=comp.scenario_group,
-                    parameters=parameters,
-                    properties=properties,
-                )
-            )
-        return skipped_components
-
-    def _add_area_connections(
-        self,
-        instance: TemplateInstance,
-        skipped_components: list[str],
-        id_suffix: str,
-        fragment: SystemFragment,
-    ) -> None:
-        for area_connection in instance.area_connections:
-            if area_connection.component in skipped_components:
-                continue
-            fragment.area_connections.append(
-                AreaConnectionsSchema(
-                    component=self._output_component_id(
-                        area_connection.component, id_suffix
-                    ),
-                    port=area_connection.port,
-                    area=self._output_component_id(area_connection.area, ""),
+                    scenario_group=scenario_group,
+                    parameters=[
+                        ComponentParameterSchema(
+                            id=param.id,
+                            time_dependent=param.time_dependent,
+                            scenario_dependent=param.scenario_dependent,
+                            value=mp.convert_param_value(
+                                param.id, param.value, comp.id
+                            ),
+                        )
+                        for param in comp.parameters
+                    ],
+                    properties=[
+                        ComponentPropertySchema(
+                            id=prop.id,
+                            value=str(
+                                mp.convert_param_value(prop.id, prop.value, comp.id)
+                            ),
+                        )
+                        for prop in comp.properties
+                    ]
+                    or None,
                 )
             )
 
-    def _add_port_connections(
-        self,
-        instance: TemplateInstance,
-        skipped_components: list[str],
-        id_suffix: str,
-        fragment: SystemFragment,
-    ) -> None:
-        for connection in instance.connections:
-            if (
-                connection.component1 in skipped_components
-                or connection.component2 in skipped_components
-            ):
-                continue
-            fragment.connections.append(
-                PortConnectionsSchema(
-                    component1=self._output_component_id(
-                        connection.component1, id_suffix
-                    ),
-                    port1=connection.port1,
-                    component2=self._output_component_id(
-                        connection.component2, id_suffix
-                    ),
-                    port2=connection.port2,
+        if self.mode == ConversionMode.HYBRID:
+            for area_connection in instance.area_connections:
+                if area_connection.component in skipped_components:
+                    continue
+                fragment.area_connections.append(
+                    AreaConnectionsSchema(
+                        component=self._output_component_id(
+                            area_connection.component, id_suffix
+                        ),
+                        port=area_connection.port,
+                        area=area_connection.area,
+                    )
                 )
+            fragment.legacy_objects.extend(
+                item.object_properties for item in instance.legacy_objects_to_delete
             )
+        else:
+            for connection in instance.connections:
+                if skipped_components & {connection.component1, connection.component2}:
+                    continue
+                fragment.connections.append(
+                    PortConnectionsSchema(
+                        component1=self._output_component_id(
+                            connection.component1, id_suffix
+                        ),
+                        port1=connection.port1,
+                        component2=self._output_component_id(
+                            connection.component2, id_suffix
+                        ),
+                        port2=connection.port2,
+                    )
+                )
 
     def _component_id_suffix(self, conversion_template: TemplateBody) -> str:
         # In hybrid mode, a blanked (not deleted) legacy object stays in the study
@@ -324,6 +293,7 @@ class AntaresStudyConverter:
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
         )
+        id_suffix = self._component_id_suffix(conversion_template)
         try:
             for study_object in study_objects(
                 conversion_template,
@@ -336,9 +306,9 @@ class AntaresStudyConverter:
                 year_ts = read_year_ts(
                     legacy_sb, conversion_template.name, study_object
                 )
-                # Always called: clears scenario_group to None when year_ts is empty
-                instance = apply_sb_groups(instance, year_ts, fragment.group_data)
-                self._convert_instance(instance, model_preprocessor, fragment)
+                self._convert_instance(
+                    instance, year_ts, id_suffix, model_preprocessor, fragment
+                )
         except (KeyError, FileNotFoundError) as e:
             # Not raised: a template is applied to every area, so the battery
             # template fails on any area without the battery artefact (e.g. a

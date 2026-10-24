@@ -121,12 +121,10 @@ def test_unknown_link_attribute():
 def test_study_object_substitutions():
     thermal = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
     assert thermal.substitutions() == {"${area}": "fr", "${thermal}": "gaz"}
-    assert thermal.areas == ("fr",)
     area = StudyObject(ObjectKind.AREA, area="fr")
     assert area.substitutions() == {"${area}": "fr"}
     link = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
     assert link.substitutions()["${link}"] == "at / fr"
-    assert link.areas == ("at", "fr")
 
 
 def test_read_year_ts_by_kind(fr_wind: Study):

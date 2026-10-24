@@ -10,10 +10,11 @@
 #
 # This file is part of the Antares project.
 
+import json
 import re
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Optional, TextIO, Union
+from typing import Mapping, Optional, TextIO, Union
 
 import pandas as pd
 from gems_craft.model.parsing import LibrarySchema, parse_yaml_library
@@ -35,32 +36,7 @@ CLUSTER_KINDS = (ObjectKind.THERMAL, ObjectKind.RENEWABLE, ObjectKind.ST_STORAGE
 # Attributes of a link that templates can reference as ${link}.<attribute>
 LINK_ATTRIBUTES = ("area_from_id", "area_to_id")
 LINK_ATTRIBUTE_PATTERN = re.compile(r"\$\{link\}\.(\w*)")
-
-
-def _substitute(value: Any, substitutions: Mapping[str, str]) -> Any:
-    """Replace each placeholder of `substitutions`, in order, in the strings
-    of a dumped model (values only, not dict keys)."""
-    if isinstance(value, str):
-        for placeholder, replacement in substitutions.items():
-            value = value.replace(placeholder, replacement)
-        return value
-    if isinstance(value, dict):
-        return {key: _substitute(item, substitutions) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_substitute(item, substitutions) for item in value]
-    return value
-
-
-def _strings(value: Any) -> Iterator[str]:
-    """Yield the strings in a dumped model (values only, not dict keys)."""
-    if isinstance(value, str):
-        yield value
-    elif isinstance(value, dict):
-        for item in value.values():
-            yield from _strings(item)
-    elif isinstance(value, list):
-        for item in value:
-            yield from _strings(item)
+PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]*\}")
 
 
 def _to_kebab(snake: str) -> str:
@@ -84,30 +60,27 @@ class Operation(ModifiedBaseModel):
         initial_value: Union[pd.DataFrame, pd.Series, float],
         preprocessed_values: Optional[Union[dict[str, float], float]] = None,
     ) -> Union[float, pd.Series, pd.DataFrame]:
-        def resolve(value: Union[str, float]) -> Union[float, pd.Series]:
-            if isinstance(value, str):
-                if (
-                    not isinstance(preprocessed_values, dict)
-                    or value not in preprocessed_values
-                ):
-                    raise ValueError(
-                        f"Missing value for key '{value}' in preprocessed_values"
-                    )
-                return preprocessed_values[value]
-            return value
-
         if self.type == "max":
             return float(max(initial_value))  # type: ignore
 
+        operand = self.multiply_by if self.multiply_by is not None else self.divide_by
+        if operand is None:
+            raise ValueError(
+                "Operation must have at least one of 'multiply_by', 'divide_by', or 'type'"
+            )
+        if isinstance(operand, str):
+            # The id of another parameter, whose value is in preprocessed_values
+            if (
+                not isinstance(preprocessed_values, dict)
+                or operand not in preprocessed_values
+            ):
+                raise ValueError(
+                    f"Missing value for key '{operand}' in preprocessed_values"
+                )
+            operand = preprocessed_values[operand]
         if self.multiply_by is not None:
-            return initial_value * resolve(self.multiply_by)
-
-        if self.divide_by is not None:
-            return initial_value / resolve(self.divide_by)
-
-        raise ValueError(
-            "Operation must have at least one of 'multiply_by', 'divide_by', or 'type'"
-        )
+            return initial_value * operand
+        return initial_value / operand
 
 
 class ObjectProperties(ModifiedBaseModel):
@@ -243,13 +216,12 @@ class ConversionTemplate(TemplateBody):
                 f"{[str(kind) for kind in CLUSTER_KINDS]} on an 'area' "
                 f"parameter, got '{parameter.cluster_type}'"
             )
-        for value in _strings(self.model_dump()):
-            for match in LINK_ATTRIBUTE_PATTERN.finditer(value):
-                if match.group(1) not in LINK_ATTRIBUTES:
-                    raise ValueError(
-                        f"Template '{self.name}': unknown link attribute in "
-                        f"'{value}', expected one of {list(LINK_ATTRIBUTES)}"
-                    )
+        for match in LINK_ATTRIBUTE_PATTERN.finditer(self.model_dump_json()):
+            if match.group(1) not in LINK_ATTRIBUTES:
+                raise ValueError(
+                    f"Template '{self.name}': unknown link attribute "
+                    f"'{match.group()}', expected one of {list(LINK_ATTRIBUTES)}"
+                )
         return self
 
     @property
@@ -265,15 +237,15 @@ class ConversionTemplate(TemplateBody):
     def instantiate(self, substitutions: Mapping[str, str]) -> TemplateInstance:
         """Return the template for one study object: each placeholder of
         `substitutions` replaced by its value, in order, in every string."""
-        body = _substitute(
-            self.model_dump(include=set(TemplateBody.model_fields)), substitutions
-        )
-        for value in _strings(body):
-            if "${" in value:
-                raise ValueError(
-                    f"Template '{self.name}': unresolved placeholder in '{value}'"
-                )
-        return TemplateInstance.model_validate(body)
+        # Replaced in the JSON text of the template, the values escaped as JSON
+        text = self.model_dump_json(include=set(TemplateBody.model_fields))
+        for placeholder, value in substitutions.items():
+            text = text.replace(placeholder, json.dumps(value)[1:-1])
+        if leftover := PLACEHOLDER_PATTERN.search(text):
+            raise ValueError(
+                f"Template '{self.name}': unresolved placeholder '{leftover.group()}'"
+            )
+        return TemplateInstance.model_validate_json(text)
 
     @property
     def excluded_objects(self) -> list[ObjectProperties]:

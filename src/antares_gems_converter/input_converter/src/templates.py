@@ -44,15 +44,6 @@ class StudyObject:
     area_from: Optional[str] = None
     area_to: Optional[str] = None
 
-    @property
-    def areas(self) -> tuple[str, ...]:
-        """The areas of the object: both ends of a link, else its area."""
-        return tuple(
-            area
-            for area in (self.area, self.area_from, self.area_to)
-            if area is not None
-        )
-
     def substitutions(self) -> dict[str, str]:
         """{placeholder: value} to instantiate a template for this object,
         in the order they must be applied."""
@@ -90,31 +81,30 @@ def load_conversion_templates(models: list[str]) -> dict[str, ConversionTemplate
     return {model: load_conversion_template(model) for model in models}
 
 
-def _resolves_to(pattern: Optional[str], value: Optional[str], area: str) -> bool:
-    return pattern is not None and pattern.replace("${area}", area) == value
-
-
-def is_excluded(
-    study_object: StudyObject, exclusions: Sequence[ObjectProperties]
-) -> bool:
-    """Whether `study_object` matches one of `exclusions`.
+def is_excluded(obj: StudyObject, exclusions: Sequence[ObjectProperties]) -> bool:
+    """Whether the study object `obj` matches one of `exclusions`.
 
     An excluded area also excludes its clusters and the links it is an end
     of. In a cluster exclusion, ${area} stands for the area of the cluster.
     """
     for excluded in exclusions:
         if excluded.type == ObjectKind.AREA:
-            if excluded.area in study_object.areas:
-                return True
+            matches = excluded.area is not None and excluded.area in (
+                obj.area,
+                obj.area_from,
+                obj.area_to,
+            )
         elif excluded.type == ObjectKind.LINK:
-            if excluded.link is not None and excluded.link == study_object.link:
-                return True
-        elif excluded.type == study_object.kind and study_object.area is not None:
-            area = study_object.area
-            if _resolves_to(excluded.area, area, area) and _resolves_to(
-                excluded.cluster, study_object.cluster, area
-            ):
-                return True
+            matches = excluded.link is not None and excluded.link == obj.link
+        else:
+            area = obj.area or ""
+            matches = (
+                excluded.type == obj.kind
+                and (excluded.area or "").replace("${area}", area) == obj.area
+                and (excluded.cluster or "").replace("${area}", area) == obj.cluster
+            )
+        if matches:
+            return True
     return False
 
 
