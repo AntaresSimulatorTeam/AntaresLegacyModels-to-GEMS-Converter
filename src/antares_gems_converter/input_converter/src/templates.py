@@ -13,10 +13,9 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Mapping, Optional
+from typing import Iterator, Mapping, Optional, Sequence
 
 from antares.craft.model.area import Area
-from antares.craft.model.link import Link
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import (
@@ -26,7 +25,7 @@ from antares_gems_converter.input_converter.src.config import (
 from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectKind,
-    VirtualObjectsRepository,
+    ObjectProperties,
     parse_conversion_template,
 )
 
@@ -82,57 +81,69 @@ def load_conversion_templates(models: list[str]) -> dict[str, ConversionTemplate
     return {model: load_conversion_template(model) for model in models}
 
 
-def build_virtual_objects_repo(
-    model_conversion_templates: dict[str, ConversionTemplate],
-) -> VirtualObjectsRepository:
-    virtual_objects = VirtualObjectsRepository()
-    for conversion_template in model_conversion_templates.values():
-        virtual_objects.add(conversion_template.get_excluded_objects_ids())
-    return virtual_objects
+def _resolves_to(pattern: Optional[str], value: Optional[str], area: str) -> bool:
+    return pattern is not None and pattern.replace("${area}", area) == value
 
 
-def is_virtual_link(link: Link, virtual_objects: VirtualObjectsRepository) -> bool:
-    return (
-        link.id in virtual_objects.links
-        or link.area_from_id in virtual_objects.areas
-        or link.area_to_id in virtual_objects.areas
-    )
+def is_excluded(
+    study_object: StudyObject, exclusions: Sequence[ObjectProperties]
+) -> bool:
+    """Whether `study_object` matches one of `exclusions`.
+
+    An excluded area also excludes its clusters and the links it is an end
+    of. In a cluster exclusion, ${area} stands for the area of the cluster.
+    """
+    for excluded in exclusions:
+        if excluded.type == ObjectKind.AREA:
+            if excluded.area in study_object.areas:
+                return True
+        elif excluded.type == ObjectKind.LINK:
+            if excluded.link is not None and excluded.link == study_object.link:
+                return True
+        elif excluded.type == study_object.kind and study_object.area is not None:
+            area = study_object.area
+            if _resolves_to(excluded.area, area, area) and _resolves_to(
+                excluded.cluster, study_object.cluster, area
+            ):
+                return True
+    return False
 
 
 def study_objects(
     conversion_template: ConversionTemplate,
     study: Study,
     areas: Mapping[str, Area],
-    virtual_objects: VirtualObjectsRepository,
+    exclusions: Sequence[ObjectProperties],
     logger: logging.Logger,
 ) -> Iterator[StudyObject]:
     """Yield, in study order, the links, areas or clusters that
-    `conversion_template` is instantiated for."""
+    `conversion_template` is instantiated for, except the excluded ones."""
     kind = conversion_template.for_each
     if kind == ObjectKind.LINK:
         for link in study.get_links().values():
-            if is_virtual_link(link, virtual_objects):
-                continue
-            yield StudyObject(
+            link_object = StudyObject(
                 kind,
                 link=link.id,
                 area_from=link.area_from_id,
                 area_to=link.area_to_id,
             )
+            if not is_excluded(link_object, exclusions):
+                yield link_object
         return
 
     for area in areas.values():
+        area_object = StudyObject(ObjectKind.AREA, area=area.id)
         # Skipped before listing its clusters, so no warning is logged for them
-        if area.id in virtual_objects.areas:
+        if is_excluded(area_object, exclusions):
             continue
         if kind == ObjectKind.AREA:
-            yield StudyObject(kind, area=area.id)
+            yield area_object
             continue
 
-        virtual_clusters = virtual_objects.resolve_template("${area}", area.id).thermals
         clusters = getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[kind])()
         for cluster_id, cluster in clusters.items():
-            if cluster_id in virtual_clusters:
+            cluster_object = StudyObject(kind, area=area.id, cluster=cluster_id)
+            if is_excluded(cluster_object, exclusions):
                 continue
             if kind == ObjectKind.RENEWABLE and not cluster.properties.enabled:
                 logger.warning(
@@ -140,4 +151,4 @@ def study_objects(
                     f"'{area.id}' is disabled; skipping conversion."
                 )
                 continue
-            yield StudyObject(kind, area=area.id, cluster=cluster_id)
+            yield cluster_object
