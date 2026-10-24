@@ -40,6 +40,8 @@ from antares_gems_converter.input_converter.src.optim_config import (
 from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectProperties,
+    TemplateBody,
+    TemplateInstance,
 )
 from antares_gems_converter.input_converter.src.scenario_builder import (
     apply_sb_groups,
@@ -169,40 +171,38 @@ class AntaresStudyConverter:
         self.areas = self.study.get_areas()
         self.legacy_objects: list[ObjectProperties] = []
 
-    def _convert_resolved_template(
+    def _convert_instance(
         self,
-        resolved_conversion_template: ConversionTemplate,
+        instance: TemplateInstance,
         mp: ModelConversionPreprocessor,
         fragment: SystemFragment,
     ) -> None:
-        id_suffix = self._component_id_suffix(resolved_conversion_template)
-        skipped_components = self._add_components(
-            resolved_conversion_template, mp, id_suffix, fragment
-        )
+        id_suffix = self._component_id_suffix(instance)
+        skipped_components = self._add_components(instance, mp, id_suffix, fragment)
         if self.mode == ConversionMode.HYBRID:
             self._add_area_connections(
-                resolved_conversion_template, skipped_components, id_suffix, fragment
+                instance, skipped_components, id_suffix, fragment
             )
             # TODO : Simplify usage, use directly legacy_objectis_to_delete
-            for item in resolved_conversion_template.legacy_objects_to_delete:
+            for item in instance.legacy_objects_to_delete:
                 self.legacy_objects.append(item.object_properties)
         else:
             self._add_port_connections(
-                resolved_conversion_template, skipped_components, id_suffix, fragment
+                instance, skipped_components, id_suffix, fragment
             )
 
     def _add_components(
         self,
-        resolved_conversion_template: ConversionTemplate,
+        instance: TemplateInstance,
         mp: ModelConversionPreprocessor,
         id_suffix: str,
         fragment: SystemFragment,
     ) -> list[str]:
-        """Add the template's components to `fragment` and return the ids of
+        """Add the instance's components to `fragment` and return the ids of
         those skipped because their time series are empty or all zeros."""
         skipped_components: list[str] = []
-        for comp in resolved_conversion_template.components:
-            if resolved_conversion_template.name in MATRIX_TYPES:
+        for comp in instance.components:
+            if instance.name in MATRIX_TYPES:
                 if not all(
                     mp.check_timeseries_validity(param.value)
                     for param in comp.parameters
@@ -236,7 +236,7 @@ class AntaresStudyConverter:
             fragment.components.append(
                 ComponentSchema(
                     id=self._output_component_id(comp.id, id_suffix),
-                    model=resolved_conversion_template.model,
+                    model=instance.model,
                     scenario_group=comp.scenario_group,
                     parameters=parameters,
                     properties=properties,
@@ -246,30 +246,32 @@ class AntaresStudyConverter:
 
     def _add_area_connections(
         self,
-        resolved_conversion_template: ConversionTemplate,
+        instance: TemplateInstance,
         skipped_components: list[str],
         id_suffix: str,
         fragment: SystemFragment,
     ) -> None:
-        for area_connection in resolved_conversion_template.area_connections:
+        for area_connection in instance.area_connections:
             if area_connection.component in skipped_components:
                 continue
             fragment.area_connections.append(
                 AreaConnectionsSchema(
-                    component=self._resolve_ref(area_connection.component, id_suffix),
+                    component=self._output_component_id(
+                        area_connection.component, id_suffix
+                    ),
                     port=area_connection.port,
-                    area=self._resolve_ref(area_connection.area),
+                    area=self._output_component_id(area_connection.area, ""),
                 )
             )
 
     def _add_port_connections(
         self,
-        resolved_conversion_template: ConversionTemplate,
+        instance: TemplateInstance,
         skipped_components: list[str],
         id_suffix: str,
         fragment: SystemFragment,
     ) -> None:
-        for connection in resolved_conversion_template.connections:
+        for connection in instance.connections:
             if (
                 connection.component1 in skipped_components
                 or connection.component2 in skipped_components
@@ -277,24 +279,18 @@ class AntaresStudyConverter:
                 continue
             fragment.connections.append(
                 PortConnectionsSchema(
-                    component1=self._resolve_ref(connection.component1, id_suffix),
+                    component1=self._output_component_id(
+                        connection.component1, id_suffix
+                    ),
                     port1=connection.port1,
-                    component2=self._resolve_ref(connection.component2, id_suffix),
+                    component2=self._output_component_id(
+                        connection.component2, id_suffix
+                    ),
                     port2=connection.port2,
                 )
             )
 
-    def _resolve_ref(self, ref: str, suffix: str = "") -> str:
-        # A reference "<link id>.<attribute>[.<rest>]" is replaced by that
-        # attribute of the link, directly followed by the rest: with
-        # the link "at / fr", "at / fr.area_from_id._node" becomes "at_node".
-        # Link ids must not contain "."
-        if "." in ref:
-            link_id, attribute, *rest = ref.split(".")
-            ref = getattr(self.study.get_links()[link_id], attribute) + ".".join(rest)
-        return self._output_component_id(ref, suffix)
-
-    def _component_id_suffix(self, conversion_template: ConversionTemplate) -> str:
+    def _component_id_suffix(self, conversion_template: TemplateBody) -> str:
         # In hybrid mode, a blanked (not deleted) legacy object stays in the study
         # under the id that the GEMS components replacing it would have.
         if self.mode == ConversionMode.HYBRID and any(
@@ -338,7 +334,7 @@ class AntaresStudyConverter:
                 )
                 # Always called: clears scenario_group to None when year_ts is empty
                 instance = apply_sb_groups(instance, year_ts, fragment.group_data)
-                self._convert_resolved_template(instance, model_preprocessor, fragment)
+                self._convert_instance(instance, model_preprocessor, fragment)
         except (KeyError, FileNotFoundError) as e:
             # Not raised: a template is applied to every area, so the battery
             # template fails on any area without the battery artefact (e.g. a
