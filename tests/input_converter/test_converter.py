@@ -1635,8 +1635,8 @@ class TestConverter:
 
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
-        # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
-        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
+        # Bad design, either the test should call a higher level function, or exclusions should be deduced from single model
+        result = converter.convert_template(bc_data, bc_data.excluded_objects)
         binding_components = result.components
         binding_connections = result.connections
         area_connections = result.area_connections
@@ -1675,7 +1675,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
 
-        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
+        result = converter.convert_template(bc_data, bc_data.excluded_objects)
         area_connections = result.area_connections
 
         output_path = converter.output_folder
