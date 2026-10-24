@@ -29,7 +29,7 @@ src/antares_gems_converter/
 
       templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, `is_excluded()` skips the excluded ones
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
-      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`), sets the components' scenario groups, clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
+      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
       optim_config.py - writes the default optim-config.yml unless one exists
 
@@ -117,7 +117,7 @@ dependencies.json                # Antares Simulator version for CI
 | instance | `TemplateInstance` | the template instantiated for one study object, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
-`convert_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), applies its scenario groups and converts the instance.
+`convert_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`: components with their scenario groups, then connections, or area connections and legacy objects to delete in hybrid mode).
 
 - **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys); a placeholder left raises a `ValueError`.
