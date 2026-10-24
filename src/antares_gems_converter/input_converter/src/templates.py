@@ -9,7 +9,8 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""Load the conversion templates and resolve them for each study object."""
+"""Load the conversion templates and list the study objects they are
+instantiated for."""
 import logging
 from dataclasses import dataclass
 from pathlib import Path
