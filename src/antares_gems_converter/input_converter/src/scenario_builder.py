@@ -23,7 +23,10 @@ from antares_gems_converter.input_converter.src.config import (
     LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
     MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
 )
-from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
+from antares_gems_converter.input_converter.src.parsing import (
+    ConversionTemplate,
+    ObjectKind,
+)
 from antares_gems_converter.input_converter.src.templates import StudyObject
 
 MODELER_SCENARIO_BUILDER_FILE = "modeler-scenariobuilder.dat"
@@ -41,23 +44,22 @@ def get_legacy_sb(study: Study, logger: logging.Logger) -> ScenarioBuilder | Non
 
 def read_year_ts(
     legacy_sb: ScenarioBuilder | None,
-    conversion_template: ConversionTemplate,
+    template_name: str,
     study_object: StudyObject,
 ) -> dict[int, int]:
     """Return {year_index: ts_index} for all years that have an explicit SB
-    entry (non-None) for `study_object`, the object `conversion_template` was
-    resolved for."""
+    entry (non-None) for `study_object`, an object that the template named
+    `template_name` is instantiated for."""
     if legacy_sb is None:
         return {}
     # Links, cluster types (thermal/renewable) and area matrix types
     # (wind/solar/load/hydro/ror) have their own SB attribute
-    cluster_type = conversion_template.template_parameters[0].cluster_type
-    if study_object.link is not None:
-        attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(conversion_template.name)
-    elif cluster_type:
-        attr = CLUSTER_TYPE_TO_SB_ATTR.get(cluster_type)
+    if study_object.kind == ObjectKind.LINK:
+        attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(template_name)
+    elif study_object.kind == ObjectKind.AREA:
+        attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(template_name)
     else:
-        attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(conversion_template.name)
+        attr = CLUSTER_TYPE_TO_SB_ATTR.get(study_object.kind)
     if attr is None:
         return {}
 

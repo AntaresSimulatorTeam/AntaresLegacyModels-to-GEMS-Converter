@@ -20,12 +20,12 @@ from antares.craft.model.link import Link
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import (
-    LINK_TYPES,
     MODEL_NAME_TO_FILE_NAME,
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
 from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
+    ObjectKind,
     VirtualObjectsRepository,
     parse_conversion_template,
 )
@@ -35,11 +35,35 @@ MODEL_TEMPLATE_FOLDER = Path(__file__).parents[1] / "data" / "model_configuratio
 
 @dataclass(frozen=True)
 class StudyObject:
-    """The link, area or cluster that a template was resolved for."""
+    """A link, area or cluster of the study that a template is instantiated for."""
 
-    link: Optional[str] = None
+    kind: ObjectKind
     area: Optional[str] = None
     cluster: Optional[str] = None
+    link: Optional[str] = None
+    area_from: Optional[str] = None
+    area_to: Optional[str] = None
+
+    @property
+    def areas(self) -> tuple[str, ...]:
+        """The areas of the object: both ends of a link, else its area."""
+        return tuple(
+            area
+            for area in (self.area, self.area_from, self.area_to)
+            if area is not None
+        )
+
+    def substitutions(self) -> dict[str, str]:
+        """{placeholder: value} to instantiate a template for this object,
+        in the order they must be applied."""
+        if self.link is not None:
+            return {"${link}": self.link}
+        assert self.area is not None
+        substitutions = {"${area}": self.area}
+        if self.cluster is not None:
+            # The cluster placeholder is named after the cluster type
+            substitutions[f"${{{self.kind}}}"] = self.cluster
+        return substitutions
 
 
 def load_conversion_template(model: str) -> ConversionTemplate:
@@ -75,50 +99,45 @@ def is_virtual_link(link: Link, virtual_objects: VirtualObjectsRepository) -> bo
     )
 
 
-def resolved_templates(
+def study_objects(
     conversion_template: ConversionTemplate,
     study: Study,
     areas: Mapping[str, Area],
     virtual_objects: VirtualObjectsRepository,
     logger: logging.Logger,
-) -> Iterator[tuple[ConversionTemplate, StudyObject]]:
-    """Yield the template resolved for each link, area or cluster it applies
-    to, with that object."""
-    model_name = conversion_template.name
-    template_parameter = conversion_template.template_parameters[0]
-    model_area_pattern = f"${{{template_parameter.name}}}"
-
-    if model_name in LINK_TYPES:
+) -> Iterator[StudyObject]:
+    """Yield, in study order, the links, areas or clusters that
+    `conversion_template` is instantiated for."""
+    kind = conversion_template.for_each
+    if kind == ObjectKind.LINK:
         for link in study.get_links().values():
             if is_virtual_link(link, virtual_objects):
                 continue
-            yield conversion_template.resolve_template(
-                model_area_pattern, link.id
-            ), StudyObject(link=link.id)
+            yield StudyObject(
+                kind,
+                link=link.id,
+                area_from=link.area_from_id,
+                area_to=link.area_to_id,
+            )
         return
 
-    cluster_type = template_parameter.cluster_type
     for area in areas.values():
+        # Skipped before listing its clusters, so no warning is logged for them
         if area.id in virtual_objects.areas:
             continue
-        area_resolved_template = conversion_template.resolve_template(
-            model_area_pattern, area.id
-        )
-        if not cluster_type:
-            yield area_resolved_template, StudyObject(area=area.id)
+        if kind == ObjectKind.AREA:
+            yield StudyObject(kind, area=area.id)
             continue
 
         virtual_clusters = virtual_objects.resolve_template("${area}", area.id).thermals
-        clusters = getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[cluster_type])()
+        clusters = getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[kind])()
         for cluster_id, cluster in clusters.items():
             if cluster_id in virtual_clusters:
                 continue
-            if cluster_type == "renewable" and not cluster.properties.enabled:
+            if kind == ObjectKind.RENEWABLE and not cluster.properties.enabled:
                 logger.warning(
                     f"Renewable cluster '{cluster_id}' in area "
                     f"'{area.id}' is disabled; skipping conversion."
                 )
                 continue
-            yield area_resolved_template.resolve_template(
-                f"${{{cluster_type}}}", cluster_id
-            ), StudyObject(area=area.id, cluster=cluster_id)
+            yield StudyObject(kind, area=area.id, cluster=cluster_id)

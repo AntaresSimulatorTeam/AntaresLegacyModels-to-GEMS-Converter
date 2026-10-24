@@ -52,7 +52,7 @@ from antares_gems_converter.input_converter.src.scenario_builder import (
 from antares_gems_converter.input_converter.src.templates import (
     build_virtual_objects_repo,
     load_conversion_templates,
-    resolved_templates,
+    study_objects,
 )
 from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
@@ -329,21 +329,20 @@ class AntaresStudyConverter:
             self.study, self.mode, self.output_folder
         )
         try:
-            for resolved_template, study_object in resolved_templates(
+            for study_object in study_objects(
                 conversion_template,
                 self.study,
                 self.areas,
                 virtual_objects,
                 self.logger,
             ):
-                year_ts = read_year_ts(legacy_sb, conversion_template, study_object)
+                instance = conversion_template.instantiate(study_object.substitutions())
+                year_ts = read_year_ts(
+                    legacy_sb, conversion_template.name, study_object
+                )
                 # Always called: clears scenario_group to None when year_ts is empty
-                resolved_template = apply_sb_groups(
-                    resolved_template, year_ts, fragment.group_data
-                )
-                self._convert_resolved_template(
-                    resolved_template, model_preprocessor, fragment
-                )
+                instance = apply_sb_groups(instance, year_ts, fragment.group_data)
+                self._convert_resolved_template(instance, model_preprocessor, fragment)
         except (KeyError, FileNotFoundError) as e:
             # Not raised: a template is applied to every area, so the battery
             # template fails on any area without the battery artefact (e.g. a

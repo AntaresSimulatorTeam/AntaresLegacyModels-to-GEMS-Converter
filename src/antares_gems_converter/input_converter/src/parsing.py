@@ -10,14 +10,44 @@
 #
 # This file is part of the Antares project.
 
+import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
-from typing import Optional, TextIO, Union
+from typing import Any, Iterator, Mapping, Optional, TextIO, Union
 
 import pandas as pd
 from gems_craft.model.parsing import LibrarySchema, parse_yaml_library
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from yaml import safe_load
+
+
+class ObjectKind(StrEnum):
+    """Type of the study objects that a template is instantiated for."""
+
+    AREA = "area"
+    LINK = "link"
+    THERMAL = "thermal"
+    RENEWABLE = "renewable"
+    ST_STORAGE = "st_storage"
+
+
+CLUSTER_KINDS = (ObjectKind.THERMAL, ObjectKind.RENEWABLE, ObjectKind.ST_STORAGE)
+# Attributes of a link that templates can reference as ${link}.<attribute>
+LINK_ATTRIBUTES = ("area_from_id", "area_to_id")
+LINK_ATTRIBUTE_PATTERN = re.compile(r"\$\{link\}\.(\w*)")
+
+
+def _strings(value: Any) -> Iterator[str]:
+    """Yield the strings in a dumped model (values only, not dict keys)."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings(item)
 
 
 @dataclass
@@ -323,6 +353,57 @@ class ConversionTemplate(ModifiedBaseModel):
     legacy_objects_to_delete: list[ReferencedLegacyObjects] = Field(
         default_factory=list
     )
+
+    @model_validator(mode="after")
+    def _check_template_parameters(self) -> "ConversionTemplate":
+        # A template is instantiated for each link, area or cluster of a given
+        # type, which its single parameter defines (see `for_each`)
+        if len(self.template_parameters) != 1:
+            raise ValueError(
+                f"Template '{self.name}' must have exactly one template "
+                f"parameter, got {len(self.template_parameters)}"
+            )
+        parameter = self.template_parameters[0]
+        if parameter.name not in (ObjectKind.AREA, ObjectKind.LINK):
+            raise ValueError(
+                f"Template '{self.name}': the template parameter must be named "
+                f"'area' or 'link', got '{parameter.name}'"
+            )
+        if parameter.cluster_type is not None and (
+            parameter.name != ObjectKind.AREA
+            or parameter.cluster_type not in CLUSTER_KINDS
+        ):
+            raise ValueError(
+                f"Template '{self.name}': cluster-type must be one of "
+                f"{[str(kind) for kind in CLUSTER_KINDS]} on an 'area' "
+                f"parameter, got '{parameter.cluster_type}'"
+            )
+        for value in _strings(self.model_dump()):
+            for match in LINK_ATTRIBUTE_PATTERN.finditer(value):
+                if match.group(1) not in LINK_ATTRIBUTES:
+                    raise ValueError(
+                        f"Template '{self.name}': unknown link attribute in "
+                        f"'{value}', expected one of {list(LINK_ATTRIBUTES)}"
+                    )
+        return self
+
+    @property
+    def for_each(self) -> ObjectKind:
+        """The type of the study objects this template is instantiated for."""
+        parameter = self.template_parameters[0]
+        if parameter.name == ObjectKind.LINK:
+            return ObjectKind.LINK
+        if parameter.cluster_type:
+            return ObjectKind(parameter.cluster_type)
+        return ObjectKind.AREA
+
+    def instantiate(self, substitutions: Mapping[str, str]) -> "ConversionTemplate":
+        """Return the template with each placeholder of `substitutions`
+        replaced by its value, in order."""
+        template = self
+        for placeholder, value in substitutions.items():
+            template = template.resolve_template(placeholder, value)
+        return template
 
     def resolve_template(
         self, template_pattern: str, value: str
