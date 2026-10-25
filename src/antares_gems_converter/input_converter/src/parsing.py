@@ -37,6 +37,11 @@ CLUSTER_KINDS = (ObjectKind.THERMAL, ObjectKind.RENEWABLE, ObjectKind.ST_STORAGE
 LINK_ATTRIBUTES = ("area_from_id", "area_to_id")
 LINK_ATTRIBUTE_PATTERN = re.compile(r"\$\{link\}\.(\w*)")
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]*\}")
+# Fields an exclusion must set, by type (area and cluster for a cluster type)
+EXCLUSION_FIELDS: dict[str, tuple[str, ...]] = {
+    ObjectKind.AREA: ("area",),
+    ObjectKind.LINK: ("link",),
+}
 
 
 def _to_kebab(snake: str) -> str:
@@ -63,7 +68,8 @@ class Operation(ModifiedBaseModel):
         if self.type == "max":
             return float(max(initial_value))  # type: ignore
 
-        operand = self.multiply_by if self.multiply_by is not None else self.divide_by
+        multiply = self.multiply_by is not None
+        operand = self.multiply_by if multiply else self.divide_by
         if operand is None:
             raise ValueError(
                 "Operation must have at least one of 'multiply_by', 'divide_by', or 'type'"
@@ -78,9 +84,7 @@ class Operation(ModifiedBaseModel):
                     f"Missing value for key '{operand}' in preprocessed_values"
                 )
             operand = preprocessed_values[operand]
-        if self.multiply_by is not None:
-            return initial_value * operand
-        return initial_value / operand
+        return initial_value * operand if multiply else initial_value / operand
 
 
 class ObjectProperties(ModifiedBaseModel):
@@ -193,7 +197,7 @@ class ConversionTemplate(TemplateBody):
     template_parameters: list[TemplateParameter] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _check_template_parameters(self) -> "ConversionTemplate":
+    def _check_template(self) -> "ConversionTemplate":
         # A template is instantiated for each link, area or cluster of a given
         # type, which its single parameter defines (see `for_each`)
         if len(self.template_parameters) != 1:
@@ -216,13 +220,30 @@ class ConversionTemplate(TemplateBody):
                 f"{[str(kind) for kind in CLUSTER_KINDS]} on an 'area' "
                 f"parameter, got '{parameter.cluster_type}'"
             )
-        for match in LINK_ATTRIBUTE_PATTERN.finditer(self.model_dump_json()):
+        # A typo such as ${link}.area_frm_id would be substituted as ${link}
+        # and leave no placeholder for `instantiate` to report
+        for match in LINK_ATTRIBUTE_PATTERN.finditer(self._body_json()):
             if match.group(1) not in LINK_ATTRIBUTES:
                 raise ValueError(
                     f"Template '{self.name}': unknown link attribute "
                     f"'{match.group()}', expected one of {list(LINK_ATTRIBUTES)}"
                 )
+        # An ill-formed exclusion would silently exclude nothing
+        for excluded in self.excluded_objects:
+            fields = EXCLUSION_FIELDS.get(excluded.type, ("area", "cluster"))
+            if excluded.type not in list(ObjectKind) or None in (
+                getattr(excluded, field) for field in fields
+            ):
+                raise ValueError(
+                    f"Template '{self.name}': invalid exclusion {excluded!r}, its "
+                    f"type must be one of {[str(kind) for kind in ObjectKind]} "
+                    f"and set {list(fields)}"
+                )
         return self
+
+    def _body_json(self) -> str:
+        # json.dumps, unlike model_dump_json, keeps inf and nan constants
+        return json.dumps(self.model_dump(include=set(TemplateBody.model_fields)))
 
     @property
     def for_each(self) -> ObjectKind:
@@ -238,7 +259,7 @@ class ConversionTemplate(TemplateBody):
         """Return the template for one study object: each placeholder of
         `substitutions` replaced by its value, in order, in every string."""
         # Replaced in the JSON text of the template, the values escaped as JSON
-        text = self.model_dump_json(include=set(TemplateBody.model_fields))
+        text = self._body_json()
         for placeholder, value in substitutions.items():
             text = text.replace(placeholder, json.dumps(value)[1:-1])
         if leftover := PLACEHOLDER_PATTERN.search(text):
