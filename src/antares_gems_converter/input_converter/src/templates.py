@@ -24,6 +24,7 @@ from antares_gems_converter.input_converter.src.config import (
     TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD,
 )
 from antares_gems_converter.input_converter.src.parsing import (
+    CLUSTER_KINDS,
     ConversionTemplate,
     ObjectKind,
     ObjectProperties,
@@ -47,19 +48,21 @@ class StudyObject:
     def substitutions(self) -> dict[str, str]:
         """{placeholder: value} to instantiate a template for this object,
         in the order they must be applied."""
-        if self.link is not None:
-            assert self.area_from is not None and self.area_to is not None
+        if self.kind == ObjectKind.LINK:
+            assert self.link and self.area_from and self.area_to
+            # The attributes of parsing.LINK_ATTRIBUTES, a following "." dropped:
+            # "${link}.area_from_id._node" -> "<area from>_node"
             return {
-                # "${link}.area_from_id._node" -> "<area from>_node"
                 "${link}.area_from_id.": self.area_from,
                 "${link}.area_to_id.": self.area_to,
                 "${link}.area_from_id": self.area_from,
                 "${link}.area_to_id": self.area_to,
                 "${link}": self.link,
             }
-        assert self.area is not None
+        assert self.area
         substitutions = {"${area}": self.area}
-        if self.cluster is not None:
+        if self.kind in CLUSTER_KINDS:
+            assert self.cluster
             # The cluster placeholder is named after the cluster type
             substitutions[f"${{{self.kind}}}"] = self.cluster
         return substitutions
@@ -132,7 +135,7 @@ def study_objects(
 
     for area in areas.values():
         area_object = StudyObject(ObjectKind.AREA, area=area.id)
-        # Skipped before listing its clusters, so no warning is logged for them
+        # Its clusters are excluded too (see is_excluded): skip without listing them
         if is_excluded(area_object, exclusions):
             continue
         if kind == ObjectKind.AREA:

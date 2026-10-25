@@ -11,10 +11,12 @@
 # This file is part of the Antares project.
 """Template loop: what a template is instantiated for, and how."""
 import io
+import logging
 import shutil
 from pathlib import Path
 
 import pytest
+from antares.craft.model.renewable import RenewableClusterProperties
 from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
@@ -31,8 +33,9 @@ from antares_gems_converter.input_converter.src.templates import (
     StudyObject,
     is_excluded,
     load_conversion_template,
+    study_objects,
 )
-from tests.input_converter.conftest import exclude_battery_artefacts
+from tests.input_converter.conftest import exclude_battery_artefacts, with_exclude
 
 REPO_ROOT = Path(__file__).parents[2]
 LIB_PATHS = [
@@ -106,6 +109,24 @@ def _parse(template_parameters: str, connections: str = "") -> None:
 def test_invalid_template_parameters(template_parameters: str, error: str):
     with pytest.raises(ValueError, match=error):
         _parse(template_parameters)
+
+
+@pytest.mark.parametrize(
+    "object_properties",
+    [
+        "{type: areas, area: z_batteries}",
+        "{type: link, area: z_batteries}",
+        "{type: thermal, cluster: inj}",
+    ],
+)
+def test_invalid_exclusion(object_properties: str):
+    with pytest.raises(ValueError, match="invalid exclusion"):
+        _parse(
+            "  template-parameters:\n"
+            "    - name: area\n"
+            "      exclude:\n"
+            f"        - {{id: e, object-properties: {object_properties}}}\n"
+        )
 
 
 def test_unknown_link_attribute():
@@ -242,7 +263,7 @@ def test_exclusions_are_local(tmp_path: Path, mode: str, excluding: bool):
     assert {"fr_battery", "fr_thermal_fr_nuclear_epr"} <= ids
     # What battery excludes only applies to battery: unless the thermal and
     # link templates exclude them too, the battery artefacts are converted
-    assert bool(ids & BATTERY_ARTEFACTS) != excluding
+    assert ids & BATTERY_ARTEFACTS == (set() if excluding else BATTERY_ARTEFACTS)
 
 
 def test_excluded_objects_stay_legacy_in_hybrid_mode(tmp_path: Path):
@@ -296,6 +317,53 @@ def test_instantiate_battery_term_ids():
     }
     assert fields["efficiency_injection"] == "fr%z_batteries"
     assert fields["efficiency_withdrawal"] == "fr.fr_batteries_inj"
+
+
+def test_instantiate_keeps_non_finite_constants():
+    template = parse_conversion_template(
+        io.StringIO(
+            "template:\n"
+            "  name: test\n"
+            "  model: lib.model\n"
+            "  template-parameters:\n"
+            "    - name: area\n"
+            "  components:\n"
+            "    - id: ${area}_c\n"
+            "      parameters:\n"
+            "        - {id: max, value: {constant: .inf}}\n"
+        )
+    )
+    instance = template.instantiate(FR.substitutions())
+    assert instance.components[0].parameters[0].value.constant == float("inf")
+
+
+def test_study_objects_skip_excluded_and_disabled(
+    local_study_w_links: Study, caplog: pytest.LogCaptureFixture
+):
+    study = local_study_w_links
+    areas = study.get_areas()
+    areas["fr"].create_renewable_cluster("pv", RenewableClusterProperties())
+    areas["fr"].create_renewable_cluster(
+        "pv_off", RenewableClusterProperties(enabled=False)
+    )
+    areas["it"].create_renewable_cluster(
+        "it_off", RenewableClusterProperties(enabled=False)
+    )
+    exclude_it = [{"id": "it", "object-properties": {"type": "area", "area": "it"}}]
+    logger = logging.getLogger(__name__)
+
+    renewable = with_exclude(load_conversion_template("renewable"), exclude_it)
+    with caplog.at_level(logging.WARNING):
+        objects = list(study_objects(renewable, study, areas, logger))
+    assert objects == [StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="pv")]
+    # A disabled cluster is skipped with a warning, unless its area is excluded
+    assert "'pv_off'" in caplog.text and "'it_off'" not in caplog.text
+
+    # A link is excluded with either of its areas
+    link = with_exclude(load_conversion_template("link"), exclude_it)
+    assert [obj.link for obj in study_objects(link, study, areas, logger)] == [
+        "at / fr"
+    ]
 
 
 def test_instantiate_rejects_unresolved_placeholder():

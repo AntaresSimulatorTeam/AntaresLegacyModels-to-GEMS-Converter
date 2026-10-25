@@ -23,10 +23,7 @@ from antares.craft.model.study import Study, create_study_local
 from antares.craft.model.thermal import ThermalClusterProperties
 from yaml import safe_load
 
-from antares_gems_converter.input_converter.src.parsing import (
-    ConversionTemplate,
-    ReferencedLegacyObjects,
-)
+from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
 
 
 @pytest.fixture
@@ -50,12 +47,15 @@ def local_study(tmp_path) -> Study:
 
 
 # The `exclude` entries a user declares in their templates so that only the
-# battery template converts the battery legacy artefacts: the z_batteries area
-# (with its clusters and the links it is an end of) and the injection clusters
-BATTERY_ARTEFACTS_EXCLUDE = safe_load(
+# battery template converts the battery legacy artefacts: the z_batteries areas
+# (with their clusters and the links they are an end of) and the injection
+# clusters
+BATTERY_AREAS_EXCLUDE = safe_load(
     """
 - id: z_batteries
   object-properties: {type: area, area: z_batteries}
+- id: z_batteries_pcomp
+  object-properties: {type: area, area: z_batteries_pcomp}
 """
 )
 INJECTION_CLUSTERS_EXCLUDE = safe_load(
@@ -66,29 +66,33 @@ INJECTION_CLUSTERS_EXCLUDE = safe_load(
 )
 
 
+def with_exclude(
+    template: ConversionTemplate, entries: list[dict]
+) -> ConversionTemplate:
+    """Return a copy of `template` whose `exclude` also has `entries`."""
+    data = template.model_dump()
+    parameter = data["template_parameters"][0]
+    parameter["exclude"] = (parameter["exclude"] or []) + entries
+    return ConversionTemplate.model_validate(data)
+
+
 def exclude_battery_artefacts(
     templates: dict[str, ConversionTemplate],
 ) -> dict[str, ConversionTemplate]:
-    """Return `templates`, all but battery excluding the battery artefacts."""
-    excluding = {}
-    for model, template in templates.items():
-        entries = []
-        if model != "battery":
-            entries += BATTERY_ARTEFACTS_EXCLUDE
-        if model == "thermal":
-            entries += INJECTION_CLUSTERS_EXCLUDE
-        parameter = template.template_parameters[0]
-        exclude = (parameter.exclude or []) + [
-            ReferencedLegacyObjects.model_validate(entry) for entry in entries
-        ]
-        excluding[model] = template.model_copy(
-            update={
-                "template_parameters": [
-                    parameter.model_copy(update={"exclude": exclude})
-                ]
-            }
+    """Return a copy of `templates` in which every template but battery
+    excludes the battery artefacts."""
+    return {
+        model: (
+            template
+            if model == "battery"
+            else with_exclude(
+                template,
+                BATTERY_AREAS_EXCLUDE
+                + (INJECTION_CLUSTERS_EXCLUDE if model == "thermal" else []),
+            )
         )
-    return excluding
+        for model, template in templates.items()
+    }
 
 
 def create_dataframe_from_constant(

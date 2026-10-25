@@ -61,13 +61,13 @@ def read_year_ts(
         return {}
 
     sb_matrices = getattr(legacy_sb, attr)
-    if study_object.link is not None:
+    if study_object.kind == ObjectKind.LINK:
         # SB link ids are sorted alphabetically
         sb_matrix = sb_matrices.get_link(study_object.link)
-    elif study_object.cluster is not None:
-        sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
-    else:
+    elif study_object.kind == ObjectKind.AREA:
         sb_matrix = sb_matrices.get_area(study_object.area)
+    else:
+        sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
     return {
         year: ts for year, ts in enumerate(sb_matrix.get_scenario()) if ts is not None
     }

@@ -38,6 +38,7 @@ from antares_gems_converter.input_converter.src.optim_config import (
     write_optim_config,
 )
 from antares_gems_converter.input_converter.src.parsing import (
+    ComponentConversionConfig,
     ConversionTemplate,
     ObjectProperties,
     TemplateBody,
@@ -201,31 +202,8 @@ class AntaresStudyConverter:
                 skipped_components.add(comp.id)
                 continue
             fragment.components.append(
-                ComponentSchema(
-                    id=self._output_component_id(comp.id, id_suffix),
-                    model=instance.model,
-                    scenario_group=scenario_group,
-                    parameters=[
-                        ComponentParameterSchema(
-                            id=param.id,
-                            time_dependent=param.time_dependent,
-                            scenario_dependent=param.scenario_dependent,
-                            value=mp.convert_param_value(
-                                param.id, param.value, comp.id
-                            ),
-                        )
-                        for param in comp.parameters
-                    ],
-                    properties=[
-                        ComponentPropertySchema(
-                            id=prop.id,
-                            value=str(
-                                mp.convert_param_value(prop.id, prop.value, comp.id)
-                            ),
-                        )
-                        for prop in comp.properties
-                    ]
-                    or None,
+                self._component_schema(
+                    comp, instance.model, scenario_group, id_suffix, mp
                 )
             )
 
@@ -261,6 +239,39 @@ class AntaresStudyConverter:
                         port2=connection.port2,
                     )
                 )
+
+    def _component_schema(
+        self,
+        comp: ComponentConversionConfig,
+        model: str,
+        scenario_group: Optional[str],
+        id_suffix: str,
+        mp: ModelConversionPreprocessor,
+    ) -> ComponentSchema:
+        """The GEMS component, its parameter and property values read from
+        the study (time series are written to the data series folder)."""
+        return ComponentSchema(
+            id=self._output_component_id(comp.id, id_suffix),
+            model=model,
+            scenario_group=scenario_group,
+            parameters=[
+                ComponentParameterSchema(
+                    id=param.id,
+                    time_dependent=param.time_dependent,
+                    scenario_dependent=param.scenario_dependent,
+                    value=mp.convert_param_value(param.id, param.value, comp.id),
+                )
+                for param in comp.parameters
+            ],
+            properties=[
+                ComponentPropertySchema(
+                    id=prop.id,
+                    value=str(mp.convert_param_value(prop.id, prop.value, comp.id)),
+                )
+                for prop in comp.properties
+            ]
+            or None,
+        )
 
     def _component_id_suffix(self, conversion_template: TemplateBody) -> str:
         # In hybrid mode, a blanked (not deleted) legacy object stays in the study
