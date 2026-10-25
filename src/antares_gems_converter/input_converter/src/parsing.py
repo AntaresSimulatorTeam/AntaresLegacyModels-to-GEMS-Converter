@@ -249,8 +249,8 @@ class ConversionTemplate(TemplateBody):
 
     @property
     def excluded_objects(self) -> list[ObjectProperties]:
-        """The objects no converted template is instantiated for, whichever
-        template declares them (see `templates.is_excluded`)."""
+        """The objects this template is not instantiated for (see
+        `templates.is_excluded`)."""
         return [
             excluded.object_properties
             for parameter in self.template_parameters

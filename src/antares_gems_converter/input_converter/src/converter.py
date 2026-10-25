@@ -13,7 +13,7 @@ import logging
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 from antares.craft.model.scenario_builder import ScenarioBuilder
 from antares.craft.model.study import Study, read_study_local
@@ -280,14 +280,12 @@ class AntaresStudyConverter:
     def convert_template(
         self,
         conversion_template: ConversionTemplate,
-        exclusions: Sequence[ObjectProperties] = (),
         legacy_sb: ScenarioBuilder | None = None,
     ) -> SystemFragment:
-        """Convert the study objects that `conversion_template` applies to.
+        """Convert the study objects that `conversion_template` applies to,
+        except those it excludes; `legacy_sb` gives the scenario groups.
 
         In hybrid mode, the fragment also lists the legacy objects to delete.
-        Objects matching `exclusions` are skipped; `legacy_sb` gives the
-        scenario groups.
         """
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
@@ -296,11 +294,7 @@ class AntaresStudyConverter:
         id_suffix = self._component_id_suffix(conversion_template)
         try:
             for study_object in study_objects(
-                conversion_template,
-                self.study,
-                self.areas,
-                exclusions,
-                self.logger,
+                conversion_template, self.study, self.areas, self.logger
             ):
                 instance = conversion_template.instantiate(study_object.substitutions())
                 year_ts = read_year_ts(
@@ -331,31 +325,16 @@ class AntaresStudyConverter:
         dest_dir = self.output_folder / "input" / SERIES_FOLDER
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-    def load_and_check_templates(
-        self,
-    ) -> tuple[dict[str, ConversionTemplate], list[ObjectProperties]]:
-        """Load the templates of `models_to_convert`, check them against the
-        libraries, and return them with the objects they exclude.
-
-        An exclusion applies to all the converted templates, not only to the
-        one declaring it, and only if that one is converted: e.g. converting
-        battery excludes its legacy artefacts (z_batteries area, injection
-        clusters) from the area, thermal and link conversions, which would
-        otherwise count the battery twice.
-        """
+    def load_and_check_templates(self) -> dict[str, ConversionTemplate]:
+        """Load the templates of `models_to_convert` and check them against
+        the libraries."""
         model_conversion_templates = load_conversion_templates(self.models_to_convert)
         check_converted_models_are_in_libs(model_conversion_templates, self.lib_paths)
-        exclusions = [
-            excluded
-            for conversion_template in model_conversion_templates.values()
-            for excluded in conversion_template.excluded_objects
-        ]
-        return model_conversion_templates, exclusions
+        return model_conversion_templates
 
     def system_and_scenario_groups(
         self,
         model_conversion_templates: dict[str, ConversionTemplate],
-        exclusions: Sequence[ObjectProperties],
     ) -> tuple[SystemSchema | HybridSystemSchema, dict[str, dict[int, int]]]:
         """Convert the study to a GEMS system, and return it with the scenario
         groups of its components: {scenario group: {year: ts index}}.
@@ -370,9 +349,7 @@ class AntaresStudyConverter:
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
-            converted.merge(
-                self.convert_template(conversion_template, exclusions, legacy_sb)
-            )
+            converted.merge(self.convert_template(conversion_template, legacy_sb))
         self.legacy_objects = converted.legacy_objects
 
         if self.mode == ConversionMode.HYBRID:
@@ -403,9 +380,8 @@ class AntaresStudyConverter:
             )
         self._create_dataseries_dir()
 
-        model_conversion_templates, exclusions = self.load_and_check_templates()
         system, scenario_groups = self.system_and_scenario_groups(
-            model_conversion_templates, exclusions
+            self.load_and_check_templates()
         )
 
         # Auto-generate modeler-scenariobuilder.dat only when no file was provided and there is SB data

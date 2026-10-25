@@ -54,7 +54,10 @@ from gems_craft.study.parsing import (
 )
 from gems_craft.study.resolve_components import resolve_system
 from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
-from tests.input_converter.conftest import create_dataframe_from_constant
+from tests.input_converter.conftest import (
+    create_dataframe_from_constant,
+    exclude_battery_artefacts,
+)
 import numpy as np
 
 RESOURCES_FOLDER = (
@@ -126,7 +129,7 @@ class TestConverter:
     def test_convert_study_to_input_study(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         input_study, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
 
         expected_input_study = SystemSchema(
@@ -1635,8 +1638,7 @@ class TestConverter:
 
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
-        # Bad design, either the test should call a higher level function, or exclusions should be deduced from single model
-        result = converter.convert_template(bc_data, bc_data.excluded_objects)
+        result = converter.convert_template(bc_data)
         binding_components = result.components
         binding_connections = result.connections
         area_connections = result.area_connections
@@ -1675,7 +1677,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
 
-        result = converter.convert_template(bc_data, bc_data.excluded_objects)
+        result = converter.convert_template(bc_data)
         area_connections = result.area_connections
 
         output_path = converter.output_folder
@@ -1744,7 +1746,7 @@ class TestConverter:
         assert bc_filepath.stat().st_size > 0
         assert links_filepath.stat().st_size > 0
         obtained_data, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         # The legacy objects are deleted by process_all()
         converter.process_all()
@@ -1783,7 +1785,7 @@ class TestConverter:
             fr_load, model_list=["load", "thermal"], mode="hybrid"
         )
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
 
         assert sorted(c.id for c in system.components) == [
@@ -1966,7 +1968,7 @@ class TestConverter:
             ],
         )
         obtained_sys, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            exclude_battery_artefacts(converter.load_and_check_templates())
         )
         with open(ref_path) as system_file:
             expected_sys = parse_yaml_system(system_file)

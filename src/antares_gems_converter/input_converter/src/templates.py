@@ -112,12 +112,12 @@ def study_objects(
     conversion_template: ConversionTemplate,
     study: Study,
     areas: Mapping[str, Area],
-    exclusions: Sequence[ObjectProperties],
     logger: logging.Logger,
 ) -> Iterator[StudyObject]:
     """Yield, in study order, the links, areas or clusters that
-    `conversion_template` is instantiated for, except the excluded ones."""
+    `conversion_template` is instantiated for, except those it excludes."""
     kind = conversion_template.for_each
+    exclusions = conversion_template.excluded_objects
     if kind == ObjectKind.LINK:
         for link in study.get_links().values():
             link_object = StudyObject(
