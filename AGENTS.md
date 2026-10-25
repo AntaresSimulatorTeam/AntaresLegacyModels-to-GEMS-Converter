@@ -22,12 +22,12 @@ src/antares_gems_converter/
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
 - `convert_template()` converts one template into a `SystemFragment` (components, connections, area connections, scenario groups, legacy objects to delete): one `TemplateInstance` per `StudyObject` (see "Template loop")
-- `load_and_check_templates()` loads the templates of `models_to_convert`, checks them against the lib files, and returns them with the exclusions they declare
-- `system_and_scenario_groups(templates, exclusions)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
+- `load_and_check_templates()` loads the templates of `models_to_convert` and checks them against the lib files
+- `system_and_scenario_groups(templates)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
 - `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
 
-      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, `is_excluded()` skips the excluded ones
+      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, skipping those it excludes (`is_excluded()`)
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
       scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
@@ -121,9 +121,9 @@ dependencies.json                # Antares Simulator version for CI
 
 - **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys); a placeholder left raises a `ValueError`.
-- **`exclude`** (under the template parameter): the objects listed there are excluded from **all** the converted templates, not only from the one declaring them, and only if that template is converted. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. This is how battery keeps its legacy artefacts (`z_batteries` areas, `<area>_batteries_inj` clusters) from being converted again by the area, thermal and link templates.
+- **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
-- The format keeps a few legacy shapes: `template-parameters` is a list holding exactly one parameter, the cluster placeholder is named after `cluster-type`, and `exclude` sits under the parameter although it applies to all templates.
+- The format keeps a few legacy shapes: `template-parameters` is a list holding exactly one parameter, the cluster placeholder is named after `cluster-type`, and `exclude` sits under the parameter.
 
 ### Two Conversion Modes
 
@@ -147,7 +147,7 @@ template:
   template-parameters:
     - name: <variable>                  # e.g., area
       cluster-type: <type>              # optional: thermal, renewable, st_storage
-      exclude:                          # optional: objects no converted template is instantiated for (see "Template loop")
+      exclude:                          # optional: objects this template is not instantiated for (see "Template loop")
         - id: <identifier>
           object-properties: { type: ..., area: ... }
 
@@ -306,7 +306,7 @@ Runs on every push to any branch:
 
 4. **FULL vs HYBRID mode produce different outputs.** FULL mode uses `connections` (port-to-port). HYBRID mode uses `area-connections` and `legacy-objects-to-delete`. Both sections must be kept consistent in templates.
 
-5. **Battery conversion relies on exclusions.** The battery template excludes its legacy artefacts: the `z_batteries` and `z_batteries_pcomp` areas (with their clusters and links) and the `<area>_batteries_inj` clusters. Exclusions apply to all converted templates (`is_excluded()`, see "Template loop"), so these are skipped by the area, thermal and link conversions. Breaking this exclusion logic causes duplicate or invalid components.
+5. **Exclusions are local to their template.** The battery template excludes the `z_batteries` and `z_batteries_pcomp` areas from its own iteration only. Its legacy artefacts (those areas, with their clusters and links, and the `<area>_batteries_inj` clusters) are converted by the other templates unless their `exclude` lists them, which is the user's responsibility; otherwise the battery is counted twice. Do not add such study-specific exclusions to the reference templates.
 
 6. **Timeseries validity check.** `check_timeseries_validity()` rejects empty or all-zero dataframes. If a load/solar/wind area has no data, no component is generated for it. This is intentional — do not "fix" it by removing the check.
 

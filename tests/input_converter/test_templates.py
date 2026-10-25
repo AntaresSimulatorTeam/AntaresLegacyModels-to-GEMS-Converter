@@ -19,6 +19,7 @@ from antares.craft.model.study import Study
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
+from antares_gems_converter.input_converter.src.deletion import delete_legacy_objects
 from antares_gems_converter.input_converter.src.logger import Logger
 from antares_gems_converter.input_converter.src.parsing import (
     ObjectKind,
@@ -31,6 +32,7 @@ from antares_gems_converter.input_converter.src.templates import (
     is_excluded,
     load_conversion_template,
 )
+from tests.input_converter.conftest import exclude_battery_artefacts
 
 REPO_ROOT = Path(__file__).parents[2]
 LIB_PATHS = [
@@ -169,16 +171,23 @@ def test_battery_exclusions():
     assert is_excluded(Z_BATTERIES, exclusions)
     assert is_excluded(Z_CLUSTER, exclusions)
     assert is_excluded(FR_Z_LINK, exclusions)
+    assert not is_excluded(FR, exclusions)
+    assert not is_excluded(FR_INJ, exclusions)
+
+
+def test_cluster_exclusion_with_area_placeholder():
+    exclusions = [
+        ObjectProperties(
+            type="thermal", area="${area}", cluster="${area}_batteries_inj"
+        )
+    ]
     # ${area} stands for the area of the cluster
     assert is_excluded(FR_INJ, exclusions)
     assert not is_excluded(
         StudyObject(ObjectKind.THERMAL, area="it", cluster="fr_batteries_inj"),
         exclusions,
     )
-    assert not is_excluded(FR, exclusions)
-    assert not is_excluded(
-        StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz"), exclusions
-    )
+    assert not is_excluded(FR_GAZ, exclusions)
 
 
 def test_cluster_exclusion_checks_type():
@@ -208,10 +217,10 @@ BATTERY_ARTEFACTS = {
 }
 
 
-def _component_ids(tmp_path: Path, mode: str, models: list[str]) -> set[str]:
+def _converter(tmp_path: Path, mode: str, models: list[str]) -> AntaresStudyConverter:
     input_path = tmp_path / "input" / BATTERY_STUDY.name
     shutil.copytree(BATTERY_STUDY, input_path)
-    converter = AntaresStudyConverter(
+    return AntaresStudyConverter(
         study_input=input_path,
         logger=Logger(__name__, str(input_path)),
         mode=mode,
@@ -219,27 +228,36 @@ def _component_ids(tmp_path: Path, mode: str, models: list[str]) -> set[str]:
         lib_paths=LIB_PATHS,
         models_to_convert=models,
     )
+
+
+@pytest.mark.parametrize("mode", ["full", "hybrid"])
+@pytest.mark.parametrize("excluding", [False, True])
+def test_exclusions_are_local(tmp_path: Path, mode: str, excluding: bool):
+    converter = _converter(tmp_path, mode, ["battery", "thermal", "link"])
+    templates = converter.load_and_check_templates()
+    if excluding:
+        templates = exclude_battery_artefacts(templates)
+    system, _ = converter.system_and_scenario_groups(templates)
+    ids = {component.id for component in system.components}
+    assert {"fr_battery", "fr_thermal_fr_nuclear_epr"} <= ids
+    # What battery excludes only applies to battery: unless the thermal and
+    # link templates exclude them too, the battery artefacts are converted
+    assert bool(ids & BATTERY_ARTEFACTS) != excluding
+
+
+def test_excluded_objects_stay_legacy_in_hybrid_mode(tmp_path: Path):
+    converter = _converter(tmp_path, "hybrid", ["thermal", "link"])
     system, _ = converter.system_and_scenario_groups(
-        *converter.load_and_check_templates()
+        exclude_battery_artefacts(converter.load_and_check_templates())
     )
-    return {component.id for component in system.components}
-
-
-@pytest.mark.parametrize("mode", ["full", "hybrid"])
-def test_battery_exclusions_apply_to_all_templates(tmp_path: Path, mode: str):
-    # Without them, the battery legacy artefacts would be converted too, and
-    # the battery counted twice
-    ids = _component_ids(tmp_path, mode, ["battery", "thermal", "link"])
-    assert "fr_battery" in ids
-    assert "fr_thermal_fr_nuclear_epr" in ids
-    assert not ids & (BATTERY_ARTEFACTS | {"z_batteries_node"})
-
-
-@pytest.mark.parametrize("mode", ["full", "hybrid"])
-def test_battery_exclusions_only_when_battery_is_converted(tmp_path: Path, mode: str):
-    ids = _component_ids(tmp_path, mode, ["thermal", "link"])
-    assert BATTERY_ARTEFACTS <= ids
-    assert ("z_batteries_node" in ids) == (mode == "full")
+    assert not {component.id for component in system.components} & BATTERY_ARTEFACTS
+    # Not converted, so not deleted: the binding constraints referencing them
+    # do not make the deletion fail
+    delete_legacy_objects(
+        converter.study, converter.areas, converter.legacy_objects, converter.logger
+    )
+    assert "fr_batteries_inj" in converter.study.get_areas()["fr"].get_thermals()
+    assert "fr / z_batteries" in converter.study.get_links()
 
 
 def test_instantiate_thermal():

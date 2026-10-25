@@ -18,7 +18,7 @@ template:
   template-parameters:
     - name: link
       # exclude:
-      #   # How to identify virtual links in Antares ?
+      #   # Links to skip, e.g. those of a battery artefact
 
   components:
     - id: ${link}_link # How to specify that we want to get the link_id ?

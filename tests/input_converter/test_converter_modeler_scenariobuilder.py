@@ -50,7 +50,7 @@ class TestConverterScenarioBuilder:
     def test_empty_legacy_sb_no_scenario_builder(self, fr_wind: Study):
         converter = self._init_converter_from_study(fr_wind, model_list=["wind"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -78,7 +78,7 @@ class TestConverterScenarioBuilder:
             fr_wind, model_list=["wind", "thermal"]
         )
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -140,7 +140,7 @@ class TestConverterScenarioBuilder:
             fr_wind, model_list=["wind"], mode="hybrid"
         )
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -208,7 +208,7 @@ class TestConverterScenarioBuilder:
 
         converter = self._init_converter_from_study(fr_wind, model_list=["link"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -243,7 +243,7 @@ class TestConverterScenarioBuilder:
 
         converter = self._init_converter_from_study(fr_wind, model_list=["hydro"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -283,7 +283,7 @@ class TestConverterScenarioBuilder:
 
         converter = self._init_converter_from_study(fr_wind, model_list=["ror"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 
@@ -459,7 +459,7 @@ class TestScenarioBuilderTwoAreas:
 
         converter = self._init_converter(two_area_study, ["hydro"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
         comp = {c.id: c for c in system.components}
@@ -484,7 +484,7 @@ class TestScenarioBuilderTwoAreas:
 
         converter = self._init_converter(two_area_study, ["hydro"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
         comp = {c.id: c for c in system.components}
@@ -510,7 +510,7 @@ class TestScenarioBuilderTwoAreas:
 
         converter = self._init_converter(two_area_study, ["link"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
         comp = {c.id: c for c in system.components}
@@ -533,7 +533,7 @@ class TestScenarioBuilderTwoAreas:
 
         converter = self._init_converter(two_area_study, ["hydro", "link"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
         comp = {c.id: c for c in system.components}
@@ -560,7 +560,7 @@ class TestScenarioBuilderTwoAreas:
     def test_no_sb(self, two_area_study):
         converter = self._init_converter(two_area_study, ["hydro", "link"])
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         converter.process_all()
 

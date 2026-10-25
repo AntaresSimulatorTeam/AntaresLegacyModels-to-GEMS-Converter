@@ -21,6 +21,12 @@ from antares.craft.model.renewable import RenewableClusterProperties
 from antares.craft.model.st_storage import STStorageProperties
 from antares.craft.model.study import Study, create_study_local
 from antares.craft.model.thermal import ThermalClusterProperties
+from yaml import safe_load
+
+from antares_gems_converter.input_converter.src.parsing import (
+    ConversionTemplate,
+    ReferencedLegacyObjects,
+)
 
 
 @pytest.fixture
@@ -41,6 +47,48 @@ def local_study(tmp_path) -> Study:
     study_name = "studyTest"
     study_version = "930"
     return create_study_local(study_name, study_version, tmp_path.absolute())
+
+
+# The `exclude` entries a user declares in their templates so that only the
+# battery template converts the battery legacy artefacts: the z_batteries area
+# (with its clusters and the links it is an end of) and the injection clusters
+BATTERY_ARTEFACTS_EXCLUDE = safe_load(
+    """
+- id: z_batteries
+  object-properties: {type: area, area: z_batteries}
+"""
+)
+INJECTION_CLUSTERS_EXCLUDE = safe_load(
+    """
+- id: batteries_inj
+  object-properties: {type: thermal, area: "${area}", cluster: "${area}_batteries_inj"}
+"""
+)
+
+
+def exclude_battery_artefacts(
+    templates: dict[str, ConversionTemplate],
+) -> dict[str, ConversionTemplate]:
+    """Return `templates`, all but battery excluding the battery artefacts."""
+    excluding = {}
+    for model, template in templates.items():
+        entries = []
+        if model != "battery":
+            entries += BATTERY_ARTEFACTS_EXCLUDE
+        if model == "thermal":
+            entries += INJECTION_CLUSTERS_EXCLUDE
+        parameter = template.template_parameters[0]
+        exclude = (parameter.exclude or []) + [
+            ReferencedLegacyObjects.model_validate(entry) for entry in entries
+        ]
+        excluding[model] = template.model_copy(
+            update={
+                "template_parameters": [
+                    parameter.model_copy(update={"exclude": exclude})
+                ]
+            }
+        )
+    return excluding
 
 
 def create_dataframe_from_constant(
