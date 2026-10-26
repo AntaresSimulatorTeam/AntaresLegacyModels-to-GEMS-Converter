@@ -21,7 +21,7 @@ src/antares_gems_converter/
       main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
-- `apply_conversion_template()` applies one template to the study and returns a `SystemFragment` (components, connections, area connections, scenario groups, legacy objects to delete): one `TemplateInstance` per `StudyObject` (see "Template loop")
+- `apply_conversion_template()` applies one template to the study and returns a `SystemFragment` (see "Template loop")
 - `load_and_check_templates()` loads the templates of `models_to_convert` and checks them against the lib files
 - `system_and_scenario_groups(templates)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
@@ -35,9 +35,7 @@ src/antares_gems_converter/
 
 
       parsing.py - Pydantic models for YAML conversion templates
-- ConversionTemplate - top-level: model id, components, connections, legacy objects to delete; `for_each` (the `ObjectKind` it is instantiated for), `excluded_objects`, `instantiate()`; a validator checks at load the template parameter, the `${link}` attributes and the exclusions
-- TemplateInstance - a template instantiated for one study object, no placeholder left (shares its fields with ConversionTemplate through TemplateBody)
-- ObjectKind - area / link / thermal / renewable / st_storage
+- ConversionTemplate / TemplateInstance / ObjectKind - see "Template loop"; templates are validated at load
 - ParameterConversionConfig - parameter source: constant (float), matrix column, or object + optional operation
 - PropertyConversionConfig - property source (similar to ParameterConversionConfig; result always converted to string)
 - Operation - max / multiply_by / divide_by on a value or timeseries
@@ -111,19 +109,18 @@ dependencies.json                # Antares Simulator version for CI
 
 | Term | Class | Meaning |
 |---|---|---|
-| template | `ConversionTemplate` | the YAML file, with placeholders |
+| template | `ConversionTemplate` | the YAML file, with placeholders; shares its body (`TemplateBody`: model, components, connections, legacy objects to delete) with its instances |
 | object kind | `ObjectKind` | what a template is instantiated for: `ConversionTemplate.for_each` |
 | study object | `StudyObject` | one link, area or cluster of the study; knows its placeholder substitutions |
 | instance | `TemplateInstance` | the template instantiated for one study object, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
-`apply_conversion_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`: components with their scenario groups, then connections, or area connections and legacy objects to delete in hybrid mode).
+`apply_conversion_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`).
 
 - **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys); a placeholder left raises a `ValueError`.
 - **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and `area`, `link`, or `area` and `cluster` for a cluster type; any other entry is rejected at load. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
-- Format constraints: `template-parameters` is a list holding exactly one parameter, the cluster placeholder is named after `cluster-type`, and `exclude` sits under the parameter.
 
 ### Two Conversion Modes
 
@@ -310,7 +307,7 @@ Runs on every push to any branch:
 
 6. **Timeseries validity check.** `check_timeseries_validity()` rejects empty or all-zero dataframes. If a load/solar/wind area has no data, no component is generated for it. This is intentional — do not "fix" it by removing the check.
 
-7. **Link ids in component ids.** The `" / "` of link ids (e.g. `at / fr`) is replaced with `_` in component ids and scenario groups (`_output_component_id`), not in templates.
+7. **Link ids in component ids.** The `" / "` of link ids (e.g. `at / fr`) is replaced with `_` in component ids (`_output_component_id`) and scenario groups, not in templates.
 
 8. **Floating-point comparisons.** Always use `pytest.approx()` in tests. E2E tests use relative tolerance (`rel=0.01`) to account for LP relaxation vs MIP differences.
 

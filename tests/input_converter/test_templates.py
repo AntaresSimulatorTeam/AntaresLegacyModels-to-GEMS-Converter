@@ -10,7 +10,6 @@
 #
 # This file is part of the Antares project.
 """Template loop: what a template is instantiated for, and how."""
-import io
 import logging
 import shutil
 from pathlib import Path
@@ -24,9 +23,9 @@ from antares_gems_converter.input_converter.src.converter import AntaresStudyCon
 from antares_gems_converter.input_converter.src.deletion import delete_legacy_objects
 from antares_gems_converter.input_converter.src.logger import Logger
 from antares_gems_converter.input_converter.src.parsing import (
+    ConversionTemplate,
     ObjectKind,
     ObjectProperties,
-    parse_conversion_template,
 )
 from antares_gems_converter.input_converter.src.scenario_builder import read_year_ts
 from antares_gems_converter.input_converter.src.templates import (
@@ -35,17 +34,25 @@ from antares_gems_converter.input_converter.src.templates import (
     load_conversion_template,
     study_objects,
 )
-from tests.input_converter.conftest import exclude_battery_artefacts, with_exclude
+from tests.input_converter.conftest import (
+    LIB_PATHS,
+    exclude_battery_artefacts,
+    with_exclude,
+)
 
-REPO_ROOT = Path(__file__).parents[2]
-LIB_PATHS = [
-    str(REPO_ROOT / "src/antares_gems_converter/libs" / lib)
-    for lib in [
-        "antares_historic/antares_legacy_models.yml",
-        "reference_models/andromede_v1_models.yml",
-    ]
-]
 BATTERY_STUDY = Path(__file__).parent / "resources" / "mini_test_batterie_BP23"
+
+FR = StudyObject(ObjectKind.AREA, area="fr")
+FR_GAZ = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
+Z_BATTERIES = StudyObject(ObjectKind.AREA, area="z_batteries")
+FR_Z_LINK = StudyObject(
+    ObjectKind.LINK, link="fr / z_batteries", area_from="fr", area_to="z_batteries"
+)
+FR_INJ = StudyObject(ObjectKind.THERMAL, area="fr", cluster="fr_batteries_inj")
+Z_CLUSTER = StudyObject(
+    ObjectKind.THERMAL, area="z_batteries", cluster="z_batteries_batteries_fr_1"
+)
+AT_FR = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
 
 EXPECTED_FOR_EACH = {
     "area": ObjectKind.AREA,
@@ -72,82 +79,63 @@ def test_for_each(model: str, kind: ObjectKind):
     assert load_conversion_template(model).for_each == kind
 
 
-def _parse(template_parameters: str, connections: str = "") -> None:
-    parse_conversion_template(
-        io.StringIO(
-            "template:\n"
-            "  name: test\n"
-            "  model: lib.model\n"
-            f"{template_parameters}"
-            "  components:\n"
-            "    - id: c\n"
-            "      parameters: []\n"
-            f"{connections}"
-        )
+def _template(template_parameters: list[dict], **body: list) -> ConversionTemplate:
+    return ConversionTemplate.model_validate(
+        {
+            "name": "test",
+            "model": "lib.model",
+            "template-parameters": template_parameters,
+            "components": [{"id": "c", "parameters": []}],
+            **body,
+        }
     )
 
 
 @pytest.mark.parametrize(
     "template_parameters, error",
     [
-        ("", "exactly one template parameter, got 0"),
-        (
-            "  template-parameters:\n    - name: area\n    - name: link\n",
-            "exactly one template parameter, got 2",
-        ),
-        ("  template-parameters:\n    - name: zone\n", "named 'area' or 'link'"),
-        (
-            "  template-parameters:\n    - name: area\n      cluster-type: hydro\n",
-            "cluster-type must be one of",
-        ),
-        (
-            "  template-parameters:\n    - name: link\n      cluster-type: thermal\n",
-            "cluster-type must be one of",
-        ),
+        ([], "exactly one template parameter, got 0"),
+        ([{"name": "area"}, {"name": "link"}], "exactly one template parameter, got 2"),
+        ([{"name": "zone"}], "named 'area' or 'link'"),
+        ([{"name": "area", "cluster-type": "hydro"}], "cluster-type must be one of"),
+        ([{"name": "link", "cluster-type": "thermal"}], "cluster-type must be one of"),
     ],
 )
-def test_invalid_template_parameters(template_parameters: str, error: str):
+def test_invalid_template_parameters(template_parameters: list[dict], error: str):
     with pytest.raises(ValueError, match=error):
-        _parse(template_parameters)
+        _template(template_parameters)
 
 
 @pytest.mark.parametrize(
     "object_properties",
     [
-        "{type: areas, area: z_batteries}",
-        "{type: link, area: z_batteries}",
-        "{type: thermal, cluster: inj}",
+        {"type": "areas", "area": "z_batteries"},
+        {"type": "link", "area": "z_batteries"},
+        {"type": "thermal", "cluster": "inj"},
     ],
 )
-def test_invalid_exclusion(object_properties: str):
+def test_invalid_exclusion(object_properties: dict):
+    exclude = [{"id": "e", "object-properties": object_properties}]
     with pytest.raises(ValueError, match="invalid exclusion"):
-        _parse(
-            "  template-parameters:\n"
-            "    - name: area\n"
-            "      exclude:\n"
-            f"        - {{id: e, object-properties: {object_properties}}}\n"
-        )
+        _template([{"name": "area", "exclude": exclude}])
 
 
 def test_unknown_link_attribute():
+    component2 = "${link}.area_frm_id._node"
+    connection = {
+        "component1": "c",
+        "port1": "p",
+        "component2": component2,
+        "port2": "p",
+    }
     with pytest.raises(ValueError, match="unknown link attribute"):
-        _parse(
-            "  template-parameters:\n    - name: link\n",
-            "  connections:\n"
-            "    - component1: c\n"
-            "      port1: p\n"
-            "      component2: ${link}.area_frm_id._node\n"
-            "      port2: p\n",
-        )
+        _template([{"name": "link"}], connections=[connection])
 
 
 def test_study_object_substitutions():
-    thermal = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
-    assert thermal.substitutions() == {"${area}": "fr", "${thermal}": "gaz"}
-    area = StudyObject(ObjectKind.AREA, area="fr")
-    assert area.substitutions() == {"${area}": "fr"}
-    link = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
-    assert link.substitutions()["${link}"] == "at / fr"
+    assert FR_GAZ.substitutions() == {"${area}": "fr", "${thermal}": "gaz"}
+    assert FR.substitutions() == {"${area}": "fr"}
+    assert AT_FR.substitutions()["${link}"] == "at / fr"
 
 
 def test_read_year_ts_by_kind(fr_wind: Study):
@@ -157,33 +145,18 @@ def test_read_year_ts_by_kind(fr_wind: Study):
     sb.renewable.get_cluster("fr", "generation").set_new_scenario([4])
     sb.link.get_link("at / fr").set_new_scenario([5])
 
-    fr = StudyObject(ObjectKind.AREA, area="fr")
-    assert read_year_ts(sb, "wind", fr) == {0: 2}
+    assert read_year_ts(sb, "wind", FR) == {0: 2}
     # Templates without a legacy SB attribute
-    assert read_year_ts(sb, "area", fr) == {}
-    assert read_year_ts(sb, "misc_gen", fr) == {}
-    assert read_year_ts(sb, "battery", fr) == {}
-    gaz = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
-    assert read_year_ts(sb, "thermal", gaz) == {0: 3}
+    assert read_year_ts(sb, "area", FR) == {}
+    assert read_year_ts(sb, "misc_gen", FR) == {}
+    assert read_year_ts(sb, "battery", FR) == {}
+    assert read_year_ts(sb, "thermal", FR_GAZ) == {0: 3}
     generation = StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="generation")
     assert read_year_ts(sb, "renewable", generation) == {0: 4}
     storage = StudyObject(ObjectKind.ST_STORAGE, area="fr", cluster="storage_1")
     assert read_year_ts(sb, "st_storage", storage) == {}
-    link = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
-    assert read_year_ts(sb, "link", link) == {0: 5}
-    assert read_year_ts(None, "wind", fr) == {}
-
-
-FR = StudyObject(ObjectKind.AREA, area="fr")
-FR_GAZ = StudyObject(ObjectKind.THERMAL, area="fr", cluster="gaz")
-Z_BATTERIES = StudyObject(ObjectKind.AREA, area="z_batteries")
-FR_Z_LINK = StudyObject(
-    ObjectKind.LINK, link="fr / z_batteries", area_from="fr", area_to="z_batteries"
-)
-FR_INJ = StudyObject(ObjectKind.THERMAL, area="fr", cluster="fr_batteries_inj")
-Z_CLUSTER = StudyObject(
-    ObjectKind.THERMAL, area="z_batteries", cluster="z_batteries_batteries_fr_1"
-)
+    assert read_year_ts(sb, "link", AT_FR) == {0: 5}
+    assert read_year_ts(None, "wind", FR) == {}
 
 
 def test_battery_exclusions():
@@ -202,25 +175,17 @@ def test_cluster_exclusion_with_area_placeholder():
             type="thermal", area="${area}", cluster="${area}_batteries_inj"
         )
     ]
-    # ${area} stands for the area of the cluster
+    # ${area} stands for the area of the cluster, of the excluded type only
     assert is_excluded(FR_INJ, exclusions)
     assert not is_excluded(
         StudyObject(ObjectKind.THERMAL, area="it", cluster="fr_batteries_inj"),
         exclusions,
     )
-    assert not is_excluded(FR_GAZ, exclusions)
-
-
-def test_cluster_exclusion_checks_type():
-    exclusions = [
-        ObjectProperties(type="thermal", area="${area}", cluster="${area}_inj")
-    ]
-    assert is_excluded(
-        StudyObject(ObjectKind.THERMAL, area="fr", cluster="fr_inj"), exclusions
-    )
     assert not is_excluded(
-        StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="fr_inj"), exclusions
+        StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="fr_batteries_inj"),
+        exclusions,
     )
+    assert not is_excluded(FR_GAZ, exclusions)
 
 
 def test_link_exclusion():
@@ -299,8 +264,7 @@ def test_instantiate_thermal():
 
 
 def test_instantiate_link_attributes():
-    link = StudyObject(ObjectKind.LINK, link="at / fr", area_from="at", area_to="fr")
-    instance = load_conversion_template("link").instantiate(link.substitutions())
+    instance = load_conversion_template("link").instantiate(AT_FR.substitutions())
     assert instance.components[0].id == "at / fr_link"
     assert [c.component2 for c in instance.connections] == ["at_node", "fr_node"]
     assert [c.area for c in instance.area_connections] == ["at", "fr"]
@@ -320,21 +284,17 @@ def test_instantiate_battery_term_ids():
 
 
 def test_instantiate_keeps_non_finite_constants():
-    template = parse_conversion_template(
-        io.StringIO(
-            "template:\n"
-            "  name: test\n"
-            "  model: lib.model\n"
-            "  template-parameters:\n"
-            "    - name: area\n"
-            "  components:\n"
-            "    - id: ${area}_c\n"
-            "      parameters:\n"
-            "        - {id: max, value: {constant: .inf}}\n"
-        )
-    )
+    parameter = {"id": "max", "value": {"constant": float("inf")}}
+    component = {"id": "${area}_c", "parameters": [parameter]}
+    template = _template([{"name": "area"}], components=[component])
     instance = template.instantiate(FR.substitutions())
     assert instance.components[0].parameters[0].value.constant == float("inf")
+
+
+def test_instantiate_rejects_unresolved_placeholder():
+    template = load_conversion_template("thermal")
+    with pytest.raises(ValueError, match="unresolved placeholder"):
+        template.instantiate(FR.substitutions())
 
 
 def test_study_objects_skip_excluded_and_disabled(
@@ -361,12 +321,4 @@ def test_study_objects_skip_excluded_and_disabled(
 
     # A link is excluded with either of its areas
     link = with_exclude(load_conversion_template("link"), exclude_it)
-    assert [obj.link for obj in study_objects(link, study, areas, logger)] == [
-        "at / fr"
-    ]
-
-
-def test_instantiate_rejects_unresolved_placeholder():
-    template = load_conversion_template("thermal")
-    with pytest.raises(ValueError, match="unresolved placeholder"):
-        template.instantiate(FR.substitutions())
+    assert list(study_objects(link, study, areas, logger)) == [AT_FR]

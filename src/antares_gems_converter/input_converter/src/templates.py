@@ -92,13 +92,9 @@ def is_excluded(obj: StudyObject, exclusions: Sequence[ObjectProperties]) -> boo
     """
     for excluded in exclusions:
         if excluded.type == ObjectKind.AREA:
-            matches = excluded.area is not None and excluded.area in (
-                obj.area,
-                obj.area_from,
-                obj.area_to,
-            )
+            matches = excluded.area in (obj.area, obj.area_from, obj.area_to)
         elif excluded.type == ObjectKind.LINK:
-            matches = excluded.link is not None and excluded.link == obj.link
+            matches = excluded.link == obj.link
         else:
             area = obj.area or ""
             matches = (
@@ -118,7 +114,8 @@ def study_objects(
     logger: logging.Logger,
 ) -> Iterator[StudyObject]:
     """Yield, in study order, the links, areas or clusters that
-    `conversion_template` is instantiated for, except those it excludes."""
+    `conversion_template` is instantiated for, except those it excludes and the
+    disabled renewable clusters."""
     kind = conversion_template.for_each
     exclusions = conversion_template.excluded_objects
     if kind == ObjectKind.LINK:

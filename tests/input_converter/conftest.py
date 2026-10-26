@@ -46,6 +46,14 @@ def local_study(tmp_path) -> Study:
     return create_study_local(study_name, study_version, tmp_path.absolute())
 
 
+LIB_PATHS = [
+    str(Path(__file__).parents[2] / "src/antares_gems_converter/libs" / lib)
+    for lib in [
+        "antares_historic/antares_legacy_models.yml",
+        "reference_models/andromede_v1_models.yml",
+    ]
+]
+
 # The `exclude` entries a user declares in their templates so that only the
 # battery template converts the battery legacy artefacts: the z_batteries areas
 # (with their clusters and the links they are an end of) and the injection

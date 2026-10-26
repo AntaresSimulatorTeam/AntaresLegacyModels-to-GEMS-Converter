@@ -41,7 +41,6 @@ from antares_gems_converter.input_converter.src.parsing import (
     ComponentConversionConfig,
     ConversionTemplate,
     ObjectProperties,
-    TemplateBody,
     TemplateInstance,
 )
 from antares_gems_converter.input_converter.src.scenario_builder import (
@@ -273,7 +272,7 @@ class AntaresStudyConverter:
             or None,
         )
 
-    def _component_id_suffix(self, conversion_template: TemplateBody) -> str:
+    def _component_id_suffix(self, conversion_template: ConversionTemplate) -> str:
         # In hybrid mode, a blanked (not deleted) legacy object stays in the study
         # under the id that the GEMS components replacing it would have.
         if self.mode == ConversionMode.HYBRID and any(
@@ -405,7 +404,6 @@ class AntaresStudyConverter:
             delete_legacy_objects(
                 self.study, self.areas, self.legacy_objects, self.logger
             )
-            self.legacy_objects = []
 
         self.logger.info("Dumping input system into yaml file...")
         dump_to_yaml(model=system, output_path=self.output_system_path)
