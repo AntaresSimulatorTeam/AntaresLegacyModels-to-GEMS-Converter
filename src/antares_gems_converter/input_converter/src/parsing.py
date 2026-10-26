@@ -241,16 +241,16 @@ class ConversionTemplate(TemplateBody):
                     f"Template '{self.name}': unknown link attribute "
                     f"'{match.group()}', expected one of {list(LINK_ATTRIBUTES)}"
                 )
-        # An ill-formed exclusion would silently exclude nothing
+        # An ill-formed exclusion would silently exclude nothing, or more than
+        # meant: {type: area, area: fr, cluster: c} excludes the whole area fr
         for excluded in self.excluded_objects:
             fields = EXCLUSION_FIELDS.get(excluded.type, ("area", "cluster"))
-            if excluded.type not in list(ObjectKind) or None in (
-                getattr(excluded, field) for field in fields
-            ):
+            set_fields = {name for name, value in excluded if value is not None}
+            if excluded.type not in list(ObjectKind) or set_fields != {"type", *fields}:
                 raise ValueError(
                     f"Template '{self.name}': invalid exclusion {excluded!r}, its "
-                    f"type must be one of {', '.join(ObjectKind)} and set "
-                    f"{', '.join(fields)}"
+                    f"type must be one of {', '.join(ObjectKind)} and it must set "
+                    f"only {', '.join(fields)}"
                 )
         return self
 

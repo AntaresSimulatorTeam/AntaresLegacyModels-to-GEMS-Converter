@@ -112,6 +112,7 @@ def test_invalid_template_parameters(template_parameters: list[dict], error: str
         {"type": "areas", "area": "z_batteries"},
         {"type": "link", "area": "z_batteries"},
         {"type": "thermal", "cluster": "inj"},
+        {"type": "area", "area": "fr", "cluster": "fr_batteries_inj"},
     ],
 )
 def test_invalid_exclusion(object_properties: dict):
@@ -319,6 +320,11 @@ def test_study_objects_skip_excluded_and_disabled(
     # A disabled cluster is skipped with a warning, unless its area is excluded
     assert "'pv_off'" in caplog.text and "'it_off'" not in caplog.text
 
-    # A link is excluded with either of its areas
+    # A link is excluded with either of its areas: "it" ends "at / it" and
+    # "fr / it", "at" starts "at / fr" and "at / it"
     link = with_exclude(load_conversion_template("link"), exclude_it)
     assert list(study_objects(link, study, areas, logger)) == [AT_FR]
+    exclude_at = [{"id": "at", "object-properties": {"type": "area", "area": "at"}}]
+    link = with_exclude(load_conversion_template("link"), exclude_at)
+    links = study_objects(link, study, areas, logger)
+    assert [obj.link for obj in links] == ["fr / it"]
