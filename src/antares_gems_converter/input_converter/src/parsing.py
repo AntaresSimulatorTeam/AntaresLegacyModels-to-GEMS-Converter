@@ -174,7 +174,14 @@ class TemplateParameter(ModifiedBaseModel):
 
 
 class TemplateBody(ModifiedBaseModel):
-    """What a template converts a study object to."""
+    """The fields shared by a conversion template and its instances: what a
+    study object is converted to (the GEMS model, components and connections)
+    and, in hybrid mode, the legacy objects to delete.
+
+    Not used on its own: a ConversionTemplate holds these fields with
+    placeholders such as ${area}, a TemplateInstance with the ids of one study
+    object.
+    """
 
     name: str
     model: str
@@ -187,11 +194,17 @@ class TemplateBody(ModifiedBaseModel):
 
 
 class TemplateInstance(TemplateBody):
-    """A template instantiated for one study object: no placeholder left."""
+    """A ConversionTemplate instantiated for one area, link or cluster (see
+    `ConversionTemplate.instantiate`): the same body, every placeholder replaced
+    by the ids of that object. This is what the converter turns into GEMS
+    components."""
 
 
 class ConversionTemplate(TemplateBody):
-    """A conversion template, as read from YAML, with placeholders."""
+    """A conversion template as read from YAML: the body, with placeholders
+    such as ${area}, and the template parameter, which says what the template
+    is instantiated for (`for_each`) and which objects it skips
+    (`excluded_objects`). Instantiated once per study object."""
 
     generator_version_compatibility: Optional[str] = None
     template_parameters: list[TemplateParameter] = Field(default_factory=list)
@@ -217,8 +230,8 @@ class ConversionTemplate(TemplateBody):
         ):
             raise ValueError(
                 f"Template '{self.name}': cluster-type must be one of "
-                f"{[str(kind) for kind in CLUSTER_KINDS]} on an 'area' "
-                f"parameter, got '{parameter.cluster_type}'"
+                f"{', '.join(CLUSTER_KINDS)} on an 'area' parameter, "
+                f"got '{parameter.cluster_type}'"
             )
         # A typo such as ${link}.area_frm_id would be substituted as ${link}
         # and leave no placeholder for `instantiate` to report
@@ -236,8 +249,8 @@ class ConversionTemplate(TemplateBody):
             ):
                 raise ValueError(
                     f"Template '{self.name}': invalid exclusion {excluded!r}, its "
-                    f"type must be one of {[str(kind) for kind in ObjectKind]} "
-                    f"and set {list(fields)}"
+                    f"type must be one of {', '.join(ObjectKind)} and set "
+                    f"{', '.join(fields)}"
                 )
         return self
 
@@ -249,11 +262,7 @@ class ConversionTemplate(TemplateBody):
     def for_each(self) -> ObjectKind:
         """The type of the study objects this template is instantiated for."""
         parameter = self.template_parameters[0]
-        if parameter.name == ObjectKind.LINK:
-            return ObjectKind.LINK
-        if parameter.cluster_type:
-            return ObjectKind(parameter.cluster_type)
-        return ObjectKind.AREA
+        return ObjectKind(parameter.cluster_type or parameter.name)
 
     def instantiate(self, substitutions: Mapping[str, str]) -> TemplateInstance:
         """Return the template for one study object: each placeholder of
@@ -272,11 +281,8 @@ class ConversionTemplate(TemplateBody):
     def excluded_objects(self) -> list[ObjectProperties]:
         """The objects this template is not instantiated for (see
         `templates.is_excluded`)."""
-        return [
-            excluded.object_properties
-            for parameter in self.template_parameters
-            for excluded in parameter.exclude or []
-        ]
+        exclude = self.template_parameters[0].exclude or []
+        return [excluded.object_properties for excluded in exclude]
 
 
 def parse_conversion_template(input_template: TextIO) -> ConversionTemplate:
