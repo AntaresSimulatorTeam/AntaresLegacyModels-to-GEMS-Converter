@@ -21,7 +21,7 @@ src/antares_gems_converter/
       main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
-- `convert_template()` converts one template into a `SystemFragment` (components, connections, area connections, scenario groups, legacy objects to delete): one `TemplateInstance` per `StudyObject` (see "Template loop")
+- `apply_conversion_template()` applies one template to the study and returns a `SystemFragment` (components, connections, area connections, scenario groups, legacy objects to delete): one `TemplateInstance` per `StudyObject` (see "Template loop")
 - `load_and_check_templates()` loads the templates of `models_to_convert` and checks them against the lib files
 - `system_and_scenario_groups(templates)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
@@ -117,7 +117,7 @@ dependencies.json                # Antares Simulator version for CI
 | instance | `TemplateInstance` | the template instantiated for one study object, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
-`convert_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`: components with their scenario groups, then connections, or area connections and legacy objects to delete in hybrid mode).
+`apply_conversion_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`: components with their scenario groups, then connections, or area connections and legacy objects to delete in hybrid mode).
 
 - **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys); a placeholder left raises a `ValueError`.
