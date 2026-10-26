@@ -288,7 +288,7 @@ class AntaresStudyConverter:
         # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
         return component_id.replace(" / ", "_") + suffix
 
-    def convert_template(
+    def apply_conversion_template(
         self,
         conversion_template: ConversionTemplate,
         legacy_sb: ScenarioBuilder | None = None,
@@ -360,7 +360,9 @@ class AntaresStudyConverter:
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
-            converted.merge(self.convert_template(conversion_template, legacy_sb))
+            converted.merge(
+                self.apply_conversion_template(conversion_template, legacy_sb)
+            )
         self.legacy_objects = converted.legacy_objects
 
         if self.mode == ConversionMode.HYBRID:
