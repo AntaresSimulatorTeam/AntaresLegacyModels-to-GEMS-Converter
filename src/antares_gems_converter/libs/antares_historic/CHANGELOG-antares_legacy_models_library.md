@@ -10,6 +10,12 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.3.0]
+
+- Added `name` property to the `renewable` model (cluster name, used to break down GEMS-ViewsBuilder metrics). Every component of this model must now set it, including the aggregated wind, solar and run-of-river components.
+
+---
+
 ## [2.2.1]
 
 - Added `name` property to `thermal` and `short_term_storage` models (cluster name, used to break down GEMS-ViewsBuilder metrics).

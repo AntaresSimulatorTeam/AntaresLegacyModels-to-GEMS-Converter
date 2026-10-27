@@ -83,6 +83,7 @@ taxonomy:
         - id: generation_power
       properties:
         - id: technology
+        - id: name
 
     - id: miscellaneous_fatal_generation
       ports:
