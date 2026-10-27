@@ -27,7 +27,7 @@ src/antares_gems_converter/
 - Full: also converts areas themselves into GEMS components
 - `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
 
-      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, skipping those it excludes (`is_excluded()`) and the disabled renewable clusters
+      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` returns the objects a template parameter yields, restricted to its lists, skipping those it excludes (`is_excluded()`) and the disabled renewable clusters; `bindings()` returns what a template is instantiated for (`Binding`: every combination of the values of its parameters)
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
       scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
@@ -101,7 +101,7 @@ dependencies.json                # Antares Simulator version for CI
 
 1. **CLI** (`main.py`) reads an INI config specifying study path, output folder, library paths, and conversion mode.
 2. **AntaresStudyConverter** (`converter.py`) loads the Antares study via `antares-craft`, loads YAML conversion templates, and iterates through each model type.
-3. **Template loop** (`templates.py`, `parsing.py`): each template is instantiated for each link, area or cluster it applies to, its `${area}`, `${thermal}`, `${link}`, etc. placeholders replaced with the object IDs (see below).
+3. **Template loop** (`templates.py`, `parsing.py`): each template is instantiated for each combination of the values of its parameters (links, areas, clusters, or ad-hoc values), its `${area}`, `${thermal}`, `${link}`, etc. placeholders replaced with these values (see below).
 4. **Data extraction** (`preprocessing.py`) reads timeseries and scalar parameters from the study, writes timeseries to TSV files in `data-series/`.
 5. **Output**: a GEMS `InputSystem` dumped to `input/system.yml`, with libraries copied to `model-libraries/` and timeseries in `data-series/`.
 
@@ -110,16 +110,20 @@ dependencies.json                # Antares Simulator version for CI
 | Term | Class | Meaning |
 |---|---|---|
 | template | `ConversionTemplate` | the YAML file, with placeholders; shares its body (`TemplateBody`: model, components, connections, legacy objects to delete) with its instances |
-| object kind | `ObjectKind` | what a template is instantiated for: `ConversionTemplate.for_each` |
+| template parameter | `TemplateParameter` | yields a list of string values: study objects, or the `values` of an ad-hoc parameter |
+| object kind | `ObjectKind` | the type of the study objects a parameter yields: `ConversionTemplate.for_each` |
 | study object | `StudyObject` | one link, area or cluster of the study; knows its placeholder substitutions |
-| instance | `TemplateInstance` | the template instantiated for one study object, no placeholder left |
+| binding | `Binding` | one combination of the values of the parameters: its substitutions, and its study object if any |
+| instance | `TemplateInstance` | the template instantiated for one binding, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
-`apply_conversion_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`).
+`system_and_scenario_groups()` first computes the bindings of every template (`bindings(template, …)`), so that an id listed in a template but missing from the study fails before anything is converted. `apply_conversion_template()` then instantiates the template for each binding (`template.instantiate(binding.substitutions)`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`). Duplicate component ids in the output system raise a `ValueError`.
 
-- **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
+- **Parameters** are nested in declaration order (outer first), in any order. At most one parameter has no `ad-hoc` flag: it yields study objects, and `for_each` is derived from it: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). The others are ad-hoc (`ad-hoc: true`, `${<name>}`). `for_each` is `None` when every parameter is ad-hoc. Validators reject any other shape at load (`_check_parameter`).
+- **Lists** (inline, non-empty, without duplicates): `values` restricts the areas or links (antares-craft ids, e.g. `at / fr`) and `cluster-values` the clusters of the `cluster-type` in each area (`${area}` in its entries stands for the area of the cluster); on an ad-hoc parameter, `values` is the iteration. The entries may use the placeholders of the outer parameters (checked at load). Without a list, every study object. A listed area or link missing from the study, or a listed cluster in none of the listed areas (before `exclude`), raises a `ValueError` naming the template, the parameter and the ids.
+- **Ad-hoc parameters**: a non-empty `values` list is required; `cluster-type`, `cluster-values` and `exclude` are not allowed; the name is a `\w+` identifier other than an `ObjectKind`. A template with an ad-hoc parameter cannot have `legacy-objects-to-delete` (its components replace no legacy object), and gets no legacy SB lookup, hence no scenario group. Its ids are the template author's responsibility: they must not reuse the id of a legacy object still in the study.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys); a placeholder left raises a `ValueError`.
-- **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type; any other entry is rejected at load. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
+- **`exclude`** (under the parameter that yields study objects): the objects this template is not instantiated for, applied after the lists; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type; any other entry is rejected at load. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
 
 ### Two Conversion Modes
@@ -141,12 +145,17 @@ Templates in `input_converter/data/model_configuration/` define how each Antares
 template:
   name: <model-name>                    # e.g., thermal, link, battery
   model: <library_id>.<model_id>        # GEMS model reference
-  template-parameters:
-    - name: <variable>                  # e.g., area
+  template-parameters:                  # nested in declaration order (see "Template loop")
+    - name: <variable>                  # area or link, unless ad-hoc
+      values: [<id>, ...]               # optional: only these areas or links
       cluster-type: <type>              # optional: thermal, renewable, st_storage
+      cluster-values: [<id>, ...]       # optional: only these clusters (${area} allowed)
       exclude:                          # optional: objects this template is not instantiated for (see "Template loop")
         - id: <identifier>
           object-properties: { type: ..., area: ... }
+    - name: <variable>                  # optional: an ad-hoc parameter, ${<variable>}
+      ad-hoc: true
+      values: [<value>, ...]            # required: the values iterated
 
   components:
     - id: <id-with-${variable}-placeholders>
@@ -181,7 +190,7 @@ template:
 
 ### Key template conventions
 
-- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, etc. — replaced for each study object the template is instantiated for.
+- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, `${<ad-hoc parameter>}`, etc. — replaced for each binding the template is instantiated for.
 - **Link attribute access**: `${link}.area_from_id`, `${link}.area_to_id` are replaced by the link's areas; a following `.` is dropped (`${link}.area_from_id._node` → `at_node`). No other link attribute is allowed.
 - **Binding constraint fields**: use `%` and `.` separators (e.g., `${area}%z_batteries`, `${area}.${area}_batteries_inj`).
 - **Column indexing**: 0-based, references actual columns in Antares data matrices.
