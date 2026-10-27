@@ -10,7 +10,8 @@
 #
 # This file is part of the Antares project.
 """Load the conversion templates and list what they are instantiated for: the
-values of their parameters (`bindings`), study objects or ad-hoc values."""
+arguments of their parameters (`template_arguments`), study objects or ad-hoc
+values."""
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -209,7 +210,7 @@ def study_objects(
 
 
 @dataclass(frozen=True)
-class Binding:
+class TemplateArguments:
     """The values of the parameters of a template for one of its instances:
     the substitutions to instantiate it, and the study object of its parameter
     with no ad-hoc flag, if any."""
@@ -218,13 +219,13 @@ class Binding:
     study_object: Optional[StudyObject] = None
 
 
-def bindings(
+def template_arguments(
     conversion_template: ConversionTemplate,
     study: Study,
     areas: Mapping[str, Area],
     logger: logging.Logger,
-) -> list[Binding]:
-    """Return the bindings `conversion_template` is instantiated for: every
+) -> list[TemplateArguments]:
+    """Return the arguments `conversion_template` is instantiated for: every
     combination of the values of its parameters, nested in declaration order
     (outer first), each parameter's lists resolved with the values of the
     outer parameters."""
@@ -233,9 +234,9 @@ def bindings(
         parameters: Sequence[TemplateParameter],
         substitutions: dict[str, str],
         study_object: Optional[StudyObject],
-    ) -> Iterator[Binding]:
+    ) -> Iterator[TemplateArguments]:
         if not parameters:
-            yield Binding(substitutions, study_object)
+            yield TemplateArguments(substitutions, study_object)
             return
         parameter = parameters[0].resolve(substitutions)
         if parameter.ad_hoc:

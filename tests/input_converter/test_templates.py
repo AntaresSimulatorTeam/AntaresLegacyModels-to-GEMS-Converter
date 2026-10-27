@@ -33,12 +33,12 @@ from antares_gems_converter.input_converter.src.parsing import (
 )
 from antares_gems_converter.input_converter.src.scenario_builder import read_year_ts
 from antares_gems_converter.input_converter.src.templates import (
-    Binding,
     StudyObject,
-    bindings,
+    TemplateArguments,
     is_excluded,
     load_conversion_template,
     study_objects,
+    template_arguments,
 )
 from tests.input_converter.conftest import (
     LIB_PATHS,
@@ -558,18 +558,20 @@ def test_unknown_listed_ids(
         _study_objects(template, study_w_clusters)
 
 
-def _bindings(template: ConversionTemplate, study: Study) -> list[Binding]:
-    return bindings(template, study, study.get_areas(), logging.getLogger(__name__))
+def _arguments(template: ConversionTemplate, study: Study) -> list[TemplateArguments]:
+    return template_arguments(
+        template, study, study.get_areas(), logging.getLogger(__name__)
+    )
 
 
-def test_bindings_nest_parameters_in_declaration_order(study_w_clusters: Study):
+def test_arguments_nest_parameters_in_declaration_order(study_w_clusters: Study):
     area_site = _template(
         [
             {"name": "area", "values": ["fr", "it"]},
             {"name": "site", "ad-hoc": True, "values": ["n", "${area}_s"]},
         ]
     )
-    assert [b.substitutions for b in _bindings(area_site, study_w_clusters)] == [
+    assert [b.substitutions for b in _arguments(area_site, study_w_clusters)] == [
         {"${area}": "fr", "${site}": "n"},
         {"${area}": "fr", "${site}": "fr_s"},
         {"${area}": "it", "${site}": "n"},
@@ -581,7 +583,7 @@ def test_bindings_nest_parameters_in_declaration_order(study_w_clusters: Study):
             {"name": "area", "values": ["${site}"], "cluster-type": "thermal"},
         ]
     )
-    result = _bindings(site_area, study_w_clusters)
+    result = _arguments(site_area, study_w_clusters)
     assert [b.substitutions["${thermal}"] for b in result] == [
         "gaz",
         "coal",
@@ -589,19 +591,19 @@ def test_bindings_nest_parameters_in_declaration_order(study_w_clusters: Study):
         "it_gaz",
         "coal",
     ]
-    assert result[0] == Binding(
+    assert result[0] == TemplateArguments(
         {"${site}": "fr", "${area}": "fr", "${thermal}": "gaz"}, FR_GAZ
     )
     ad_hoc_only = _template([{"name": "site", "ad-hoc": True, "values": ["a", "b"]}])
-    assert _bindings(ad_hoc_only, study_w_clusters) == [
-        Binding({"${site}": "a"}),
-        Binding({"${site}": "b"}),
+    assert _arguments(ad_hoc_only, study_w_clusters) == [
+        TemplateArguments({"${site}": "a"}),
+        TemplateArguments({"${site}": "b"}),
     ]
 
 
-def test_legacy_bindings_are_study_objects(study_w_clusters: Study):
+def test_legacy_arguments_are_study_objects(study_w_clusters: Study):
     template = load_conversion_template("thermal")
-    result = _bindings(template, study_w_clusters)
+    result = _arguments(template, study_w_clusters)
     assert [b.study_object for b in result] == _study_objects(
         template, study_w_clusters
     )

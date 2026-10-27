@@ -51,9 +51,9 @@ from antares_gems_converter.input_converter.src.scenario_builder import (
     write_scenario_builder_file,
 )
 from antares_gems_converter.input_converter.src.templates import (
-    Binding,
-    bindings,
+    TemplateArguments,
     load_conversion_templates,
+    template_arguments,
 )
 from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
@@ -289,27 +289,29 @@ class AntaresStudyConverter:
         # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
         return component_id.replace(" / ", "_") + suffix
 
-    def template_bindings(
+    def template_arguments(
         self, conversion_template: ConversionTemplate
-    ) -> list[Binding]:
+    ) -> list[TemplateArguments]:
         """What `conversion_template` is instantiated for in this study (see
-        `templates.bindings`)."""
-        return bindings(conversion_template, self.study, self.areas, self.logger)
+        `templates.template_arguments`)."""
+        return template_arguments(
+            conversion_template, self.study, self.areas, self.logger
+        )
 
     def apply_conversion_template(
         self,
         conversion_template: ConversionTemplate,
         legacy_sb: ScenarioBuilder | None = None,
-        instance_bindings: Optional[list[Binding]] = None,
+        instance_arguments: Optional[list[TemplateArguments]] = None,
     ) -> SystemFragment:
-        """Convert `conversion_template` for each of `instance_bindings`
-        (by default, `self.template_bindings(conversion_template)`);
+        """Convert `conversion_template` for each of `instance_arguments`
+        (by default, `self.template_arguments(conversion_template)`);
         `legacy_sb` gives the scenario groups.
 
         In hybrid mode, the fragment also lists the legacy objects to delete.
         """
-        if instance_bindings is None:
-            instance_bindings = self.template_bindings(conversion_template)
+        if instance_arguments is None:
+            instance_arguments = self.template_arguments(conversion_template)
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
@@ -318,9 +320,9 @@ class AntaresStudyConverter:
         # Ad-hoc components have no legacy SB entry
         read_sb = not conversion_template.ad_hoc_parameters
         try:
-            for binding in instance_bindings:
-                instance = conversion_template.instantiate(binding.substitutions)
-                study_object = binding.study_object if read_sb else None
+            for arguments in instance_arguments:
+                instance = conversion_template.instantiate(arguments.substitutions)
+                study_object = arguments.study_object if read_sb else None
                 year_ts = (
                     read_year_ts(legacy_sb, conversion_template.name, study_object)
                     if study_object
@@ -371,8 +373,8 @@ class AntaresStudyConverter:
         """
         # What every template is instantiated for, before converting anything:
         # an id listed in a template but not in the study fails early
-        bindings_by_model = {
-            model: self.template_bindings(conversion_template)
+        arguments_by_model = {
+            model: self.template_arguments(conversion_template)
             for model, conversion_template in model_conversion_templates.items()
         }
         # Read the legacy SB once and pass it to every model conversion
@@ -384,7 +386,7 @@ class AntaresStudyConverter:
             )
             converted.merge(
                 self.apply_conversion_template(
-                    conversion_template, legacy_sb, bindings_by_model[model]
+                    conversion_template, legacy_sb, arguments_by_model[model]
                 )
             )
         self.legacy_objects = converted.legacy_objects

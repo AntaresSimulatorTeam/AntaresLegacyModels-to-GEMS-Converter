@@ -27,7 +27,7 @@ src/antares_gems_converter/
 - Full: also converts areas themselves into GEMS components
 - `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
 
-      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` returns the objects a template parameter yields, restricted to its lists, skipping those it excludes (`is_excluded()`) and the disabled renewable clusters; `bindings()` returns what a template is instantiated for (`Binding`: every combination of the values of its parameters)
+      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` returns the objects a template parameter yields, restricted to its lists, skipping those it excludes (`is_excluded()`) and the disabled renewable clusters; `template_arguments()` returns what a template is instantiated for (`TemplateArguments`: one combination of the values of its parameters, for each instance)
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
       scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
@@ -113,13 +113,13 @@ dependencies.json                # Antares Simulator version for CI
 | template parameter | `TemplateParameter` | yields a list of string values: study objects, or the `values` of an ad-hoc parameter |
 | object kind | `ObjectKind` | the type of the study objects a parameter yields: `ConversionTemplate.for_each` |
 | study object | `StudyObject` | one link, area or cluster of the study; knows its placeholder substitutions |
-| binding | `Binding` | one combination of the values of the parameters: its substitutions, and its study object if any |
-| instance | `TemplateInstance` | the template instantiated for one binding, no placeholder left |
+| arguments | `TemplateArguments` | one combination of the values of the parameters: its substitutions, and its study object if any |
+| instance | `TemplateInstance` | the template instantiated for one set of arguments, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
 User-facing examples of `values`, `cluster-values`, `exclude` and ad-hoc parameters: [docs/template-parameters.md](docs/template-parameters.md); keep it in sync with this section.
 
-`system_and_scenario_groups()` first computes the bindings of every template (`bindings(template, …)`), so that an id listed in a template but missing from the study fails before anything is converted. `apply_conversion_template()` then instantiates the template for each binding (`template.instantiate(binding.substitutions)`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`). Duplicate component ids in the output system raise a `ValueError`.
+`system_and_scenario_groups()` first computes the arguments of every template (`template_arguments(template, …)`), so that an id listed in a template but missing from the study fails before anything is converted. `apply_conversion_template()` then instantiates the template for each set of arguments (`template.instantiate(arguments.substitutions)`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`). Duplicate component ids in the output system raise a `ValueError`.
 
 - **Parameters** are nested in declaration order (outer first), in any order. At most one parameter has no `ad-hoc` flag: it yields study objects, and `for_each` is derived from it: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). The others are ad-hoc (`ad-hoc: true`, `${<name>}`). `for_each` is `None` when every parameter is ad-hoc. Validators reject any other shape at load (`_check_parameter`).
 - **Lists** (inline, non-empty, without duplicates): `values` restricts the areas or links (antares-craft ids, e.g. `at / fr`) and `cluster-values` the clusters of the `cluster-type` in each area (`${area}` in its entries stands for the area of the cluster); on an ad-hoc parameter, `values` is the iteration. Entries are strings: quote numbers in YAML (`values: ["2030"]`). The entries, and those of `exclude`, may use the placeholders of the outer parameters (checked at load, link attributes included). Without a list, every study object. A listed area or link missing from the study, or a listed cluster in none of the listed areas (before `exclude`), raises a `ValueError` naming the template, the parameter and the ids.
@@ -192,7 +192,7 @@ template:
 
 ### Key template conventions
 
-- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, `${<ad-hoc parameter>}`, etc. — replaced for each binding the template is instantiated for.
+- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, `${<ad-hoc parameter>}`, etc. — replaced for each set of arguments the template is instantiated for.
 - **Link attribute access**: `${link}.area_from_id`, `${link}.area_to_id` are replaced by the link's areas; a following `.` is dropped (`${link}.area_from_id._node` → `at_node`). No other link attribute is allowed.
 - **Binding constraint fields**: use `%` and `.` separators (e.g., `${area}%z_batteries`, `${area}.${area}_batteries_inj`).
 - **Column indexing**: 0-based, references actual columns in Antares data matrices.
