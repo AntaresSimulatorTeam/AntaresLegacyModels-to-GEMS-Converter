@@ -117,6 +117,8 @@ dependencies.json                # Antares Simulator version for CI
 | instance | `TemplateInstance` | the template instantiated for one binding, no placeholder left |
 | fragment | `SystemFragment` | the GEMS output of one or more instances |
 
+User-facing examples of `values`, `cluster-values`, `exclude` and ad-hoc parameters: [docs/template-parameters.md](docs/template-parameters.md); keep it in sync with this section.
+
 `system_and_scenario_groups()` first computes the bindings of every template (`bindings(template, …)`), so that an id listed in a template but missing from the study fails before anything is converted. `apply_conversion_template()` then instantiates the template for each binding (`template.instantiate(binding.substitutions)`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`). Duplicate component ids in the output system raise a `ValueError`.
 
 - **Parameters** are nested in declaration order (outer first), in any order. At most one parameter has no `ad-hoc` flag: it yields study objects, and `for_each` is derived from it: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). The others are ad-hoc (`ad-hoc: true`, `${<name>}`). `for_each` is `None` when every parameter is ad-hoc. Validators reject any other shape at load (`_check_parameter`).
