@@ -8,8 +8,14 @@ import numpy as np
 import pandas as pd
 import pytest
 from antares.craft import ThermalClusterGroup, ThermalClusterProperties
+from antares.craft.model.study import read_study_local
+from yaml import safe_load
 
 from antares_gems_converter.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
+from antares_gems_converter.input_converter.src.templates import (
+    load_conversion_template,
+)
 from tests.antares_historic.utils import (
     convert_study,
     createThermalTestAntaresStudy,
@@ -942,3 +948,51 @@ def test_spinning(
             THERMAL_TEST_SOLVER,
         )
         assert rel_gap > THERMAL_TEST_REL_ACCURACY
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_restricted_thermal_clusters(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    """A thermal template restricted to some clusters (cluster-values): the
+    clusters not listed stay legacy, so the objective is unchanged."""
+    study_name = f"e2e_restricted_clusters_{str(int(100*time()))}"
+    marg_cluster_properties = ThermalClusterProperties(
+        nominal_capacity=100,
+        marginal_cost=27.7,
+        market_bid_cost=27.7,
+        startup_cost=10000,
+        fixed_cost=100,
+        min_down_time=2,
+        min_up_time=2,
+        group=ThermalClusterGroup.NUCLEAR,
+    )
+    createThermalTestAntaresStudy(
+        study_name,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        marg_cluster_properties,
+        pd.DataFrame(data=100 * np.ones((8760, 1))),
+    )
+    data = load_conversion_template("thermal").model_dump()
+    data["template_parameters"][0]["cluster_values"] = ["prod2", "prod3"]
+    thermal = ConversionTemplate.model_validate(data)
+    original_study_path, converted_study_path = convert_study(
+        auto_generated_studies_path, study_name, ["thermal"], {"thermal": thermal}
+    )
+
+    system = safe_load((converted_study_path / "input" / "system.yml").read_text())
+    component_ids = [component["id"] for component in system["system"]["components"]]
+    assert component_ids == ["unique_thermal_prod2", "unique_thermal_prod3"]
+    converted_study = read_study_local(converted_study_path)
+    assert set(converted_study.get_areas()["unique"].get_thermals()) == {"prod"}
+
+    rel_gap = first_optim_relgap(
+        antares_exec_folder,
+        original_study_path,
+        converted_study_path,
+        THERMAL_TEST_SOLVER,
+    )
+    assert rel_gap < THERMAL_TEST_REL_ACCURACY

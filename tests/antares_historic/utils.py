@@ -13,6 +13,7 @@ from antares_gems_converter.input_converter.src.data_preprocessing.data_classes 
     ConversionMode,
 )
 from antares_gems_converter.input_converter.src.logger import Logger
+from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
 
 ANTARES_VERSION_CREATED_STUDIES = "9.3"
 ANTARES_LEGACY_MODELS_PATH = [
@@ -24,9 +25,14 @@ ACCURATE_TEMPLATE_PATH = Path(
 
 
 def convert_study(
-    study_dir: Path, study_name: str, model_list: list[str]
+    study_dir: Path,
+    study_name: str,
+    model_list: list[str],
+    templates: Optional[dict[str, ConversionTemplate]] = None,
 ) -> tuple[Path, Path]:
-    """Take the study study_dir / study_name and generate a hybrid study where all the components of the listed models are converted in GEMS format, according library ANTARES_LEGACY_MODELS_PATH."""
+    """Take the study study_dir / study_name and generate a hybrid study where all the components of the listed models are converted in GEMS format, according library ANTARES_LEGACY_MODELS_PATH.
+
+    `templates`, if given, replace the reference templates of the listed models."""
     log_path = ""
     logger: logging.Logger = Logger(__name__, log_path)
     study_path = study_dir / study_name
@@ -40,6 +46,8 @@ def convert_study(
         "models_to_convert": model_list,
     }
     converter = AntaresStudyConverter(**params)  # type: ignore
+    if templates is not None:
+        converter.load_and_check_templates = lambda: templates  # type: ignore
     converter.process_all()
     return study_path, converter.output_folder
 
