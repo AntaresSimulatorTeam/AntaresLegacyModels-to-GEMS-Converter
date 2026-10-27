@@ -16,7 +16,10 @@ from pathlib import Path
 
 import pytest
 from antares.craft.model.renewable import RenewableClusterProperties
+from antares.craft.model.st_storage import STStorageProperties
 from antares.craft.model.study import Study
+from antares.craft.model.thermal import ThermalClusterProperties
+from gems_craft_hybrid.study.parsing import HybridSystemSchema
 
 from antares_gems_converter.input_converter.src.config import MODEL_NAME_TO_FILE_NAME
 from antares_gems_converter.input_converter.src.converter import AntaresStudyConverter
@@ -29,7 +32,9 @@ from antares_gems_converter.input_converter.src.parsing import (
 )
 from antares_gems_converter.input_converter.src.scenario_builder import read_year_ts
 from antares_gems_converter.input_converter.src.templates import (
+    Binding,
     StudyObject,
+    bindings,
     is_excluded,
     load_conversion_template,
     study_objects,
@@ -94,11 +99,50 @@ def _template(template_parameters: list[dict], **body: list) -> ConversionTempla
 @pytest.mark.parametrize(
     "template_parameters, error",
     [
-        ([], "exactly one template parameter, got 0"),
-        ([{"name": "area"}, {"name": "link"}], "exactly one template parameter, got 2"),
-        ([{"name": "zone"}], "named 'area' or 'link'"),
+        ([], "at least one template parameter"),
+        ([{"name": "area"}, {"name": "link"}], "at most one template parameter"),
+        ([{"name": "area"}, {"name": "area"}], "names must be unique"),
+        ([{"name": "zone"}], "named 'area' or 'link', unless it is ad-hoc"),
         ([{"name": "area", "cluster-type": "hydro"}], "cluster-type must be one of"),
         ([{"name": "link", "cluster-type": "thermal"}], "cluster-type must be one of"),
+        ([{"name": "area", "cluster-values": ["c"]}], "requires a cluster-type"),
+        ([{"name": "area", "values": []}], "non-empty list without duplicates"),
+        ([{"name": "area", "values": ["fr", "fr"]}], "without duplicates"),
+        ([{"name": "site", "ad-hoc": True}], "ad-hoc parameter requires values"),
+        (
+            [
+                {
+                    "name": "site",
+                    "ad-hoc": True,
+                    "values": ["a"],
+                    "cluster-type": "thermal",
+                }
+            ],
+            "not allowed on an ad-hoc parameter",
+        ),
+        (
+            [{"name": "site", "ad-hoc": True, "values": ["a"], "exclude": []}],
+            "not allowed on an ad-hoc parameter",
+        ),
+        ([{"name": "area", "ad-hoc": True, "values": ["a"]}], "name of an ad-hoc"),
+        ([{"name": "thermal", "ad-hoc": True, "values": ["a"]}], "name of an ad-hoc"),
+        ([{"name": "my-site", "ad-hoc": True, "values": ["a"]}], "name of an ad-hoc"),
+        # A list may only use the placeholders of the outer parameters
+        (
+            [{"name": "area", "values": ["${area}"]}],
+            "unknown placeholder '\\$\\{area\\}'",
+        ),
+        (
+            [
+                {"name": "area", "values": ["${site}"]},
+                {"name": "site", "ad-hoc": True, "values": ["a"]},
+            ],
+            "unknown placeholder '\\$\\{site\\}'",
+        ),
+        (
+            [{"name": "area", "cluster-type": "thermal", "cluster-values": ["${x}"]}],
+            "unknown placeholder '\\$\\{x\\}' in cluster-values",
+        ),
     ],
 )
 def test_invalid_template_parameters(template_parameters: list[dict], error: str):
@@ -298,6 +342,17 @@ def test_instantiate_rejects_unresolved_placeholder():
         template.instantiate(FR.substitutions())
 
 
+def _study_objects(template: ConversionTemplate, study: Study) -> list[StudyObject]:
+    assert template.legacy_parameter is not None
+    return study_objects(
+        template.name,
+        template.legacy_parameter,
+        study,
+        study.get_areas(),
+        logging.getLogger(__name__),
+    )
+
+
 def test_study_objects_skip_excluded_and_disabled(
     local_study_w_links: Study, caplog: pytest.LogCaptureFixture
 ):
@@ -315,7 +370,7 @@ def test_study_objects_skip_excluded_and_disabled(
 
     renewable = with_exclude(load_conversion_template("renewable"), exclude_it)
     with caplog.at_level(logging.WARNING):
-        objects = list(study_objects(renewable, study, areas, logger))
+        objects = _study_objects(renewable, study)
     assert objects == [StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="pv")]
     # A disabled cluster is skipped with a warning, unless its area is excluded
     assert "'pv_off'" in caplog.text and "'it_off'" not in caplog.text
@@ -323,8 +378,355 @@ def test_study_objects_skip_excluded_and_disabled(
     # A link is excluded with either of its areas: "it" ends "at / it" and
     # "fr / it", "at" starts "at / fr" and "at / it"
     link = with_exclude(load_conversion_template("link"), exclude_it)
-    assert list(study_objects(link, study, areas, logger)) == [AT_FR]
+    assert _study_objects(link, study) == [AT_FR]
     exclude_at = [{"id": "at", "object-properties": {"type": "area", "area": "at"}}]
     link = with_exclude(load_conversion_template("link"), exclude_at)
-    links = study_objects(link, study, areas, logger)
-    assert [obj.link for obj in links] == ["fr / it"]
+    assert [obj.link for obj in _study_objects(link, study)] == ["fr / it"]
+
+
+def test_ad_hoc_parameter_forbids_legacy_objects_to_delete():
+    deleted = {"id": "d", "object-properties": {"type": "area", "area": "${site}"}}
+    with pytest.raises(ValueError, match="legacy-objects-to-delete is not allowed"):
+        _template(
+            [{"name": "site", "ad-hoc": True, "values": ["a"]}],
+            **{"legacy-objects-to-delete": [deleted]},
+        )
+
+
+def test_valid_template_parameters():
+    template = _template(
+        [
+            {"name": "site", "ad-hoc": True, "values": ["fr", "it"]},
+            {"name": "area", "values": ["${site}"], "cluster-type": "thermal"},
+            {"name": "unit", "ad-hoc": True, "values": ["${site}_${thermal}_1"]},
+        ]
+    )
+    assert template.for_each == ObjectKind.THERMAL
+    assert [p.name for p in template.ad_hoc_parameters] == ["site", "unit"]
+    ad_hoc_only = _template([{"name": "site", "ad-hoc": True, "values": ["a"]}])
+    assert ad_hoc_only.for_each is None
+    assert ad_hoc_only.excluded_objects == []
+
+
+def _with_parameter(model: str, **keys: object) -> ConversionTemplate:
+    """The reference template of `model`, its parameter given `keys`."""
+    data = load_conversion_template(model).model_dump()
+    data["template_parameters"][0].update(keys)
+    return ConversionTemplate.model_validate(data)
+
+
+@pytest.fixture
+def study_w_clusters(local_study_with_st_storage: Study) -> Study:
+    """fr: thermal gaz, coal, it_gaz; renewable generation; storage storage_1
+    it: thermal it_gaz, coal; renewable it_pv; storage it_storage"""
+    study = local_study_with_st_storage
+    areas = study.get_areas()
+    areas["fr"].create_thermal_cluster("coal", ThermalClusterProperties())
+    areas["fr"].create_thermal_cluster("it_gaz", ThermalClusterProperties())
+    areas["it"].create_thermal_cluster("it_gaz", ThermalClusterProperties())
+    areas["it"].create_thermal_cluster("coal", ThermalClusterProperties())
+    areas["it"].create_renewable_cluster("it_pv", RenewableClusterProperties())
+    areas["it"].create_st_storage("it_storage", STStorageProperties())
+    return study
+
+
+def test_values_restrict_areas_and_links(study_w_clusters: Study):
+    area = _with_parameter("load", values=["it", "fr"])
+    # In study order, whatever the order of the list
+    assert [obj.area for obj in _study_objects(area, study_w_clusters)] == [
+        "fr",
+        "it",
+    ]
+    link = _with_parameter("link", values=["at / fr"])
+    assert _study_objects(link, study_w_clusters) == [AT_FR]
+
+
+@pytest.mark.parametrize(
+    "model, cluster_values, expected",
+    [
+        ("thermal", ["coal"], [("fr", "coal"), ("it", "coal")]),
+        ("thermal", ["${area}_gaz"], [("it", "it_gaz")]),
+        (
+            "thermal",
+            ["gaz", "it_gaz"],
+            [("fr", "gaz"), ("fr", "it_gaz"), ("it", "it_gaz")],
+        ),
+        ("renewable", ["it_pv"], [("it", "it_pv")]),
+        ("short-term-storage", ["storage_1"], [("fr", "storage_1")]),
+    ],
+)
+def test_cluster_values_restrict_clusters(
+    study_w_clusters: Study,
+    model: str,
+    cluster_values: list[str],
+    expected: list[tuple[str, str]],
+):
+    template = _with_parameter(model, cluster_values=cluster_values)
+    objects = _study_objects(template, study_w_clusters)
+    assert [(obj.area, obj.cluster) for obj in objects] == expected
+
+
+def test_exclude_applies_after_lists(study_w_clusters: Study):
+    exclude = [
+        {"id": "it", "object-properties": {"type": "area", "area": "it"}},
+        {
+            "id": "coal",
+            "object-properties": {"type": "thermal", "area": "fr", "cluster": "coal"},
+        },
+    ]
+    template = _with_parameter(
+        "thermal", values=["fr", "it"], cluster_values=["coal", "gaz"]
+    )
+    template = with_exclude(template, exclude)
+    objects = _study_objects(template, study_w_clusters)
+    assert objects == [FR_GAZ]
+    # A listed cluster only in an excluded area exists: it is not an error
+    template = with_exclude(
+        _with_parameter("renewable", cluster_values=["it_pv"]), exclude
+    )
+    assert _study_objects(template, study_w_clusters) == []
+
+
+@pytest.mark.parametrize(
+    "model, keys, error",
+    [
+        ("load", {"values": ["fr", "de"]}, "areas \\['de'\\] not found"),
+        ("link", {"values": ["fr / at"]}, "links \\['fr / at'\\] not found"),
+        (
+            "thermal",
+            {"cluster-values": ["gaz", "nuclear"]},
+            "thermal clusters \\['nuclear'\\] not found",
+        ),
+        # gaz is in fr, which is not listed
+        (
+            "thermal",
+            {"values": ["it"], "cluster-values": ["gaz"]},
+            "thermal clusters \\['gaz'\\] not found",
+        ),
+        (
+            "short-term-storage",
+            {"cluster-values": ["${area}_battery"]},
+            "st_storage clusters \\['\\$\\{area\\}_battery'\\] not found",
+        ),
+    ],
+)
+def test_unknown_listed_ids(
+    study_w_clusters: Study, model: str, keys: dict, error: str
+):
+    data = load_conversion_template(model).model_dump(by_alias=True)
+    data["template-parameters"][0].update(keys)
+    template = ConversionTemplate.model_validate(data)
+    with pytest.raises(ValueError, match=f"Template '{template.name}', parameter "):
+        _study_objects(template, study_w_clusters)
+    with pytest.raises(ValueError, match=error):
+        _study_objects(template, study_w_clusters)
+
+
+def _bindings(template: ConversionTemplate, study: Study) -> list[Binding]:
+    return bindings(template, study, study.get_areas(), logging.getLogger(__name__))
+
+
+def test_bindings_nest_parameters_in_declaration_order(study_w_clusters: Study):
+    area_site = _template(
+        [
+            {"name": "area", "values": ["fr", "it"]},
+            {"name": "site", "ad-hoc": True, "values": ["n", "${area}_s"]},
+        ]
+    )
+    assert [b.substitutions for b in _bindings(area_site, study_w_clusters)] == [
+        {"${area}": "fr", "${site}": "n"},
+        {"${area}": "fr", "${site}": "fr_s"},
+        {"${area}": "it", "${site}": "n"},
+        {"${area}": "it", "${site}": "it_s"},
+    ]
+    site_area = _template(
+        [
+            {"name": "site", "ad-hoc": True, "values": ["fr", "it"]},
+            {"name": "area", "values": ["${site}"], "cluster-type": "thermal"},
+        ]
+    )
+    result = _bindings(site_area, study_w_clusters)
+    assert [b.substitutions["${thermal}"] for b in result] == [
+        "gaz",
+        "coal",
+        "it_gaz",
+        "it_gaz",
+        "coal",
+    ]
+    assert result[0] == Binding(
+        {"${site}": "fr", "${area}": "fr", "${thermal}": "gaz"}, FR_GAZ
+    )
+    ad_hoc_only = _template([{"name": "site", "ad-hoc": True, "values": ["a", "b"]}])
+    assert _bindings(ad_hoc_only, study_w_clusters) == [
+        Binding({"${site}": "a"}),
+        Binding({"${site}": "b"}),
+    ]
+
+
+def test_legacy_bindings_are_study_objects(study_w_clusters: Study):
+    template = load_conversion_template("thermal")
+    result = _bindings(template, study_w_clusters)
+    assert [b.study_object for b in result] == _study_objects(
+        template, study_w_clusters
+    )
+    assert all(b.substitutions == b.study_object.substitutions() for b in result)
+
+
+ELECTROLYSER = {
+    "name": "electrolyser",
+    "model": "lib.electrolyser",
+    "template-parameters": [
+        {"name": "area", "values": ["fr", "it"]},
+        {"name": "site", "ad-hoc": True, "values": ["north", "south"]},
+    ],
+    "components": [
+        {
+            "id": "${area}_electrolyser_${site}",
+            "scenario-group": "electrolyser_${area}_${site}",
+            "parameters": [
+                {"id": "efficiency", "value": {"constant": 0.7}},
+            ],
+            "properties": [{"id": "site", "value": {"constant": "${site}"}}],
+        }
+    ],
+    "connections": [
+        {
+            "component1": "${area}_electrolyser_${site}",
+            "port1": "power_port",
+            "component2": "${area}_node",
+            "port2": "balance_port",
+        }
+    ],
+    "area-connections": [
+        {
+            "component": "${area}_electrolyser_${site}",
+            "port": "power_port",
+            "area": "${area}",
+        }
+    ],
+}
+ELECTROLYSER_IDS = [
+    "fr_electrolyser_north",
+    "fr_electrolyser_south",
+    "it_electrolyser_north",
+    "it_electrolyser_south",
+]
+
+
+def _study_converter(study: Study, mode: str) -> AntaresStudyConverter:
+    return AntaresStudyConverter(
+        study_input=study,
+        logger=Logger(__name__, study.path),
+        mode=mode,
+        lib_paths=LIB_PATHS,
+        models_to_convert=[],
+        output_folder=study.path.parent / "converter_output",
+    )
+
+
+@pytest.mark.parametrize("mode", ["full", "hybrid"])
+def test_convert_ad_hoc_template(study_w_clusters: Study, mode: str):
+    sb = study_w_clusters.get_scenario_builder()
+    sb.load.get_area("fr").set_new_scenario([2])
+    study_w_clusters.set_scenario_builder(sb)
+    converter = _study_converter(study_w_clusters, mode)
+    template = ConversionTemplate.model_validate(ELECTROLYSER)
+    system, scenario_groups = converter.system_and_scenario_groups(
+        {"electrolyser": template}
+    )
+    assert [c.id for c in system.components] == ELECTROLYSER_IDS
+    component = system.components[0]
+    assert component.parameters[0].value == 0.7
+    assert component.properties[0].value == "north"
+    # Ad-hoc components have no legacy SB entry, hence no scenario group
+    assert component.scenario_group is None and scenario_groups == {}
+    if mode == "full":
+        assert [c.component2 for c in system.connections] == [
+            "fr_node",
+            "fr_node",
+            "it_node",
+            "it_node",
+        ]
+    else:
+        assert isinstance(system, HybridSystemSchema)
+        assert [(c.component, c.area) for c in system.area_connections] == [
+            ("fr_electrolyser_north", "fr"),
+            ("fr_electrolyser_south", "fr"),
+            ("it_electrolyser_north", "it"),
+            ("it_electrolyser_south", "it"),
+        ]
+        assert converter.legacy_objects == []
+
+
+def test_ad_hoc_parameter_drops_scenario_groups(study_w_clusters: Study):
+    sb = study_w_clusters.get_scenario_builder()
+    sb.thermal.get_cluster("fr", "gaz").set_new_scenario([2])
+    study_w_clusters.set_scenario_builder(sb)
+    converter = _study_converter(study_w_clusters, "full")
+    thermal = _with_parameter("thermal", values=["fr"], cluster_values=["gaz"])
+    _, scenario_groups = converter.system_and_scenario_groups({"thermal": thermal})
+    assert scenario_groups == {"thermal_fr_gaz_group": {0: 2}}
+
+    data = thermal.model_dump()
+    data["template_parameters"].append(
+        {"name": "unit", "ad_hoc": True, "values": ["1"]}
+    )
+    data["legacy_objects_to_delete"] = []
+    data["components"][0]["id"] += "_${unit}"
+    ad_hoc = ConversionTemplate.model_validate(data)
+    system, scenario_groups = converter.system_and_scenario_groups({"thermal": ad_hoc})
+    assert [c.id for c in system.components] == ["fr_thermal_gaz_1"]
+    assert system.components[0].scenario_group is None and scenario_groups == {}
+
+
+@pytest.mark.parametrize("mode", ["full", "hybrid"])
+def test_convert_restricted_clusters(study_w_clusters: Study, mode: str):
+    converter = _study_converter(study_w_clusters, mode)
+    thermal = _with_parameter("thermal", values=["fr"], cluster_values=["coal"])
+    templates = {"thermal": thermal, "link": load_conversion_template("link")}
+    system, _ = converter.system_and_scenario_groups(templates)
+    # A list only restricts its own template
+    assert [c.id for c in system.components] == [
+        "fr_thermal_coal",
+        "at_fr_link",
+        "at_it_link",
+        "fr_it_link",
+    ]
+    if mode == "hybrid":
+        # The clusters not listed are not deleted: they stay legacy
+        delete_legacy_objects(
+            converter.study, converter.areas, converter.legacy_objects, converter.logger
+        )
+        areas = converter.study.get_areas()
+        assert set(areas["fr"].get_thermals()) == {"gaz", "it_gaz"}
+        assert set(areas["it"].get_thermals()) == {"it_gaz", "coal"}
+
+
+def test_unknown_listed_id_fails_before_converting(
+    study_w_clusters: Study, monkeypatch: pytest.MonkeyPatch
+):
+    converter = _study_converter(study_w_clusters, "full")
+    converted: list[str] = []
+    monkeypatch.setattr(
+        converter,
+        "apply_conversion_template",
+        lambda template, *args: converted.append(template.name),
+    )
+    templates = {
+        "electrolyser": ConversionTemplate.model_validate(ELECTROLYSER),
+        "load": _with_parameter("load", values=["de"]),
+    }
+    with pytest.raises(ValueError, match="areas \\['de'\\] not found"):
+        converter.system_and_scenario_groups(templates)
+    # Not even the templates before the faulty one
+    assert converted == []
+
+
+def test_duplicate_component_ids(study_w_clusters: Study):
+    converter = _study_converter(study_w_clusters, "full")
+    template = ConversionTemplate.model_validate(ELECTROLYSER)
+    other = template.model_copy(update={"name": "other"})
+    with pytest.raises(
+        ValueError, match="Duplicate component ids.*fr_electrolyser_north"
+    ):
+        converter.system_and_scenario_groups({"electrolyser": template, "other": other})

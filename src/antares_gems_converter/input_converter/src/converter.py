@@ -11,6 +11,7 @@
 # This file is part of the Antares project.
 import logging
 import shutil
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
@@ -50,8 +51,9 @@ from antares_gems_converter.input_converter.src.scenario_builder import (
     write_scenario_builder_file,
 )
 from antares_gems_converter.input_converter.src.templates import (
+    Binding,
+    bindings,
     load_conversion_templates,
-    study_objects,
 )
 from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
@@ -287,28 +289,42 @@ class AntaresStudyConverter:
         # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
         return component_id.replace(" / ", "_") + suffix
 
+    def template_bindings(
+        self, conversion_template: ConversionTemplate
+    ) -> list[Binding]:
+        """What `conversion_template` is instantiated for in this study (see
+        `templates.bindings`)."""
+        return bindings(conversion_template, self.study, self.areas, self.logger)
+
     def apply_conversion_template(
         self,
         conversion_template: ConversionTemplate,
         legacy_sb: ScenarioBuilder | None = None,
+        template_bindings: Optional[list[Binding]] = None,
     ) -> SystemFragment:
-        """Convert the study objects that `conversion_template` applies to,
-        except those it excludes; `legacy_sb` gives the scenario groups.
+        """Convert `conversion_template` for each of `template_bindings`
+        (by default, `self.template_bindings(conversion_template)`);
+        `legacy_sb` gives the scenario groups.
 
         In hybrid mode, the fragment also lists the legacy objects to delete.
         """
+        if template_bindings is None:
+            template_bindings = self.template_bindings(conversion_template)
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
         )
         id_suffix = self._component_id_suffix(conversion_template)
+        # Ad-hoc components have no legacy SB entry
+        read_sb = not conversion_template.ad_hoc_parameters
         try:
-            for study_object in study_objects(
-                conversion_template, self.study, self.areas, self.logger
-            ):
-                instance = conversion_template.instantiate(study_object.substitutions())
-                year_ts = read_year_ts(
-                    legacy_sb, conversion_template.name, study_object
+            for binding in template_bindings:
+                instance = conversion_template.instantiate(binding.substitutions)
+                study_object = binding.study_object if read_sb else None
+                year_ts = (
+                    read_year_ts(legacy_sb, conversion_template.name, study_object)
+                    if study_object
+                    else {}
                 )
                 self._convert_instance(
                     instance, year_ts, id_suffix, model_preprocessor, fragment
@@ -352,17 +368,30 @@ class AntaresStudyConverter:
         In hybrid mode, also record the legacy objects to delete in
         `self.legacy_objects`.
         """
+        # What every template is instantiated for, before converting anything:
+        # an id listed in a template but not in the study fails early
+        template_bindings = {
+            model: self.template_bindings(conversion_template)
+            for model, conversion_template in model_conversion_templates.items()
+        }
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = get_legacy_sb(self.study, self.logger)
         converted = SystemFragment()
-        for conversion_template in model_conversion_templates.values():
+        for model, conversion_template in model_conversion_templates.items():
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
             converted.merge(
-                self.apply_conversion_template(conversion_template, legacy_sb)
+                self.apply_conversion_template(
+                    conversion_template, legacy_sb, template_bindings[model]
+                )
             )
         self.legacy_objects = converted.legacy_objects
+        component_ids = Counter(component.id for component in converted.components)
+        if duplicates := sorted(id_ for id_, n in component_ids.items() if n > 1):
+            raise ValueError(
+                f"Duplicate component ids in the converted system: {duplicates}"
+            )
 
         if self.mode == ConversionMode.HYBRID:
             system = HybridSystemSchema(
