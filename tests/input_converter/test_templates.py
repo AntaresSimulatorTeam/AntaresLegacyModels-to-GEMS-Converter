@@ -10,6 +10,7 @@
 #
 # This file is part of the Antares project.
 """Template loop: what a template is instantiated for, and how."""
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -96,6 +97,10 @@ def _template(template_parameters: list[dict], **body: list) -> ConversionTempla
     )
 
 
+def _exclusion(type_: str, **fields: str) -> dict:
+    return {"id": "e", "object-properties": {"type": type_, **fields}}
+
+
 @pytest.mark.parametrize(
     "template_parameters, error",
     [
@@ -143,6 +148,27 @@ def _template(template_parameters: list[dict], **body: list) -> ConversionTempla
             [{"name": "area", "cluster-type": "thermal", "cluster-values": ["${x}"]}],
             "unknown placeholder '\\$\\{x\\}' in cluster-values",
         ),
+        (
+            [{"name": "site", "ad-hoc": True, "values": ["a"], "cluster-values": []}],
+            "not allowed on an ad-hoc parameter",
+        ),
+        (
+            [{"name": "area", "cluster-type": "thermal", "cluster-values": ["c", "c"]}],
+            "cluster-values must be a non-empty list without duplicates",
+        ),
+        (
+            [
+                {"name": "link"},
+                {"name": "x", "ad-hoc": True, "values": ["${link}.area_frm_id"]},
+            ],
+            "unknown link attribute",
+        ),
+        (
+            [{"name": "area", "exclude": [_exclusion("area", area="${site}")]}],
+            "unknown placeholder '\\$\\{site\\}' in exclude",
+        ),
+        # Values are strings: numbers must be quoted in YAML
+        ([{"name": "year", "ad-hoc": True, "values": [2030]}], "valid string"),
     ],
 )
 def test_invalid_template_parameters(template_parameters: list[dict], error: str):
@@ -466,6 +492,16 @@ def test_cluster_values_restrict_clusters(
     assert [(obj.area, obj.cluster) for obj in objects] == expected
 
 
+def test_cluster_values_resolving_to_the_same_cluster(study_w_clusters: Study):
+    # In it, both entries are it_gaz: each is found
+    template = _with_parameter(
+        "thermal", values=["it"], cluster_values=["it_gaz", "${area}_gaz"]
+    )
+    assert _study_objects(template, study_w_clusters) == [
+        StudyObject(ObjectKind.THERMAL, area="it", cluster="it_gaz")
+    ]
+
+
 def test_exclude_applies_after_lists(study_w_clusters: Study):
     exclude = [
         {"id": "it", "object-properties": {"type": "area", "area": "it"}},
@@ -625,37 +661,52 @@ def _study_converter(study: Study, mode: str) -> AntaresStudyConverter:
 
 
 @pytest.mark.parametrize("mode", ["full", "hybrid"])
-def test_convert_ad_hoc_template(study_w_clusters: Study, mode: str):
-    sb = study_w_clusters.get_scenario_builder()
-    sb.load.get_area("fr").set_new_scenario([2])
-    study_w_clusters.set_scenario_builder(sb)
+@pytest.mark.parametrize("site_outside", [False, True])
+def test_convert_ad_hoc_template(
+    study_w_clusters: Study, mode: str, site_outside: bool
+):
     converter = _study_converter(study_w_clusters, mode)
     template = ConversionTemplate.model_validate(ELECTROLYSER)
-    system, scenario_groups = converter.system_and_scenario_groups(
-        {"electrolyser": template}
-    )
-    assert [c.id for c in system.components] == ELECTROLYSER_IDS
+    if site_outside:
+        template.template_parameters.reverse()
+    system, _ = converter.system_and_scenario_groups({"electrolyser": template})
+    ids = [c.id for c in system.components]
+    # The outer parameter varies slowest
+    order = [0, 2, 1, 3] if site_outside else [0, 1, 2, 3]
+    assert ids == [ELECTROLYSER_IDS[i] for i in order]
     component = system.components[0]
     assert component.parameters[0].value == 0.7
     assert component.properties[0].value == "north"
-    # Ad-hoc components have no legacy SB entry, hence no scenario group
-    assert component.scenario_group is None and scenario_groups == {}
     if mode == "full":
+        assert [c.component1 for c in system.connections] == ids
         assert [c.component2 for c in system.connections] == [
-            "fr_node",
-            "fr_node",
-            "it_node",
-            "it_node",
+            f"{id.split('_')[0]}_node" for id in ids
         ]
     else:
         assert isinstance(system, HybridSystemSchema)
         assert [(c.component, c.area) for c in system.area_connections] == [
-            ("fr_electrolyser_north", "fr"),
-            ("fr_electrolyser_south", "fr"),
-            ("it_electrolyser_north", "it"),
-            ("it_electrolyser_south", "it"),
+            (id, id.split("_")[0]) for id in ids
         ]
         assert converter.legacy_objects == []
+
+
+def test_convert_ad_hoc_only_template(study_w_clusters: Study):
+    converter = _study_converter(study_w_clusters, "hybrid")
+    data = {
+        **ELECTROLYSER,
+        "template-parameters": [
+            {"name": "site", "ad-hoc": True, "values": ["north", "south"]}
+        ],
+    }
+    data = json.loads(json.dumps(data).replace("${area}", "fr"))
+    system, _ = converter.system_and_scenario_groups(
+        {"electrolyser": ConversionTemplate.model_validate(data)}
+    )
+    assert isinstance(system, HybridSystemSchema)
+    assert [(c.component, c.area) for c in system.area_connections] == [
+        ("fr_electrolyser_north", "fr"),
+        ("fr_electrolyser_south", "fr"),
+    ]
 
 
 def test_ad_hoc_parameter_drops_scenario_groups(study_w_clusters: Study):
@@ -700,6 +751,44 @@ def test_convert_restricted_clusters(study_w_clusters: Study, mode: str):
         areas = converter.study.get_areas()
         assert set(areas["fr"].get_thermals()) == {"gaz", "it_gaz"}
         assert set(areas["it"].get_thermals()) == {"it_gaz", "coal"}
+
+
+@pytest.mark.parametrize(
+    "model, keys, converted, kept",
+    [
+        ("link", {"values": ["at / fr"]}, ["at_fr_link"], {"at / it", "fr / it"}),
+        (
+            "renewable",
+            {"cluster_values": ["it_pv"]},
+            ["it_renewable_it_pv"],
+            {("fr", "generation")},
+        ),
+        (
+            "short-term-storage",
+            {"values": ["it"]},
+            ["it_short_term_storage_it_storage"],
+            {("fr", "storage_1")},
+        ),
+    ],
+)
+def test_objects_not_listed_stay_legacy(
+    study_w_clusters: Study, model: str, keys: dict, converted: list, kept: set
+):
+    converter = _study_converter(study_w_clusters, "hybrid")
+    template = _with_parameter(model, **keys)
+    system, _ = converter.system_and_scenario_groups({model: template})
+    assert [c.id for c in system.components] == converted
+    delete_legacy_objects(
+        converter.study, converter.areas, converter.legacy_objects, converter.logger
+    )
+    areas = converter.study.get_areas()
+    if model == "link":
+        remaining = set(converter.study.get_links())
+    elif model == "renewable":
+        remaining = {(a, c) for a in areas for c in areas[a].get_renewables()}
+    else:
+        remaining = {(a, c) for a in areas for c in areas[a].get_st_storages()}
+    assert remaining == kept
 
 
 def test_unknown_listed_id_fails_before_converting(

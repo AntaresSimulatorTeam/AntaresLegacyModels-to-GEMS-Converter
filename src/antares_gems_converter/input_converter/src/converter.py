@@ -300,16 +300,16 @@ class AntaresStudyConverter:
         self,
         conversion_template: ConversionTemplate,
         legacy_sb: ScenarioBuilder | None = None,
-        template_bindings: Optional[list[Binding]] = None,
+        instance_bindings: Optional[list[Binding]] = None,
     ) -> SystemFragment:
-        """Convert `conversion_template` for each of `template_bindings`
+        """Convert `conversion_template` for each of `instance_bindings`
         (by default, `self.template_bindings(conversion_template)`);
         `legacy_sb` gives the scenario groups.
 
         In hybrid mode, the fragment also lists the legacy objects to delete.
         """
-        if template_bindings is None:
-            template_bindings = self.template_bindings(conversion_template)
+        if instance_bindings is None:
+            instance_bindings = self.template_bindings(conversion_template)
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
@@ -318,7 +318,7 @@ class AntaresStudyConverter:
         # Ad-hoc components have no legacy SB entry
         read_sb = not conversion_template.ad_hoc_parameters
         try:
-            for binding in template_bindings:
+            for binding in instance_bindings:
                 instance = conversion_template.instantiate(binding.substitutions)
                 study_object = binding.study_object if read_sb else None
                 year_ts = (
@@ -330,10 +330,11 @@ class AntaresStudyConverter:
                     instance, year_ts, id_suffix, model_preprocessor, fragment
                 )
         except (KeyError, FileNotFoundError) as e:
-            # Not raised: a template is applied to every area, so the battery
-            # template fails on any area without the battery artefact (e.g. a
-            # study with no battery, while battery is converted by default).
-            # This also stops the model's conversion at the first such area.
+            # Not raised: a template without values is applied to every area,
+            # so the battery template fails on any area without the battery
+            # artefact (e.g. a study with no battery, while battery is
+            # converted by default). This also stops the model's conversion at
+            # the first such area. Restrict it with values to avoid this.
             self.logger.error(
                 f"Error while converting model '{conversion_template.name}' to "
                 f"component list: {e!r}. Please check the model configuration file."
@@ -370,7 +371,7 @@ class AntaresStudyConverter:
         """
         # What every template is instantiated for, before converting anything:
         # an id listed in a template but not in the study fails early
-        template_bindings = {
+        bindings_by_model = {
             model: self.template_bindings(conversion_template)
             for model, conversion_template in model_conversion_templates.items()
         }
@@ -383,7 +384,7 @@ class AntaresStudyConverter:
             )
             converted.merge(
                 self.apply_conversion_template(
-                    conversion_template, legacy_sb, template_bindings[model]
+                    conversion_template, legacy_sb, bindings_by_model[model]
                 )
             )
         self.legacy_objects = converted.legacy_objects

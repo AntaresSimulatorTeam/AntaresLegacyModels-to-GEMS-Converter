@@ -179,11 +179,10 @@ def study_objects(
         clusters = getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[kind])()
         if parameter.cluster_values is not None:
             # In the entries, ${area} stands for the area of the cluster
-            listed = {
-                entry.replace("${area}", area.id): entry
-                for entry in parameter.cluster_values
-            }
-            found_clusters.update(listed[c] for c in clusters if c in listed)
+            listed: dict[str, list[str]] = {}
+            for entry in parameter.cluster_values:
+                listed.setdefault(entry.replace("${area}", area.id), []).append(entry)
+            found_clusters.update(e for c in clusters for e in listed.get(c, []))
             clusters = {c: clusters[c] for c in clusters if c in listed}
         if excluded:
             continue

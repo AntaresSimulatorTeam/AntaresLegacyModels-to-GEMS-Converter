@@ -286,8 +286,9 @@ class ConversionTemplate(TemplateBody):
             self._check_parameter(parameter, outer_placeholders)
             outer_placeholders.update(parameter.placeholders)
         # A typo such as ${link}.area_frm_id would be substituted as ${link}
-        # and leave no placeholder for `instantiate` to report
-        for match in LINK_ATTRIBUTE_PATTERN.finditer(self._body_json()):
+        # and leave no placeholder for `instantiate` to report (in the body
+        # and in the lists of the parameters)
+        for match in LINK_ATTRIBUTE_PATTERN.finditer(json.dumps(self.model_dump())):
             if match.group(1) not in LINK_ATTRIBUTES:
                 raise ValueError(
                     f"Template '{self.name}': unknown link attribute "
@@ -338,8 +339,8 @@ class ConversionTemplate(TemplateBody):
                 )
         elif parameter.name not in (ObjectKind.AREA, ObjectKind.LINK):
             raise ValueError(
-                f"Template '{self.name}': the template parameter must be named "
-                f"'area' or 'link', unless it is ad-hoc, got '{parameter.name}'"
+                f"{prefix}: a template parameter must be named 'area' or 'link', "
+                f"unless it is ad-hoc"
             )
         if parameter.cluster_type is not None and (
             parameter.name != ObjectKind.AREA
@@ -352,23 +353,35 @@ class ConversionTemplate(TemplateBody):
             )
         if parameter.cluster_values is not None and parameter.cluster_type is None:
             raise ValueError(f"{prefix}: cluster-values requires a cluster-type")
-        # The entries of a list may use the placeholders of the outer
-        # parameters, and those of cluster-values the area of the cluster
-        lists = {
-            "values": (parameter.values, outer_placeholders),
-            "cluster-values": (
-                parameter.cluster_values,
-                outer_placeholders | {"${area}"},
-            ),
-        }
-        for key, (entries, allowed) in lists.items():
-            if entries is None:
-                continue
-            if not entries or len(set(entries)) != len(entries):
+        for key, entries in (
+            ("values", parameter.values),
+            ("cluster-values", parameter.cluster_values),
+        ):
+            if entries is not None and (
+                not entries or len(set(entries)) != len(entries)
+            ):
                 raise ValueError(
                     f"{prefix}: {key} must be a non-empty list without duplicates, "
                     f"got {entries}"
                 )
+        # The entries of the lists and exclusions may use the placeholders of
+        # the outer parameters, those of cluster-values and exclude the area
+        # of the cluster
+        excluded_strings = [
+            value
+            for excluded in parameter.excluded_objects
+            for _, value in excluded
+            if isinstance(value, str)
+        ]
+        lists = {
+            "values": (parameter.values or [], outer_placeholders),
+            "cluster-values": (
+                parameter.cluster_values or [],
+                outer_placeholders | {"${area}"},
+            ),
+            "exclude": (excluded_strings, outer_placeholders | {"${area}"}),
+        }
+        for key, (entries, allowed) in lists.items():
             for entry in entries:
                 for match in PLACEHOLDER_PATTERN.finditer(entry):
                     if match.group() not in allowed:
