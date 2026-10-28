@@ -9,8 +9,8 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""Read the legacy scenario builder (SB), turn it into the scenario groups of
-the GEMS components, and write modeler-scenariobuilder.dat."""
+"""Read the legacy scenario builder (SB) of each study object, clear the
+entries of deleted objects, and write modeler-scenariobuilder.dat."""
 import logging
 import shutil
 from pathlib import Path
@@ -23,7 +23,7 @@ from antares_gems_converter.input_converter.src.config import (
     LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
     MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
 )
-from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
+from antares_gems_converter.input_converter.src.parsing import ObjectKind
 from antares_gems_converter.input_converter.src.templates import StudyObject
 
 MODELER_SCENARIO_BUILDER_FILE = "modeler-scenariobuilder.dat"
@@ -41,67 +41,36 @@ def get_legacy_sb(study: Study, logger: logging.Logger) -> ScenarioBuilder | Non
 
 def read_year_ts(
     legacy_sb: ScenarioBuilder | None,
-    conversion_template: ConversionTemplate,
+    template_name: str,
     study_object: StudyObject,
 ) -> dict[int, int]:
     """Return {year_index: ts_index} for all years that have an explicit SB
-    entry (non-None) for `study_object`, the object `conversion_template` was
-    resolved for."""
+    entry (non-None) for `study_object`, an object that the template named
+    `template_name` is instantiated for."""
     if legacy_sb is None:
         return {}
     # Links, cluster types (thermal/renewable) and area matrix types
     # (wind/solar/load/hydro/ror) have their own SB attribute
-    cluster_type = conversion_template.template_parameters[0].cluster_type
-    if study_object.link is not None:
-        attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(conversion_template.name)
-    elif cluster_type:
-        attr = CLUSTER_TYPE_TO_SB_ATTR.get(cluster_type)
+    if study_object.kind == ObjectKind.LINK:
+        attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(template_name)
+    elif study_object.kind == ObjectKind.AREA:
+        attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(template_name)
     else:
-        attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(conversion_template.name)
+        attr = CLUSTER_TYPE_TO_SB_ATTR.get(study_object.kind)
     if attr is None:
         return {}
 
     sb_matrices = getattr(legacy_sb, attr)
-    if study_object.link is not None:
+    if study_object.kind == ObjectKind.LINK:
         # SB link ids are sorted alphabetically
         sb_matrix = sb_matrices.get_link(study_object.link)
-    elif study_object.cluster is not None:
-        sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
-    else:
+    elif study_object.kind == ObjectKind.AREA:
         sb_matrix = sb_matrices.get_area(study_object.area)
+    else:
+        sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
     return {
         year: ts for year, ts in enumerate(sb_matrix.get_scenario()) if ts is not None
     }
-
-
-def apply_sb_groups(
-    resolved_template: ConversionTemplate,
-    year_ts: dict[int, int],
-    group_data: dict[str, dict[int, int]],
-) -> ConversionTemplate:
-    # For each component that carries a scenario_group placeholder from the YAML template:
-    # - if year_ts is non-empty: keep the group name, register its {year: ts} data in group_data
-    #   (used later to write modeler-scenariobuilder.dat)
-    # - if year_ts is empty (no SB entries, or no legacy SB at all): clear to None so the
-    #   placeholder value does not leak into the output system
-    # " / " in group names comes from link IDs (e.g. "at / fr") — normalize to "_".
-    new_components = []
-    changed = False
-    for comp in resolved_template.components:
-        if comp.scenario_group is not None:
-            normalized = comp.scenario_group.replace(" / ", "_")
-            if year_ts:
-                group_data[normalized] = year_ts
-                new_comp = comp.model_copy(update={"scenario_group": normalized})
-            else:
-                new_comp = comp.model_copy(update={"scenario_group": None})
-            new_components.append(new_comp)
-            changed = True
-        else:
-            new_components.append(comp)
-    if changed:
-        return resolved_template.model_copy(update={"components": new_components})
-    return resolved_template
 
 
 def clear_legacy_sb_entries(
