@@ -83,7 +83,7 @@ src/antares_gems_converter/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
-  views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns, metrics filled per study)
+  views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns filled per study; metrics lists every metric of the template's catalog, as <catalog_id>.<metric_id>, to trim per study)
   antares_runner/
     antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
 tests/

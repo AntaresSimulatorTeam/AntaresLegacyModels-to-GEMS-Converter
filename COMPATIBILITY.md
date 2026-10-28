@@ -46,7 +46,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | antares-study-version | 1.0.20 |
 | antares-timeseries-generation | 0.1.9 |
 | gemspy | 0.2.0 |
-| gems-views-builder | 0.0.1 |
+| gems-views-builder | 0.1.0 |
 | numpy | 2.2.6 |
 | pandas | 2.2.3 |
 | pydantic | 2.11.10 |
