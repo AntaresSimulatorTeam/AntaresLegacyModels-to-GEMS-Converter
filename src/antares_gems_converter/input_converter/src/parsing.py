@@ -252,6 +252,28 @@ class ConversionTemplate(TemplateBody):
                     f"type must be one of {', '.join(ObjectKind)} and it must set "
                     f"only {', '.join(fields)}"
                 )
+            # Only an area exclusion or one of the kind the template is
+            # instantiated for can match (see `templates.is_excluded`)
+            allowed = dict.fromkeys((ObjectKind.AREA, self.for_each))
+            if excluded.type not in allowed:
+                raise ValueError(
+                    f"Template '{self.name}': exclusion {excluded!r} never "
+                    f"matches, the template is instantiated for each "
+                    f"{self.for_each}: only {' and '.join(allowed)} exclusions apply"
+                )
+            # ${area} is the only placeholder, substituted in a cluster
+            # exclusion only: {type: area, area: ${area}} matches no area
+            values = " ".join(
+                v for v in (excluded.area, excluded.link, excluded.cluster) if v
+            )
+            if excluded.type in CLUSTER_KINDS:
+                values = values.replace("${area}", "")
+            if leftover := PLACEHOLDER_PATTERN.search(values):
+                raise ValueError(
+                    f"Template '{self.name}': exclusion {excluded!r} never "
+                    f"matches, '{leftover.group()}' is not substituted in an "
+                    f"exclusion of type {excluded.type}"
+                )
         return self
 
     def _body_json(self) -> str:

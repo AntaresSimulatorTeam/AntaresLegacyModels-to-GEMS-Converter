@@ -119,7 +119,15 @@ dependencies.json                # Antares Simulator version for CI
 
 - **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
 - **Substitution** replaces the placeholders in every string of the template (values, not keys), in one pass, the longest placeholder first; a placeholder left raises a `ValueError`.
-- **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type; any other entry is rejected at load. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
+- **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. An entry must be able to match an object the template iterates over, so its `type` is `area` or the template's `for_each`:
+
+  | template iterates over (`for_each`) | `type: area` excludes | `type: link` | `type: <cluster type>` |
+  |---|---|---|---|
+  | areas | that area | rejected | rejected |
+  | links | the links it is an end of | that link | rejected |
+  | clusters of a type | its clusters of that type | rejected | that cluster, if of the template's type, else rejected |
+
+  `${area}` is the only placeholder in an entry, and only in a cluster exclusion (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
 
 ### Two Conversion Modes

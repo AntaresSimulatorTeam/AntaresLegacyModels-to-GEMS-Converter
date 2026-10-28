@@ -121,6 +121,73 @@ def test_invalid_exclusion(object_properties: dict):
         _template([{"name": "area", "exclude": exclude}])
 
 
+INJECTION_CLUSTER = {"type": "thermal", "area": "${area}", "cluster": "${area}_inj"}
+FR_Z_LINK_EXCLUSION = {"type": "link", "link": "fr / z_batteries"}
+
+
+@pytest.mark.parametrize(
+    "template_parameter, object_properties, error",
+    [
+        # A cluster or link exclusion in a template that does not iterate over
+        # its kind, e.g. the injection clusters in battery.yaml
+        ({"name": "area"}, INJECTION_CLUSTER, "only area exclusions apply"),
+        ({"name": "area"}, FR_Z_LINK_EXCLUSION, "only area exclusions apply"),
+        ({"name": "link"}, INJECTION_CLUSTER, "only area and link exclusions"),
+        (
+            {"name": "area", "cluster-type": "renewable"},
+            INJECTION_CLUSTER,
+            "only area and renewable exclusions",
+        ),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            FR_Z_LINK_EXCLUSION,
+            "only area and thermal exclusions",
+        ),
+        # Placeholders other than ${area} in a cluster exclusion
+        (
+            {"name": "area"},
+            {"type": "area", "area": "${area}"},
+            "'\\${area}' is not substituted in an exclusion of type area",
+        ),
+        (
+            {"name": "link"},
+            {"type": "link", "link": "${area} / z_batteries"},
+            "'\\${area}' is not substituted in an exclusion of type link",
+        ),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            {"type": "thermal", "area": "${area}", "cluster": "${thermal}"},
+            "'\\${thermal}' is not substituted in an exclusion of type thermal",
+        ),
+    ],
+)
+def test_exclusion_that_never_matches(
+    template_parameter: dict, object_properties: dict, error: str
+):
+    exclude = [{"id": "e", "object-properties": object_properties}]
+    with pytest.raises(ValueError, match=error):
+        _template([{**template_parameter, "exclude": exclude}])
+
+
+@pytest.mark.parametrize(
+    "template_parameter, object_properties",
+    [
+        ({"name": "area"}, {"type": "area", "area": "z_batteries"}),
+        ({"name": "link"}, {"type": "area", "area": "z_batteries"}),
+        ({"name": "link"}, FR_Z_LINK_EXCLUSION),
+        ({"name": "area", "cluster-type": "thermal"}, INJECTION_CLUSTER),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            {"type": "area", "area": "z_batteries"},
+        ),
+    ],
+)
+def test_exclusion_that_can_match(template_parameter: dict, object_properties: dict):
+    exclude = [{"id": "e", "object-properties": object_properties}]
+    template = _template([{**template_parameter, "exclude": exclude}])
+    assert len(template.excluded_objects) == 1
+
+
 def test_unknown_link_attribute():
     component2 = "${link}.area_frm_id._node"
     connection = {
