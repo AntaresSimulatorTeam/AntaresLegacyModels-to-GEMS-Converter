@@ -105,6 +105,45 @@ dependencies.json                # Antares Simulator version for CI
 4. **Data extraction** (`preprocessing.py`) reads timeseries and scalar parameters from the study, writes timeseries to TSV files in `data-series/`.
 5. **Output**: a GEMS `InputSystem` dumped to `input/system.yml`, with libraries copied to `model-libraries/` and timeseries in `data-series/`.
 
+### Workflow of `process_all()`
+
+The nested part is the template loop (see below).
+
+```mermaid
+flowchart TD
+    setup["<b>Setup</b><br/>copy the libs to model-libraries/<br/>copy the user modeler SB file, if given<br/>create data-series/"]
+    load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: not exactly one template parameter,<br/>unknown cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
+    sb["<b>get_legacy_sb()</b><br/>legacy scenario builder, read once"]
+
+    subgraph perTemplate["For each template: apply_conversion_template() gives a SystemFragment"]
+        direction TB
+        subgraph perObject["For each study object (area, link or cluster, per for_each)"]
+            direction TB
+            objs["<b>study_objects()</b><br/>skips the template's own exclusions<br/>and the disabled renewable clusters"]
+            inst["<b>instantiate()</b><br/>all placeholders in one pass<br/>gives a TemplateInstance"]
+            ts["<b>read_year_ts()</b><br/>legacy SB entries of the object<br/>{year: ts index}"]
+            subgraph conv["_convert_instance()"]
+                direction TB
+                comps["components + .tsv series<br/>matrix components with empty or<br/>all-zero series skipped"]
+                full["<b>Full mode</b><br/>port connections, minus those<br/>touching a skipped component"]
+                hybrid["<b>Hybrid mode</b><br/>area connections, minus those of a<br/>skipped component<br/>+ legacy objects to delete"]
+                comps --> full
+                comps --> hybrid
+            end
+            objs --> inst --> ts --> comps
+        end
+        err["KeyError or FileNotFoundError: logged,<br/>the template's conversion stops at that object"]
+        perObject -.-> err
+    end
+
+    merge["<b>Merge the fragments</b><br/>SystemSchema (full) or HybridSystemSchema (hybrid)<br/>+ scenario groups + legacy objects"]
+    out["<b>Output</b><br/>modeler-scenariobuilder.dat, if scenario groups exist and no user file<br/>delete_legacy_objects(), hybrid only<br/>input/system.yml<br/>optim-config.yml, unless one exists"]
+
+    setup --> load --> sb --> perTemplate --> merge --> out
+```
+
+`get_legacy_sb()`, the template loop and the merge run in `system_and_scenario_groups()`, which `process_all()` calls with the templates from `load_and_check_templates()`.
+
 ### Template loop
 
 | Term | Class | Meaning |
