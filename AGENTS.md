@@ -112,7 +112,7 @@ The nested part is the template loop (see below).
 ```mermaid
 flowchart TD
     setup["<b>Setup</b><br/>copy the libs to model-libraries/<br/>copy the user modeler SB file, if given<br/>create data-series/"]
-    load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: not exactly one template parameter,<br/>unknown cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
+    load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: not exactly one template parameter,<br/>parameter not named area or link,<br/>unknown cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
     sb["<b>get_legacy_sb()</b><br/>legacy scenario builder, read once"]
 
     subgraph perTemplate["For each template: apply_conversion_template() gives a SystemFragment"]
@@ -160,7 +160,7 @@ flowchart TD
 - **Substitution** replaces the placeholders in every string of the template (values, not keys), in one pass, the longest placeholder first; a placeholder left raises a `ValueError`.
 - **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. An entry must be able to match an object the template iterates over, so its `type` is `area` or the template's `for_each`:
 
-  | template iterates over (`for_each`) | `type: area` excludes | `type: link` | `type: <cluster type>` |
+  | template iterates over (`for_each`) | `type: area` | `type: link` | `type: <cluster type>` |
   |---|---|---|---|
   | areas | that area | rejected | rejected |
   | links | the links it is an end of | that link | rejected |
@@ -269,7 +269,7 @@ uv run pytest -n auto
 uv run pytest tests/input_converter/ -n auto
 
 # Run a specific test
-uv run pytest tests/input_converter/test_converter.py::TestConverter::test_thermal_model_conversion
+uv run pytest tests/input_converter/test_converter.py::TestConverter::test_convert_thermals_to_component
 
 # Run one test file
 uv run pytest tests/antares_historic/test_thermal_model.py
@@ -288,7 +288,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
-| `tests/input_converter/` | Converter logic: template resolution, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
+| `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
 | `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
