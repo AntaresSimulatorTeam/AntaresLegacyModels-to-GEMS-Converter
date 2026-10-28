@@ -166,7 +166,7 @@ flowchart TD
   | links | the links it is an end of | that link | rejected |
   | clusters of a type | its clusters of that type | rejected | that cluster, if of the template's type, else rejected |
 
-  `${area}` is the only placeholder in an entry, and only in a cluster exclusion (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
+  `${area}` is the only placeholder in an entry, and only in a cluster exclusion (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy. Examples: see "`exclude` examples" below.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
 
 ### Two Conversion Modes
@@ -235,6 +235,101 @@ template:
 - **Operations**: `divide_by` can reference another parameter by name (e.g., `divide_by: reservoir_capacity`).
 - **Electricity carrier assumption**: all current templates assume components belong to the electricity system (`carrier: electricity`). Multi-energy support would require revisiting this assumption in every template.
 - **Identifier naming** (components, parameters, properties): `snake_case`; qualifier first (adjective before noun); `is_` prefix for booleans; units in schema metadata, not names. Component IDs start with the area: `${area}_<detail>` (e.g. `${area}_node`, `${area}_hydro_storage`) — never `<detail>_${area}`. Abbreviations whitelist: `gen` (generation), `prop` (proportional), `abs` (absolute), `alg` (algebraic), `min` (minimum), `max` (maximum), `num` (number), pollutant codes (`co2`, `nh3`, `so2`, `nox`, `pm2_5`, `pm5`, `pm10`, `nmvoc`, `op1`–`op5`). Everything else spelled out in full.
+
+### `exclude` examples
+
+The rules are in "Template loop" above; these examples go from simple to complex. Each entry has a free `id` and `object-properties` with exactly `{type: area, area: …}`, `{type: link, link: …}` or `{type: thermal|renewable|st_storage, area: …, cluster: …}`. Ids are the ones antares-craft gives (e.g. link `at / fr`): an entry with a wrong id is not rejected, it just excludes nothing.
+
+1. **An area, in a template instantiated for each area** (load, wind, solar, hydro…): no GEMS load for `fr`; in hybrid mode its legacy load is not blanked and stays legacy.
+
+   ```yaml
+   template:
+     name: load
+     template-parameters:
+       - name: area
+         exclude:
+           - id: skip_fr
+             object-properties: {type: area, area: fr}
+   ```
+
+2. **One link**, in the link template:
+
+   ```yaml
+       - name: link
+         exclude:
+           - id: at_fr
+             object-properties: {type: link, link: at / fr}
+   ```
+
+3. **All the links of an area**, in the link template: an area exclusion excludes every link the area is an end of.
+
+   ```yaml
+       - name: link
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+   ```
+
+4. **One named cluster**, in a cluster template: `area` and `cluster` are both required. To exclude all the clusters of an area, use `type: area` instead.
+
+   ```yaml
+   template:
+     name: thermal
+     template-parameters:
+       - name: area
+         cluster-type: thermal
+         exclude:
+           - id: fr_nuclear
+             object-properties: {type: thermal, area: fr, cluster: nuclear}
+           - id: all_thermal_of_de
+             object-properties: {type: area, area: de}
+   ```
+
+5. **The same cluster in every area**, with `${area}`: in a cluster exclusion, `${area}` stands for the area of the cluster, so this entry excludes `fr_batteries_inj` in `fr`, `de_batteries_inj` in `de`, etc.
+
+   ```yaml
+         exclude:
+           - id: batteries_inj
+             object-properties:
+               type: thermal
+               area: "${area}"
+               cluster: "${area}_batteries_inj"
+   ```
+
+6. **Converting battery together with other models.** The battery template excludes the `z_batteries` and `z_batteries_pcomp` areas itself, but `exclude` is local: the area, link and thermal templates would also convert these battery artefacts. To prevent it, declare them in each of these templates (this is what `exclude_battery_artefacts` in `tests/input_converter/conftest.py` does; with it, the output is the same as before `exclude` became local). In the area and link templates, the two area exclusions are enough (they cover the areas and the links they are an end of):
+
+   ```yaml
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+           - id: z_batteries_pcomp
+             object-properties: {type: area, area: z_batteries_pcomp}
+   ```
+
+   The thermal template also excludes the injection clusters, which are in the real areas:
+
+   ```yaml
+       - name: area
+         cluster-type: thermal
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+           - id: z_batteries_pcomp
+             object-properties: {type: area, area: z_batteries_pcomp}
+           - id: batteries_inj
+             object-properties: {type: thermal, area: "${area}", cluster: "${area}_batteries_inj"}
+   ```
+
+   In hybrid mode, the excluded objects are neither converted nor deleted: they stay legacy.
+
+**Rejected at load:**
+
+```yaml
+{type: area, area: fr, cluster: c}        # extra field: it would exclude the whole area fr
+{type: link, link: at / fr}               # in a thermal template: can never match
+{type: renewable, area: fr, cluster: pv}  # in a thermal template: wrong cluster type
+{type: area, area: "${area}"}             # ${area} is only substituted in a cluster exclusion
+```
 
 ---
 
