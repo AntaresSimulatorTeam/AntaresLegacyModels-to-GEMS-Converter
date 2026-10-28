@@ -272,6 +272,14 @@ def test_instantiate_link_attributes():
     assert instance.legacy_objects_to_delete[0].object_properties.link == "at / fr"
 
 
+def test_instantiate_ignores_substitution_order():
+    # "${link}" first would turn "${link}.area_from_id_node" into
+    # "at / fr.area_from_id_node"
+    substitutions = dict(reversed(AT_FR.substitutions().items()))
+    instance = load_conversion_template("link").instantiate(substitutions)
+    assert [c.component2 for c in instance.connections] == ["at_node", "fr_node"]
+
+
 def test_instantiate_battery_term_ids():
     # "%" and "." in binding constraint term ids are not interpreted
     instance = load_conversion_template("battery").instantiate(FR.substitutions())

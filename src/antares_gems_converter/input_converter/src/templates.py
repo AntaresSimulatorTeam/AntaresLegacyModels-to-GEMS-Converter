@@ -46,8 +46,7 @@ class StudyObject:
     area_to: Optional[str] = None
 
     def substitutions(self) -> dict[str, str]:
-        """{placeholder: value} to instantiate a template for this object,
-        in the order they must be applied."""
+        """{placeholder: value} to instantiate a template for this object."""
         if self.kind == ObjectKind.LINK:
             assert self.link and self.area_from and self.area_to
             # The attributes of parsing.LINK_ATTRIBUTES, a following "." dropped:

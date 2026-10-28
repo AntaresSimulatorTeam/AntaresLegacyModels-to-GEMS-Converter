@@ -266,11 +266,17 @@ class ConversionTemplate(TemplateBody):
 
     def instantiate(self, substitutions: Mapping[str, str]) -> TemplateInstance:
         """Return the template for one study object: each placeholder of
-        `substitutions` replaced by its value, in order, in every string."""
-        # Replaced in the JSON text of the template, the values escaped as JSON
-        text = self._body_json()
-        for placeholder, value in substitutions.items():
-            text = text.replace(placeholder, json.dumps(value)[1:-1])
+        `substitutions` replaced by its value in every string."""
+        # Replaced in the JSON text of the template, the values escaped as JSON,
+        # in one pass: the longest placeholder matches first ("${link}.area_from_id."
+        # before "${link}"), and no substituted value is substituted again
+        pattern = re.compile(
+            "|".join(map(re.escape, sorted(substitutions, key=len, reverse=True)))
+        )
+        text = pattern.sub(
+            lambda match: json.dumps(substitutions[match.group()])[1:-1],
+            self._body_json(),
+        )
         if leftover := PLACEHOLDER_PATTERN.search(text):
             raise ValueError(
                 f"Template '{self.name}': unresolved placeholder '{leftover.group()}'"
