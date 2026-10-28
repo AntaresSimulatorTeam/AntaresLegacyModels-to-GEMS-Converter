@@ -54,7 +54,10 @@ from gems_craft.study.parsing import (
 )
 from gems_craft.study.resolve_components import resolve_system
 from gems_craft_hybrid.study.parsing import AreaConnectionsSchema, HybridSystemSchema
-from tests.input_converter.conftest import create_dataframe_from_constant
+from tests.input_converter.conftest import (
+    create_dataframe_from_constant,
+    exclude_battery_artefacts,
+)
 import numpy as np
 
 RESOURCES_FOLDER = (
@@ -126,7 +129,7 @@ class TestConverter:
     def test_convert_study_to_input_study(self, local_study_w_areas: Study):
         converter = self._init_converter_from_study(local_study_w_areas, model_list=[])
         input_study, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
 
         expected_input_study = SystemSchema(
@@ -189,7 +192,7 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         area_components = result.components
 
         expected_area_components = [
@@ -244,7 +247,7 @@ class TestConverter:
         path_area = RESOURCES_FOLDER / "area.yaml"
         with path_area.open() as template:
             resource_content = parse_conversion_template(template)
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         area_components = result.components
         input_study = SystemSchema(id=converter.study.name, components=area_components)
 
@@ -314,7 +317,7 @@ class TestConverter:
     def test_convert_st_storages_to_component(
         self, local_study_with_st_storage: Study, lib_id: str
     ):
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_study(
             local_study_with_st_storage, model_list=[]
         )
@@ -323,7 +326,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         storage_components = result.components
         storage_connections = result.connections
 
@@ -508,7 +511,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         thermals_components = result.components
         thermals_connections = result.connections
         # study_path = converter.output_folder
@@ -651,7 +654,7 @@ class TestConverter:
     def test_convert_renewables_to_component(
         self, local_study_with_renewable: Study, lib_id: str
     ):
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_study(
             local_study_with_renewable, model_list=[]
         )
@@ -660,7 +663,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         renewables_components = result.components
         renewables_connections = result.connections
 
@@ -736,7 +739,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         renewables_components = result.components
 
         available_power_param = next(
@@ -776,7 +779,7 @@ class TestConverter:
             resource_content = parse_conversion_template(template)
 
         with caplog.at_level("WARNING"):
-            result = converter.convert_template(resource_content)
+            result = converter.apply_conversion_template(resource_content)
             renewables_components = result.components
 
         assert all(
@@ -800,7 +803,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         hydro_components = result.components
         hydro_connections = result.connections
 
@@ -916,7 +919,7 @@ class TestConverter:
         output_path = tmp_path / "output" / LOCAL_PATH
         shutil.copytree(local_path, input_path)
 
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_path(
             input_path, output_path, "full", model_list=[]
         )
@@ -925,7 +928,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         load_components = result.components
         load_connections = result.connections
 
@@ -943,7 +946,7 @@ class TestConverter:
         indirect=True,
     )
     def test_convert_solar_to_component_from_study(self, fr_solar: None):
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_study(fr_solar, model_list=[])
 
         path_load = RESOURCES_FOLDER / "solar.yaml"
@@ -951,7 +954,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         solar_components = result.components
         solar_connections = result.connections
         solar_fr_component = next(
@@ -1011,7 +1014,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         load_components = result.components
         load_connections = result.connections
         load_fr_component = next(
@@ -1059,7 +1062,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         wind_components = result.components
         wind_connections = result.connections
         wind_fr_component = next(
@@ -1126,7 +1129,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         wind_components = result.components
         assert wind_components == []
 
@@ -1145,7 +1148,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         wind_components = result.components
         assert wind_components == []
 
@@ -1162,7 +1165,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         misc_gen_components = result.components
         misc_gen_connections = result.connections
 
@@ -1239,7 +1242,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         misc_gen_components = result.components
         misc_gen_connections = result.connections
         assert misc_gen_components == []
@@ -1258,7 +1261,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         misc_gen_components = result.components
         misc_gen_connections = result.connections
 
@@ -1305,7 +1308,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         ror_components = result.components
         ror_connections = result.connections
         ror_fr_component = next(
@@ -1370,7 +1373,7 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         ror_components = result.components
         assert ror_components == []
 
@@ -1389,19 +1392,19 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         ror_components = result.components
         assert ror_components == []
 
     def test_convert_links_to_component(self, local_study_w_links: Study, lib_id: str):
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_study(local_study_w_links, model_list=[])
         path_load = RESOURCES_FOLDER / "link.yaml"
 
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.convert_template(resource_content)
+        result = converter.apply_conversion_template(resource_content)
         links_components = result.components
         links_connections = result.connections
 
@@ -1631,7 +1634,7 @@ class TestConverter:
         output_path = tmp_path / "output" / LOCAL_PATH
         shutil.copytree(local_path, input_path)
 
-        # This test is on convert_template, no need to pass a model_list to the converter constructor
+        # This test is on apply_conversion_template, no need to pass a model_list to the converter constructor
         converter = self._init_converter_from_path(
             input_path, output_path, "full", model_list=[]
         )
@@ -1639,8 +1642,7 @@ class TestConverter:
 
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
-        # Bad design, either the test should call a higher level function, or virtual objects should be deduced from single model
-        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
+        result = converter.apply_conversion_template(bc_data)
         binding_components = result.components
         binding_connections = result.connections
         area_connections = result.area_connections
@@ -1679,7 +1681,7 @@ class TestConverter:
         with path_cc.open() as template:
             bc_data = parse_conversion_template(template)
 
-        result = converter.convert_template(bc_data, bc_data.get_excluded_objects_ids())
+        result = converter.apply_conversion_template(bc_data)
         area_connections = result.area_connections
 
         output_path = converter.output_folder
@@ -1748,7 +1750,7 @@ class TestConverter:
         assert bc_filepath.stat().st_size > 0
         assert links_filepath.stat().st_size > 0
         obtained_data, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
         # The legacy objects are deleted by process_all()
         converter.process_all()
@@ -1787,7 +1789,7 @@ class TestConverter:
             fr_load, model_list=["load", "thermal"], mode="hybrid"
         )
         system, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            converter.load_and_check_templates()
         )
 
         assert sorted(c.id for c in system.components) == [
@@ -1970,7 +1972,7 @@ class TestConverter:
             ],
         )
         obtained_sys, _ = converter.system_and_scenario_groups(
-            *converter.load_and_check_templates()
+            exclude_battery_artefacts(converter.load_and_check_templates())
         )
         with open(ref_path) as system_file:
             expected_sys = parse_yaml_system(system_file)
