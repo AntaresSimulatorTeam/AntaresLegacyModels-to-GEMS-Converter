@@ -38,7 +38,7 @@ wheels = [
 
 [[package]]
 name = "antares-legacy-gems-converter"
-version = "0.5.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "antares-craft" },
@@ -77,7 +77,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "black", specifier = ">=23.7.0" },
-    { name = "gems-views-builder", specifier = "==0.0.1" },
+    { name = "gems-views-builder", specifier = "==0.1.0" },
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
@@ -534,7 +534,7 @@ wheels = [
 
 [[package]]
 name = "gems-views-builder"
-version = "0.0.1"
+version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gemspy" },
@@ -543,9 +543,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/a3/7acfda20117ed67e0e14446d8684e264c85f359a19e3f3201f7aa1a292d9/gems_views_builder-0.0.1.tar.gz", hash = "sha256:72ad5f4e5f682ad963212aaa5d936d382b9e0de2cbd114f0af41530c9faf31e5", size = 44344, upload-time = "2026-09-21T11:52:14.285Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/c6/3af733bcd486a21b3f7cfb9032513f8ce86579bc7c9fc85c850001dc7fe8/gems_views_builder-0.1.0.tar.gz", hash = "sha256:d7b67ea3b37652c9e2328cbd6ab7134de827d0fafb832327456c860b2cb9ee5a", size = 44037, upload-time = "2026-10-28T15:23:16.335Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d6/f8/facf372c9ae8f876fdf966b03a9d69835b6033a30d24779c260ec4dcfb5e/gems_views_builder-0.0.1-py3-none-any.whl", hash = "sha256:b1e38ccba210ba7c761926867fbcc2150c5dedb204d2ddbeb92c4d00ad583125", size = 56035, upload-time = "2026-09-21T11:52:12.886Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/96/fb53d5bfc0d6c12c0e7deeaffa822db65c2fc2ec6c07603f772e9a204c4f/gems_views_builder-0.1.0-py3-none-any.whl", hash = "sha256:58ed05d6e976adcba59eb120f307ae9af21ed1af6ba9ed6b44c677b3c2de54d6", size = 56868, upload-time = "2026-10-28T15:23:15.251Z" },
 ]
 
 [[package]]
@@ -634,7 +634,7 @@ name = "importlib-metadata"
 version = "9.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "python_full_version < '3.12'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a9/01/15bb152d77b21318514a96f43af312635eb2500c96b55398d020c93d86ea/importlib_metadata-9.0.0.tar.gz", hash = "sha256:a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc", size = 56405, upload-time = "2026-03-20T06:42:56.999Z" }
 wheels = [
