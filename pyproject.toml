@@ -51,13 +51,8 @@ dev = [
     "mypy>=2.1.0",
     "types-pyyaml>=6.0.12",
     "black>=23.7.0",
-    "gems-views-builder",
+    "gems-views-builder==0.1.0",
 ]
-
-[tool.uv.sources]
-# GEMS-ViewsBuilder 0.1.0 is not on PyPI yet: this commit of its main branch holds
-# the 0.1.0 code. Replace with "gems-views-builder==0.1.0" in the dev group once released.
-gems-views-builder = { git = "https://github.com/AntaresSimulatorTeam/GEMS-ViewsBuilder", rev = "ff4d565433bea9f3c0419973c5a0de6fb03e2200" }
 
 
 [tool.setuptools.packages.find]
