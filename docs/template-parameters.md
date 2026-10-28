@@ -51,7 +51,7 @@ template:
 
 Instances: `de` / `nuclear_1`, `fr` / `nuclear_1`.
 
-An exclusion sets `type`, and only `area` (area), `link` (link), or `area` and `cluster` (cluster types). In hybrid mode, the excluded clusters are not converted, so they are not deleted: they stay legacy.
+An exclusion sets `type`, and only `area` (area), `link` (link), or `area` and `cluster` (cluster types). Its `type` is `area` or what the parameter iterates over (`link`, or the `cluster-type`): any other exclusion could never match and is rejected. It may use the placeholders of the outer parameters and, in a cluster exclusion only, `${area}`. In hybrid mode, the excluded clusters are not converted, so they are not deleted: they stay legacy.
 
 ## 2. `values` and `cluster-values`: convert only some objects
 

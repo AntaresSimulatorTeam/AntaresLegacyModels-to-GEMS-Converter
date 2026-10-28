@@ -51,10 +51,17 @@ def _to_kebab(snake: str) -> str:
 
 def _substitute(text: str, substitutions: Mapping[str, str]) -> str:
     """Replace in `text`, the JSON text of a model, each placeholder of
-    `substitutions` by its value, escaped as JSON, in order."""
-    for placeholder, value in substitutions.items():
-        text = text.replace(placeholder, json.dumps(value)[1:-1])
-    return text
+    `substitutions` by its value, escaped as JSON, in one pass: the longest
+    placeholder matches first ("${link}.area_from_id." before "${link}"), and
+    no substituted value is substituted again."""
+    if not substitutions:
+        return text
+    pattern = re.compile(
+        "|".join(map(re.escape, sorted(substitutions, key=len, reverse=True)))
+    )
+    return pattern.sub(
+        lambda match: json.dumps(substitutions[match.group()])[1:-1], text
+    )
 
 
 class ModifiedBaseModel(BaseModel):
@@ -282,8 +289,12 @@ class ConversionTemplate(TemplateBody):
                 f"with an ad-hoc template parameter"
             )
         outer_placeholders: set[str] = set()
+        # Those of the parameters declared before the one that yields study objects
+        exclusion_placeholders: set[str] = set()
         for parameter in self.template_parameters:
             self._check_parameter(parameter, outer_placeholders)
+            if not parameter.ad_hoc:
+                exclusion_placeholders = set(outer_placeholders)
             outer_placeholders.update(parameter.placeholders)
         # A typo such as ${link}.area_frm_id would be substituted as ${link}
         # and leave no placeholder for `instantiate` to report (in the body
@@ -305,6 +316,31 @@ class ConversionTemplate(TemplateBody):
                     f"type must be one of {', '.join(ObjectKind)} and it must set "
                     f"only {', '.join(fields)}"
                 )
+            # Only an area exclusion or one of the kind the template is
+            # instantiated for can match (see `templates.is_excluded`); an
+            # ad-hoc parameter has no exclusions, so for_each is not None
+            assert self.for_each is not None
+            allowed = dict.fromkeys((ObjectKind.AREA, self.for_each))
+            if excluded.type not in allowed:
+                raise ValueError(
+                    f"Template '{self.name}': exclusion {excluded!r} never "
+                    f"matches, the template is instantiated for each "
+                    f"{self.for_each}: only {' and '.join(allowed)} exclusions apply"
+                )
+            # The placeholders substituted in an exclusion are those of the
+            # outer parameters and, in a cluster exclusion only, ${area}:
+            # {type: area, area: ${area}} matches no area
+            substituted = exclusion_placeholders | (
+                {"${area}"} if excluded.type in CLUSTER_KINDS else set()
+            )
+            for value in (excluded.area, excluded.link, excluded.cluster):
+                for match in PLACEHOLDER_PATTERN.finditer(value or ""):
+                    if match.group() not in substituted:
+                        raise ValueError(
+                            f"Template '{self.name}': exclusion {excluded!r} "
+                            f"never matches, '{match.group()}' is not substituted "
+                            f"in an exclusion of type {excluded.type}"
+                        )
         return self
 
     def _check_parameter(
@@ -364,22 +400,15 @@ class ConversionTemplate(TemplateBody):
                     f"{prefix}: {key} must be a non-empty list without duplicates, "
                     f"got {entries}"
                 )
-        # The entries of the lists and exclusions may use the placeholders of
-        # the outer parameters, those of cluster-values and exclude the area
-        # of the cluster
-        excluded_strings = [
-            value
-            for excluded in parameter.excluded_objects
-            for _, value in excluded
-            if isinstance(value, str)
-        ]
+        # The entries of the lists may use the placeholders of the outer
+        # parameters, those of cluster-values the area of the cluster (the
+        # exclusions are checked with the template's)
         lists = {
             "values": (parameter.values or [], outer_placeholders),
             "cluster-values": (
                 parameter.cluster_values or [],
                 outer_placeholders | {"${area}"},
             ),
-            "exclude": (excluded_strings, outer_placeholders | {"${area}"}),
         }
         for key, (entries, allowed) in lists.items():
             for entry in entries:
@@ -413,9 +442,9 @@ class ConversionTemplate(TemplateBody):
 
     def instantiate(self, substitutions: Mapping[str, str]) -> TemplateInstance:
         """Return the template for one combination of the values of its
-        parameters: each placeholder of `substitutions` replaced by its value,
-        in order, in every string."""
-        # Replaced in the JSON text of the template, the values escaped as JSON
+        parameters: each placeholder of `substitutions` replaced by its value
+        in every string."""
+        # Replaced in the JSON text of the template (see `_substitute`)
         text = _substitute(self._body_json(), substitutions)
         if leftover := PLACEHOLDER_PATTERN.search(text):
             raise ValueError(

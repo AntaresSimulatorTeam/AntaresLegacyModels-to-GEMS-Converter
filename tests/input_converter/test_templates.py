@@ -165,7 +165,7 @@ def _exclusion(type_: str, **fields: str) -> dict:
         ),
         (
             [{"name": "area", "exclude": [_exclusion("area", area="${site}")]}],
-            "unknown placeholder '\\$\\{site\\}' in exclude",
+            "'\\$\\{site\\}' is not substituted in an exclusion of type area",
         ),
         # Values are strings: numbers must be quoted in YAML
         ([{"name": "year", "ad-hoc": True, "values": [2030]}], "valid string"),
@@ -189,6 +189,82 @@ def test_invalid_exclusion(object_properties: dict):
     exclude = [{"id": "e", "object-properties": object_properties}]
     with pytest.raises(ValueError, match="invalid exclusion"):
         _template([{"name": "area", "exclude": exclude}])
+
+
+INJECTION_CLUSTER = {"type": "thermal", "area": "${area}", "cluster": "${area}_inj"}
+FR_Z_LINK_EXCLUSION = {"type": "link", "link": "fr / z_batteries"}
+
+
+@pytest.mark.parametrize(
+    "template_parameter, object_properties, error",
+    [
+        # A cluster or link exclusion in a template that does not iterate over
+        # its kind, e.g. the injection clusters in battery.yaml
+        ({"name": "area"}, INJECTION_CLUSTER, "only area exclusions apply"),
+        ({"name": "area"}, FR_Z_LINK_EXCLUSION, "only area exclusions apply"),
+        ({"name": "link"}, INJECTION_CLUSTER, "only area and link exclusions"),
+        (
+            {"name": "area", "cluster-type": "renewable"},
+            INJECTION_CLUSTER,
+            "only area and renewable exclusions",
+        ),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            FR_Z_LINK_EXCLUSION,
+            "only area and thermal exclusions",
+        ),
+        # Placeholders other than ${area} in a cluster exclusion
+        (
+            {"name": "area"},
+            {"type": "area", "area": "${area}"},
+            "'\\${area}' is not substituted in an exclusion of type area",
+        ),
+        (
+            {"name": "link"},
+            {"type": "link", "link": "${area} / z_batteries"},
+            "'\\${area}' is not substituted in an exclusion of type link",
+        ),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            {"type": "thermal", "area": "${area}", "cluster": "${thermal}"},
+            "'\\${thermal}' is not substituted in an exclusion of type thermal",
+        ),
+    ],
+)
+def test_exclusion_that_never_matches(
+    template_parameter: dict, object_properties: dict, error: str
+):
+    exclude = [{"id": "e", "object-properties": object_properties}]
+    with pytest.raises(ValueError, match=error):
+        _template([{**template_parameter, "exclude": exclude}])
+
+
+@pytest.mark.parametrize(
+    "template_parameter, object_properties",
+    [
+        ({"name": "area"}, {"type": "area", "area": "z_batteries"}),
+        ({"name": "link"}, {"type": "area", "area": "z_batteries"}),
+        ({"name": "link"}, FR_Z_LINK_EXCLUSION),
+        ({"name": "area", "cluster-type": "thermal"}, INJECTION_CLUSTER),
+        (
+            {"name": "area", "cluster-type": "thermal"},
+            {"type": "area", "area": "z_batteries"},
+        ),
+    ],
+)
+def test_exclusion_that_can_match(template_parameter: dict, object_properties: dict):
+    exclude = [{"id": "e", "object-properties": object_properties}]
+    template = _template([{**template_parameter, "exclude": exclude}])
+    assert len(template.excluded_objects) == 1
+
+
+def test_exclusion_uses_outer_placeholders():
+    site = {"name": "site", "ad-hoc": True, "values": ["fr"]}
+    area = {"name": "area", "exclude": [_exclusion("area", area="${site}")]}
+    assert len(_template([site, area]).excluded_objects) == 1
+    # ${site} is not substituted when the ad-hoc parameter is inner
+    with pytest.raises(ValueError, match="'\\$\\{site\\}' is not substituted"):
+        _template([area, site])
 
 
 def test_unknown_link_attribute():
@@ -340,6 +416,14 @@ def test_instantiate_link_attributes():
     assert [c.component2 for c in instance.connections] == ["at_node", "fr_node"]
     assert [c.area for c in instance.area_connections] == ["at", "fr"]
     assert instance.legacy_objects_to_delete[0].object_properties.link == "at / fr"
+
+
+def test_instantiate_ignores_substitution_order():
+    # "${link}" first would turn "${link}.area_from_id_node" into
+    # "at / fr.area_from_id_node"
+    substitutions = dict(reversed(AT_FR.substitutions().items()))
+    instance = load_conversion_template("link").instantiate(substitutions)
+    assert [c.component2 for c in instance.connections] == ["at_node", "fr_node"]
 
 
 def test_instantiate_battery_term_ids():
@@ -518,7 +602,7 @@ def test_exclude_applies_after_lists(study_w_clusters: Study):
     assert objects == [FR_GAZ]
     # A listed cluster only in an excluded area exists: it is not an error
     template = with_exclude(
-        _with_parameter("renewable", cluster_values=["it_pv"]), exclude
+        _with_parameter("renewable", cluster_values=["it_pv"]), exclude[:1]
     )
     assert _study_objects(template, study_w_clusters) == []
 
