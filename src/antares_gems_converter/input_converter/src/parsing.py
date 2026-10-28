@@ -37,7 +37,9 @@ CLUSTER_KINDS = (ObjectKind.THERMAL, ObjectKind.RENEWABLE, ObjectKind.ST_STORAGE
 LINK_ATTRIBUTES = ("area_from_id", "area_to_id")
 LINK_ATTRIBUTE_PATTERN = re.compile(r"\$\{link\}\.(\w*)")
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]*\}")
-AD_HOC_NAME_PATTERN = re.compile(r"\w+")
+# ASCII only: the placeholders are matched in JSON text, where json.dumps
+# escapes any other character (${région} would never be substituted)
+AD_HOC_NAME_PATTERN = re.compile(r"\w+", re.ASCII)
 # Fields an exclusion must set, by type (area and cluster for a cluster type)
 EXCLUSION_FIELDS: dict[str, tuple[str, ...]] = {
     ObjectKind.AREA: ("area",),
@@ -341,6 +343,33 @@ class ConversionTemplate(TemplateBody):
                             f"never matches, '{match.group()}' is not substituted "
                             f"in an exclusion of type {excluded.type}"
                         )
+        # A typo such as ${stie} would only fail at `instantiate`, during the
+        # conversion, after the templates before this one are converted
+        body = self._body_json()
+        for match in PLACEHOLDER_PATTERN.finditer(body):
+            if match.group() not in outer_placeholders:
+                raise ValueError(
+                    f"Template '{self.name}': unknown placeholder "
+                    f"'{match.group()}', expected one of the template parameters' "
+                    f"{sorted(outer_placeholders)}"
+                )
+        # An ad-hoc value used nowhere would give the same components once per
+        # value, hence duplicate component ids
+        for i, parameter in enumerate(self.template_parameters):
+            inner = json.dumps(
+                [p.model_dump() for p in self.template_parameters[i + 1 :]]
+            )
+            if parameter.ad_hoc and not any(
+                placeholder in text
+                for placeholder in parameter.placeholders
+                for text in (body, inner)
+            ):
+                raise ValueError(
+                    f"Template '{self.name}', parameter '{parameter.name}': "
+                    f"'${{{parameter.name}}}' is used neither in the template nor "
+                    f"in the lists of the parameters after it, so each value would "
+                    f"give the same components"
+                )
         return self
 
     def _check_parameter(
@@ -370,7 +399,7 @@ class ConversionTemplate(TemplateBody):
             ):
                 raise ValueError(
                     f"{prefix}: the name of an ad-hoc parameter must be made of "
-                    f"letters, digits and underscores, and not be one of "
+                    f"ASCII letters, digits and underscores, and not be one of "
                     f"{', '.join(ObjectKind)}"
                 )
         elif parameter.name not in (ObjectKind.AREA, ObjectKind.LINK):

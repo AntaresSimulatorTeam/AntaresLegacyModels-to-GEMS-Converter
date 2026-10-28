@@ -86,12 +86,14 @@ def test_for_each(model: str, kind: ObjectKind):
 
 
 def _template(template_parameters: list[dict], **body: list) -> ConversionTemplate:
+    # The component id uses every ad-hoc placeholder, which must be used
+    ad_hoc = [f"_${{{p['name']}}}" for p in template_parameters if p.get("ad-hoc")]
     return ConversionTemplate.model_validate(
         {
             "name": "test",
             "model": "lib.model",
             "template-parameters": template_parameters,
-            "components": [{"id": "c", "parameters": []}],
+            "components": [{"id": "c" + "".join(ad_hoc), "parameters": []}],
             **body,
         }
     )
@@ -256,6 +258,31 @@ def test_exclusion_that_can_match(template_parameter: dict, object_properties: d
     exclude = [{"id": "e", "object-properties": object_properties}]
     template = _template([{**template_parameter, "exclude": exclude}])
     assert len(template.excluded_objects) == 1
+
+
+def test_non_ascii_ad_hoc_name():
+    # json.dumps escapes "é": ${région} would never be substituted
+    with pytest.raises(ValueError, match="ASCII letters"):
+        _template([{"name": "région", "ad-hoc": True, "values": ["n"]}])
+
+
+def test_unknown_placeholder_in_body():
+    components = [{"id": "${area}_${stie}", "parameters": []}]
+    with pytest.raises(ValueError, match="unknown placeholder '\\$\\{stie\\}'"):
+        _template(
+            [{"name": "area"}, {"name": "site", "ad-hoc": True, "values": ["n"]}],
+            components=components,
+        )
+
+
+def test_unused_ad_hoc_parameter():
+    components = [{"id": "${area}_x", "parameters": []}]
+    site = {"name": "site", "ad-hoc": True, "values": ["n", "s"]}
+    with pytest.raises(ValueError, match="parameter 'site': '\\$\\{site\\}' is used"):
+        _template([{"name": "area"}, site], components=components)
+    # Used in the list of an inner parameter only
+    area = {"name": "area", "values": ["${site}"]}
+    _template([site, area], components=components)
 
 
 def test_exclusion_uses_outer_placeholders():
@@ -682,6 +709,31 @@ def test_arguments_nest_parameters_in_declaration_order(study_w_clusters: Study)
     assert _arguments(ad_hoc_only, study_w_clusters) == [
         TemplateArguments({"${site}": "a"}),
         TemplateArguments({"${site}": "b"}),
+    ]
+
+
+def test_arguments_resolve_outer_placeholders(study_w_clusters: Study):
+    site = {"name": "site", "ad-hoc": True, "values": ["fr", "it"]}
+    area = {"name": "area", "values": ["fr", "it"]}
+    area["exclude"] = [_exclusion("area", area="${site}")]
+    result = _arguments(_template([site, area]), study_w_clusters)
+    assert [
+        (b.substitutions["${site}"], b.substitutions["${area}"]) for b in result
+    ] == [
+        ("fr", "it"),
+        ("it", "fr"),
+    ]
+    cluster = {"name": "unit", "ad-hoc": True, "values": ["gaz", "coal"]}
+    thermal = {
+        "name": "area",
+        "values": ["fr"],
+        "cluster-type": "thermal",
+        "cluster-values": ["${unit}"],
+    }
+    result = _arguments(_template([cluster, thermal]), study_w_clusters)
+    assert [b.study_object for b in result] == [
+        FR_GAZ,
+        StudyObject(ObjectKind.THERMAL, area="fr", cluster="coal"),
     ]
 
 

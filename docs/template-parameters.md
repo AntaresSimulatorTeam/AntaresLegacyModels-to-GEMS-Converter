@@ -1,6 +1,6 @@
 # Template parameters: what a template is instantiated for
 
-The `template-parameters` of a conversion template (`src/antares_gems_converter/input_converter/data/model_configuration/*.yaml`) define what the template is instantiated for. The template is instantiated once for each combination of the values of its parameters. In each instance, every placeholder (`${area}`, `${thermal}`, `${link}`, `${<ad-hoc parameter>}`…) is replaced by the corresponding value.
+The `template-parameters` of a conversion template define what the template is instantiated for. The template is instantiated once for each combination of the values of its parameters. In each instance, every placeholder (`${area}`, `${thermal}`, `${link}`, `${<ad-hoc parameter>}`…) is replaced by the corresponding value.
 
 | Key | On | Effect |
 |---|---|---|
@@ -11,14 +11,23 @@ The `template-parameters` of a conversion template (`src/antares_gems_converter/
 | `exclude` | `area`, `link` | skip these objects; applied after `values` / `cluster-values` |
 | `ad-hoc: true` + `values` | any other name | iterate over `values`, with no lookup in the study |
 
+## Where the templates are
+
+The converter reads the templates from the package: `src/antares_gems_converter/input_converter/data/model_configuration/*.yaml`. To restrict or extend what a template converts, edit its file there (in a source checkout, or in the installed package). Only the models listed in `MODEL_NAME_TO_FILE_NAME` (`src/antares_gems_converter/input_converter/src/config.py`) can be converted, and only those named in `model_list` of the converter configuration are. A new template, such as the `electrolyser` of example 4, therefore needs a new YAML file and an entry in `MODEL_NAME_TO_FILE_NAME`; its `model` must exist in one of the libraries given to the converter.
+
 ## Rules
 
 - Each template's lists and exclusions apply to that template only.
-- Values are strings. Quote numbers in YAML: `values: ["2030"]`.
+- Values are strings. Quote in YAML anything YAML would read as another type: numbers (`values: ["2030"]`), and `yes`, `no`, `on`, `off`, `true`, `false`, `null` (the area `no`, Norway: `values: [fr, "no"]`).
 - Lists are non-empty and have no duplicates.
 - Objects are iterated in study order, whatever the order of the list. Ad-hoc values are iterated in the order of the list.
 - Link ids are the antares-craft ids: `"<area 1> / <area 2>"`, the areas sorted alphabetically (`"de / fr"`, not `"fr / de"`).
 - A listed area or link that is not in the study, or a listed cluster that is in none of the listed areas, is an error. The conversion fails before anything is converted.
+- An exclusion naming an object that is not in the study is not an error: it excludes nothing (a template can exclude `z_batteries` in a study without batteries). Check the spelling of the exclusions.
+- Objects not converted (not listed, or excluded) are handled differently in the two modes:
+  - **hybrid mode**: they stay legacy, simulated as before;
+  - **full mode**: they are absent from the converted system. Leaving out an area also leaves out what its other templates would connect to it: restrict the templates consistently (for example, exclude the area in the link, thermal, load… templates too).
+- Every placeholder of the template must be given by a parameter (`${stie}` instead of `${site}` is an error when the templates are loaded).
 
 The examples below assume a study with:
 
@@ -118,6 +127,8 @@ Instances (nested loops, the first parameter outermost):
 
 - **Placeholders in lists:** the entries of a list may use the placeholders of the parameters declared before it (`${area}` above).
 - **Declaration order:** parameters can be declared in any order; the first one is the outermost loop. At most one parameter is not ad-hoc (`area` or `link`). A template may have only ad-hoc parameters; its `area-connections` then name the areas explicitly.
-- **Ad-hoc parameter keys:** an ad-hoc parameter has no `cluster-type`, `cluster-values` or `exclude`. Its name is made of letters, digits and underscores, and is not `area`, `link`, `thermal`, `renewable` or `st_storage`.
-- **No legacy object:** ad-hoc components replace no legacy object. The template cannot have `legacy-objects-to-delete`, and its components get no scenario group from the legacy scenario builder.
+- **Ad-hoc parameter keys:** an ad-hoc parameter has no `cluster-type`, `cluster-values` or `exclude`. Its name is made of ASCII letters, digits and underscores (`region`, not `région`), and is not `area`, `link`, `thermal`, `renewable` or `st_storage`.
+- **Used placeholder:** the placeholder of an ad-hoc parameter must be used in the template or in the lists of the parameters declared after it. Otherwise every value would give the same components, and the template is rejected.
+- **No legacy object:** ad-hoc components replace no legacy object. The template cannot have `legacy-objects-to-delete`, and its components get no scenario group from the legacy scenario builder: a `scenario-group` of the template is ignored.
+- **Not for legacy objects:** an ad-hoc parameter is meant for new components, not to split a legacy object. Adding one to e.g. the `thermal` template (`unit: ["1", "2"]`) drops the scenario groups of the clusters, and, since `legacy-objects-to-delete` is not allowed, in hybrid mode the legacy clusters stay in the study next to their converted components: they would be counted twice.
 - **Unique ids:** component ids must be unique in the converted system, otherwise the conversion fails. In hybrid mode, they must not reuse the id of a legacy object still in the study.
