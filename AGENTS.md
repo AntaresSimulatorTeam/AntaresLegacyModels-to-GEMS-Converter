@@ -87,8 +87,10 @@ src/antares_gems_converter/
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
+  views_e2e/                     # Views vs legacy outputs of the same simulation (require Antares Simulator binary)
 .github/workflows/ci.yml        # CI pipeline
 .github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
+.github/workflows/views-e2e.yml  # tests/views_e2e against other Antares / GEMS-ViewsBuilder versions (dispatch, weekly, workflow_call)
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
 dependencies.json                # Antares Simulator version for CI
 ```
@@ -290,10 +292,13 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
 | `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
+| `tests/views_e2e/` | The views of the view configs equal the legacy mc-ind / mc-all outputs of the same simulation | Antares Simulator binary (`ANTARES_BIN_DIR`, else the `dependencies.json` release at the repo root), `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
 **E2E test pattern** (`tests/antares_historic/`): Create an Antares study programmatically, convert it to GEMS format, run both original and converted through the solver, compare objective values with `pytest.approx()`.
+
+**Views e2e pattern** (`tests/views_e2e/`): one legacy simulation, two outputs. `studies.py` builds a legacy study with antares-craft; `pipeline.py` runs `antares-solver --output=all --parquet --simulation-table-stages=last` (legacy outputs + simulation tables + `system-for-views.yml`), then the `gems-views-builder` command line with the view configs (aggregations-patterns filled: hourly and annual per scenario, annual over scenarios), catalogs, flattened taxonomy and `libs/antares_historic`; `comparison.py` compares every series of every view metric to its legacy column (`metric_mapping.py`), read with antares-craft (mc-ind per scenario, mc-all EXP/std/min/max). A metric added to a view config needs an entry in `METRIC_TO_LEGACY` (`test_every_view_metric_has_a_legacy_counterpart`). Known mismatches are listed in `KNOWN_GAPS` (`test_views_vs_legacy.py`) as strict xfails: when one is fixed upstream, its test fails, remove the entry. `VIEWS_E2E_REPORT_DIR` keeps the views, systems and comparisons; `python -m tests.views_e2e.report <dir>` summarises them in Markdown.
 
 ---
 

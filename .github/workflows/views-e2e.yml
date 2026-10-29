@@ -1,0 +1,128 @@
+name: Views e2e (Antares Simulator + GEMS-ViewsBuilder)
+
+# One legacy Antares simulation, two outputs: the legacy mc-ind/mc-all files and
+# the views GEMS-ViewsBuilder builds from its simulation tables with the view
+# configs, catalogs, taxonomy and libraries of this repository. tests/views_e2e
+# checks that they hold the same numbers.
+#
+# The main CI runs these tests with the pinned versions (dependencies.json,
+# pyproject.toml). This workflow runs them against other versions: on demand, on
+# a weekly schedule (pinned versions, and Antares develop build + ViewsBuilder
+# main), and from the Antares Simulator / GEMS-ViewsBuilder repositories through
+# workflow_call.
+
+on:
+  workflow_dispatch:
+    inputs:
+      antares_version:
+        description: 'Antares Simulator release (e.g. 10.2.0), "continuous-delivery" for the latest develop build, empty for dependencies.json'
+        required: false
+        type: string
+        default: ''
+      views_builder_version:
+        description: 'GEMS-ViewsBuilder PyPI version (e.g. 0.1.0) or git ref (branch, tag, sha), empty for the pinned version'
+        required: false
+        type: string
+        default: ''
+  workflow_call:
+    inputs:
+      antares_version:
+        required: false
+        type: string
+        default: ''
+      views_builder_version:
+        required: false
+        type: string
+        default: ''
+      converter_ref:
+        description: 'Ref of this repository to test (default: main)'
+        required: false
+        type: string
+        default: ''
+  schedule:
+    - cron: '17 3 * * 1'
+
+jobs:
+  views-e2e:
+    name: Views e2e (Antares ${{ matrix.antares || 'pinned' }}, ViewsBuilder ${{ matrix.views_builder || 'pinned' }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(github.event_name == 'schedule' && '[{"antares":"","views_builder":""},{"antares":"continuous-delivery","views_builder":"main"}]' || format('[{{"antares":"{0}","views_builder":"{1}"}}]', inputs.antares_version, inputs.views_builder_version)) }}
+
+    steps:
+      - name: Checkout the converter
+        uses: actions/checkout@v6
+        with:
+          # Called from another repository, check out this one
+          repository: AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter
+          ref: ${{ inputs.converter_ref || (github.repository == 'AntaresSimulatorTeam/AntaresLegacyModels-to-GEMS-Converter' && github.sha || 'main') }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Override GEMS-ViewsBuilder version
+        if: matrix.views_builder != ''
+        env:
+          VIEWS_BUILDER: ${{ matrix.views_builder }}
+        run: |
+          if [[ "$VIEWS_BUILDER" =~ ^[0-9]+\.[0-9]+ ]]; then
+            uv pip install "gems-views-builder==$VIEWS_BUILDER"
+          else
+            uv pip install "gems-views-builder @ git+https://github.com/AntaresSimulatorTeam/GEMS-ViewsBuilder@$VIEWS_BUILDER"
+          fi
+
+      - name: Download Antares Simulator
+        id: antares
+        env:
+          ANTARES: ${{ matrix.antares }}
+        run: |
+          VERSION="${ANTARES:-$(jq -r '.antares_simulator_version' dependencies.json)}"
+          if [ "$VERSION" = "continuous-delivery" ]; then
+            URL="https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/continuous-delivery/antares-cd-Ubuntu-22.04.tar.gz"
+          else
+            URL="https://github.com/AntaresSimulatorTeam/Antares_Simulator/releases/download/v${VERSION}/antares-${VERSION}-Ubuntu-22.04.tar.gz"
+          fi
+          mkdir -p antares-bin
+          curl -L -f "$URL" | tar -xz -C antares-bin
+          BIN_DIR="$(dirname "$(find "$PWD/antares-bin" -name antares-solver -type f | head -1)")"
+          echo "ANTARES_BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
+          echo "label=$("$BIN_DIR/antares-solver" --version 2>/dev/null | tail -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Run the views e2e tests
+        id: tests
+        continue-on-error: true
+        env:
+          VIEWS_E2E_REPORT_DIR: ${{ github.workspace }}/views-e2e-report
+        # --no-sync: keep the GEMS-ViewsBuilder override
+        run: uv run --no-sync pytest tests/views_e2e -m views_e2e -n auto -p no:logging -v --tb=short --junitxml=views-e2e-report/junit.xml
+
+      - name: Summary
+        if: always()
+        run: |
+          VB_VERSION="$(uv run --no-sync python -c 'import importlib.metadata as m; print(m.version("gems-views-builder"))')"
+          TITLE="Antares ${{ steps.antares.outputs.label }}, GEMS-ViewsBuilder $VB_VERSION ${{ matrix.views_builder }}"
+          uv run --no-sync python -m tests.views_e2e.report views-e2e-report "$TITLE" | tee views-e2e-report/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the views, systems and comparisons
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: views-e2e-report-${{ strategy.job-index }}
+          path: views-e2e-report
+          retention-days: 14
+
+      - name: Fail job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
