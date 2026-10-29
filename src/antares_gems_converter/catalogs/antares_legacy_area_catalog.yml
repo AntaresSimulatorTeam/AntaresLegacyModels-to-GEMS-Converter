@@ -224,7 +224,7 @@ catalog:
           location-port: balance_port
       breakdown:
         - key: technology
-      terms-operator: avg
+      terms-operator: sum
       time-operator: avg
 
     - id: UNSP_ENRG
