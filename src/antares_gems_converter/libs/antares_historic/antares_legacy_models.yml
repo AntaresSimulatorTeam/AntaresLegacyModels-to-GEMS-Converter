@@ -12,7 +12,7 @@
 library:
   id: antares_legacy_models
   description: Antares historic model library
-  version: "2.3.0"
+  version: "2.4.0"
   taxonomy: antares_legacy_taxonomy
 
   port-types:
@@ -204,7 +204,8 @@ library:
       properties:
         - id: carrier
         - id: technology
-    
+        - id: name
+
     - id: miscellaneous_generation
       taxonomy-category: miscellaneous_fatal_generation
       parameters:
@@ -486,7 +487,7 @@ library:
           expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price)+0.5)
       properties:
         - id: carrier
-        - id: group
+        - id: technology
         - id: name
     
     - id: long_term_storage

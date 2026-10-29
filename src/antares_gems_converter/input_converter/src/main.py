@@ -13,8 +13,9 @@ import logging
 import os
 import sys
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
 from pathlib import Path
+from typing import Optional
 
 from antares_gems_converter.input_converter.src.data_preprocessing.data_classes import (
     ConversionMode,
@@ -139,9 +140,11 @@ def main() -> None:
         path_validator = PathType(exists=True, dir_ok=True)
         study_path = path_validator(config_parser.get("study", "study_path"))
         output_folder = path_validator(config_parser.get("study", "output_folder"))
-        lib_paths = list(
-            filter(None, config_parser.get("study", "lib_paths").split(","))
-        )
+        lib_paths = [
+            lib_path.strip()
+            for lib_path in config_parser.get("study", "lib_paths").split(",")
+            if lib_path.strip()
+        ]
         try:
             for path in lib_paths:
                 PathType(exists=True, file_ok=True)(path)
@@ -149,28 +152,37 @@ def main() -> None:
             sys.exit(f"Aborting: Invalid lib_paths in configuration file: {e}")
     except ArgumentTypeError as e:
         sys.exit(f"Aborting: Invalid path in configuration file: {e}")
+    except NoOptionError as e:
+        sys.exit(f"Aborting: {e.message} in configuration file")
 
-    mode = config_parser.get("study", "mode", fallback=ConversionMode.FULL.value)
-    params = {
-        "study_input": study_path,
-        "logger": logger,
-        "mode": mode,
-        "output_folder": output_folder,
-        "lib_paths": lib_paths,
-    }
-    if mode == ConversionMode.HYBRID.value:
-        if not config_parser.get("hybrid", "model_list"):
-            sys.exit(f"Aborting: 'hybrid' mode set but no config related")
+    raw_mode = config_parser.get("study", "mode", fallback=ConversionMode.FULL.value)
+    try:
+        mode = ConversionMode(raw_mode.strip().lower())
+    except ValueError:
+        sys.exit(
+            f"Aborting: Invalid conversion mode '{raw_mode}', possible values are "
+            f"{[conv_mode.value for conv_mode in ConversionMode]}"
+        )
 
-        model_list = [
-            model.strip()
-            for model in config_parser.get("hybrid", "model_list").split(",")
-            if model.strip()
+    models_to_convert: Optional[list[str]] = None
+    if mode == ConversionMode.HYBRID:
+        raw_model_list = config_parser.get("hybrid", "model_list", fallback="")
+        models_to_convert = [
+            model.strip() for model in raw_model_list.split(",") if model.strip()
         ]
+        if not models_to_convert:
+            sys.exit(
+                "Aborting: 'hybrid' mode set but no 'model_list' in 'hybrid' section"
+            )
 
-        params["model_list"] = model_list
-
-    converter = AntaresStudyConverter(**params)  # type: ignore
+    converter = AntaresStudyConverter(
+        study_input=study_path,
+        logger=logger,
+        mode=mode.value,
+        output_folder=output_folder,
+        lib_paths=lib_paths,
+        models_to_convert=models_to_convert,
+    )
     converter.process_all()
 
 

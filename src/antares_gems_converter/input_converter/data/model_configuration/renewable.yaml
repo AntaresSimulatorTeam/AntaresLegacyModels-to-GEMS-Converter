@@ -62,6 +62,9 @@ template:
               area: ${area}
               cluster: ${renewable}
               field: group
+        - id: name
+          value:
+            constant: ${renewable}
 
   # For full modeler mode
   connections:

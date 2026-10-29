@@ -21,21 +21,26 @@ src/antares_gems_converter/
       main.py                  # Command line interface entry point 
       converter.py             # AntaresStudyConverter orchestrator:
 - Reads an Antares study (full or hybrid mode)
-- Loads YAML model templates and validates them against provided lib files (model ids, and parameter/property ids in both directions)
-- Iterates areas/links/clusters → builds ComponentSchema + port connection lists
-- Hybrid: deletes converted Antares objects from the study copy in-place
+- `apply_conversion_template()` applies one template to the study and returns a `SystemFragment` (see "Template loop")
+- `load_and_check_templates()` loads the templates of `models_to_convert` and checks them against the lib files
+- `system_and_scenario_groups(templates)` converts the templates and returns the GEMS system with its scenario groups; it writes no output file other than the data series
 - Full: also converts areas themselves into GEMS components
-- process_all() dumps the final InputSystem to output/input/system.yml
+- `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
+
+      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, skipping those it excludes (`is_excluded()`) and the disabled clusters
+      checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
+      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
+      deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
+      optim_config.py - writes the default optim-config.yml unless one exists
 
 
       parsing.py - Pydantic models for YAML conversion templates
-- ConversionTemplate - top-level: model id, components, connections, legacy objects to delete
+- ConversionTemplate / TemplateInstance / ObjectKind - see "Template loop"; templates are validated at load
 - ParameterConversionConfig - parameter source: constant (float), matrix column, or object + optional operation
 - PropertyConversionConfig - property source (similar to ParameterConversionConfig; result always converted to string)
 - Operation - max / multiply_by / divide_by on a value or timeseries
-- VirtualObjectsRepository - areas/links/thermals to skip during iteration
-- All models have resolve_template() to substitute ${area} / ${thermal} placeholders
 - parse_conversion_template() - YAML file → ConversionTemplate
+- parse_library() - GEMS library YAML file → LibrarySchema (raises ValueError naming the file)
       config.py  - lookup dictionaries used by the converter
 
 -   `TEMPLATE_CLUSTER_TYPE_TO_GET/DELETE_METHOD` - maps thermal/renewable/st_storage → antares-craft area methods
@@ -45,7 +50,7 @@ src/antares_gems_converter/
 - `BLANKED_LEGACY_OBJECT_TYPES` - legacy object types that hybrid mode blanks instead of deleting; GEMS components replacing them get the `_gems` suffix
 - `TIMESERIES_NAME_TO_METHOD` - maps template timeseries keys → antares-craft getter methods
 - `MODEL_NAME_TO_FILE_NAME` - maps model names → their YAML template filenames
-- `MATRIX_TYPES / CLUSTER_TYPES / LINK_TYPES / AREA_TYPES` - categorize model types for iteration logic in the converter
+- `MATRIX_TYPES` - templates whose components are skipped when their time series are empty or all zeros
       utils.py - small I/O helpers
 - `resolve_path` - resolves a `Path` to absolute, raises if it doesn't exist
 - `check_file_exists` - returns `True` only if file exists and is non-empty
@@ -76,7 +81,7 @@ src/antares_gems_converter/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
-  views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns, metrics filled per study)
+  views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns filled per study; metrics lists every metric of the template's catalog, as <catalog_id>.<metric_id>, to trim per study)
   antares_runner/
     antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
 tests/
@@ -96,9 +101,73 @@ dependencies.json                # Antares Simulator version for CI
 
 1. **CLI** (`main.py`) reads an INI config specifying study path, output folder, library paths, and conversion mode.
 2. **AntaresStudyConverter** (`converter.py`) loads the Antares study via `antares-craft`, loads YAML conversion templates, and iterates through each model type.
-3. **Template resolution** (`parsing.py`) replaces `${area}`, `${thermal}`, `${link}`, etc. placeholders with actual study object IDs.
+3. **Template loop** (`templates.py`, `parsing.py`): each template is instantiated for each link, area or cluster it applies to, its `${area}`, `${thermal}`, `${link}`, etc. placeholders replaced with the object IDs (see below).
 4. **Data extraction** (`preprocessing.py`) reads timeseries and scalar parameters from the study, writes timeseries to TSV files in `data-series/`.
 5. **Output**: a GEMS `InputSystem` dumped to `input/system.yml`, with libraries copied to `model-libraries/` and timeseries in `data-series/`.
+
+### Workflow of `process_all()`
+
+The nested part is the template loop (see below).
+
+```mermaid
+flowchart TD
+    setup["<b>Setup</b><br/>copy the libs to model-libraries/<br/>copy the user modeler SB file, if given<br/>create data-series/"]
+    load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: not exactly one template parameter,<br/>parameter not named area or link,<br/>unknown cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
+    sb["<b>get_legacy_sb()</b><br/>legacy scenario builder, read once"]
+
+    subgraph perTemplate["For each template: apply_conversion_template() gives a SystemFragment"]
+        direction TB
+        subgraph perObject["For each study object (area, link or cluster, per for_each)"]
+            direction TB
+            objs["<b>study_objects()</b><br/>skips the template's own exclusions<br/>and the disabled clusters"]
+            inst["<b>instantiate()</b><br/>all placeholders in one pass<br/>gives a TemplateInstance"]
+            ts["<b>read_year_ts()</b><br/>legacy SB entries of the object<br/>{year: ts index}"]
+            subgraph conv["_convert_instance()"]
+                direction TB
+                comps["components + .tsv series<br/>matrix components with empty or<br/>all-zero series skipped"]
+                full["<b>Full mode</b><br/>port connections, minus those<br/>touching a skipped component"]
+                hybrid["<b>Hybrid mode</b><br/>area connections, minus those of a<br/>skipped component<br/>+ legacy objects to delete"]
+                comps --> full
+                comps --> hybrid
+            end
+            objs --> inst --> ts --> comps
+        end
+        err["KeyError or FileNotFoundError: logged,<br/>the template's conversion stops at that object"]
+        perObject -.-> err
+    end
+
+    merge["<b>Merge the fragments</b><br/>SystemSchema (full) or HybridSystemSchema (hybrid)<br/>+ scenario groups + legacy objects"]
+    out["<b>Output</b><br/>modeler-scenariobuilder.dat, if scenario groups exist and no user file<br/>delete_legacy_objects(), hybrid only<br/>input/system.yml<br/>optim-config.yml, unless one exists"]
+
+    setup --> load --> sb --> perTemplate --> merge --> out
+```
+
+`get_legacy_sb()`, the template loop and the merge run in `system_and_scenario_groups()`, which `process_all()` calls with the templates from `load_and_check_templates()`.
+
+### Template loop
+
+| Term | Class | Meaning |
+|---|---|---|
+| template | `ConversionTemplate` | the YAML file, with placeholders; shares its body (`TemplateBody`: model, components, connections, legacy objects to delete) with its instances |
+| object kind | `ObjectKind` | what a template is instantiated for: `ConversionTemplate.for_each` |
+| study object | `StudyObject` | one link, area or cluster of the study; knows its placeholder substitutions |
+| instance | `TemplateInstance` | the template instantiated for one study object, no placeholder left |
+| fragment | `SystemFragment` | the GEMS output of one or more instances |
+
+`apply_conversion_template()` loops over `study_objects(template, …)`, instantiates the template for each (`template.instantiate(study_object.substitutions())`), reads its legacy SB entries (`read_year_ts()`) and converts the instance (`_convert_instance()`).
+
+- **`for_each`** is derived from the single template parameter: `name: link` → links (`${link}`, `${link}.area_from_id`, `${link}.area_to_id`); `name: area` with `cluster-type: <type>` → the clusters of that type in each area (`${area}` and `${<type>}`, e.g. `${thermal}`); `name: area` alone → areas (`${area}`). A validator rejects any other shape at load.
+- **Substitution** replaces the placeholders in every string of the template (values, not keys), in one pass, the longest placeholder first; a placeholder left raises a `ValueError`.
+- **`exclude`** (under the template parameter): the objects this template is not instantiated for; it applies to this template only. An entry sets `type` (an `ObjectKind`) and only `area`, `link`, or `area` and `cluster` for a cluster type. An excluded area also excludes its clusters and the links it is an end of; in a cluster exclusion, `${area}` stands for the area of the cluster. An entry must be able to match an object the template iterates over, so its `type` is `area` or the template's `for_each`:
+
+  | template iterates over (`for_each`) | `type: area` | `type: link` | `type: <cluster type>` |
+  |---|---|---|---|
+  | areas | that area | rejected | rejected |
+  | links | the links it is an end of | that link | rejected |
+  | clusters of a type | its clusters of that type | rejected | that cluster, if of the template's type, else rejected |
+
+  `${area}` is the only placeholder in an entry, and only in a cluster exclusion (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
+- **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
 
 ### Two Conversion Modes
 
@@ -122,7 +191,7 @@ template:
   template-parameters:
     - name: <variable>                  # e.g., area
       cluster-type: <type>              # optional: thermal, renewable, st_storage
-      exclude:                          # optional: virtual objects to skip
+      exclude:                          # optional: objects this template is not instantiated for (see "Template loop")
         - id: <identifier>
           object-properties: { type: ..., area: ... }
 
@@ -159,8 +228,8 @@ template:
 
 ### Key template conventions
 
-- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, etc. — resolved per-object iteration.
-- **Link attribute access**: `${link}.area_from_id`, `${link}.area_to_id` resolved via `getattr()` on Link objects.
+- **Placeholder syntax**: `${area}`, `${thermal}`, `${link}`, etc. — replaced for each study object the template is instantiated for.
+- **Link attribute access**: `${link}.area_from_id`, `${link}.area_to_id` are replaced by the link's areas; a following `.` is dropped (`${link}.area_from_id._node` → `at_node`). No other link attribute is allowed.
 - **Binding constraint fields**: use `%` and `.` separators (e.g., `${area}%z_batteries`, `${area}.${area}_batteries_inj`).
 - **Column indexing**: 0-based, references actual columns in Antares data matrices.
 - **Operations**: `divide_by` can reference another parameter by name (e.g., `divide_by: reservoir_capacity`).
@@ -200,7 +269,7 @@ uv run pytest -n auto
 uv run pytest tests/input_converter/ -n auto
 
 # Run a specific test
-uv run pytest tests/input_converter/test_converter.py::TestConverter::test_thermal_model_conversion
+uv run pytest tests/input_converter/test_converter.py::TestConverter::test_convert_thermals_to_component
 
 # Run one test file
 uv run pytest tests/antares_historic/test_thermal_model.py
@@ -219,7 +288,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
-| `tests/input_converter/` | Converter logic: template resolution, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
+| `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
 | `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
@@ -273,7 +342,7 @@ Runs on every push to any branch:
 
 ## Critical Rules for AI Agents
 
-1. **Template ↔ model parameter and property ids must match, both ways.** Each component of a conversion template declares exactly the parameters and properties of the referenced GEMS model: no unknown id, none missing. `_check_converted_models_are_in_libs` checks this for the templates in `models_to_convert` and raises a `ValueError` naming the template, component, model and ids. `test_templates_match_library_models` runs it on all templates.
+1. **Template ↔ model parameter and property ids must match, both ways.** Each component of a conversion template declares exactly the parameters and properties of the referenced GEMS model: no unknown id, none missing. `check_converted_models_are_in_libs` (`checks.py`) checks this for the templates in `models_to_convert` and raises a `ValueError` naming the template, component, model and ids. `test_templates_match_library_models` runs it on all templates.
 
 2. **`config.py` is the single source of truth for mappings.** Adding a new model type requires entries in `MODEL_NAME_TO_FILE_NAME`, and possibly `TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD`, `TIMESERIES_NAME_TO_METHOD`, and other mapping dictionaries. Missing entries cause `KeyError` at runtime.
 
@@ -281,11 +350,11 @@ Runs on every push to any branch:
 
 4. **FULL vs HYBRID mode produce different outputs.** FULL mode uses `connections` (port-to-port). HYBRID mode uses `area-connections` and `legacy-objects-to-delete`. Both sections must be kept consistent in templates.
 
-5. **Battery conversion uses virtual objects.** The battery template excludes virtual areas (`z_batteries`, `z_batteries_pcomp`) and proxy thermal clusters. The `VirtualObjectsRepository` tracks these so they are skipped during area/cluster iteration. Breaking this exclusion logic causes duplicate or invalid components.
+5. **Exclusions are local to their template** (see "Template loop"). Do not add study-specific exclusions to the reference templates.
 
 6. **Timeseries validity check.** `check_timeseries_validity()` rejects empty or all-zero dataframes. If a load/solar/wind area has no data, no component is generated for it. This is intentional — do not "fix" it by removing the check.
 
-7. **Space handling in IDs.** Component IDs have spaces replaced with underscores (`id.replace(" ", "_")`). This is applied during iteration, not in templates.
+7. **Link ids in component ids.** The `" / "` of link ids (e.g. `at / fr`) is replaced with `_` in component ids (`_output_component_id`) and scenario groups, not in templates.
 
 8. **Floating-point comparisons.** Always use `pytest.approx()` in tests. E2E tests use relative tolerance (`rel=0.01`) to account for LP relaxation vs MIP differences.
 
@@ -294,6 +363,8 @@ Runs on every push to any branch:
 10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, the `gems-views-builder` pin in `pyproject.toml` is the GEMS-ViewsBuilder version the catalogs and view configs are validated against; when the `check-views-builder-update` workflow opens an issue, re-check them, then update the pin (and `uv lock`).
 
 11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
+
+12. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 
 ---
 

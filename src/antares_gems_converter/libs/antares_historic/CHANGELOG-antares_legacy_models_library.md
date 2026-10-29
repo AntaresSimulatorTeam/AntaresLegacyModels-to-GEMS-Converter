@@ -10,7 +10,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
-## [2.3.0]
+## [2.4.0]
 
 - `flow` port-type: new fields `spillage_bound` and `unsupplied_energy_bound`, mapped to the `spillage-bound` and `unsupplied-energy-bound` of the hybrid `area-connection` (previously `flow` and nothing). Every model with a `flow` port defines them after the legacy bounds on spilled and unsupplied energy:
     - `thermal`: `generation_power`; `renewable`, `miscellaneous_generation`: `available_power`.
@@ -19,6 +19,13 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
     - `link`: `0` on both ports (imports may neither be spilled nor left unsupplied).
 - Hybrid results change when a converted load has unsupplied energy (the converted study was infeasible) or imports, when an area spills the imports of a converted link, and when a converted short-term storage or hydro reservoir charges on imports.
 - The bounds assume the nodal optimization options of the areas (`non-dispatchable-power`, `dispatchable-hydro-power`, `other-dispatchable-power`) are on, which is their default.
+
+---
+
+## [2.3.0]
+
+- Added `name` property to the `renewable` model (cluster name, used to break down GEMS-ViewsBuilder metrics). Every component of this model must now set it, including the aggregated wind, solar and run-of-river components.
+- `short_term_storage` model: renamed the `group` property to `technology`, like `thermal` and `renewable`, where it also holds the Antares cluster group. The taxonomy category `short_term_storage` and the `STS_INJECTION`, `STS_WITHDRAWAL` and `STS_LEVEL` breakdowns of the area catalog are renamed accordingly.
 
 ---
 

@@ -75,6 +75,7 @@ taxonomy:
       parent-category: fatal_generation
       properties:
         - id: technology
+        - id: name
 
     - id: miscellaneous_fatal_generation
       parent-category: fatal_generation
@@ -118,7 +119,7 @@ taxonomy:
       extra-outputs:
         - id: profit
       properties:
-        - id: group
+        - id: technology
         - id: name
 
     - id: link
