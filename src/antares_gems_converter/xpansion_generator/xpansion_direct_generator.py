@@ -29,15 +29,21 @@ Entrées :
 Sorties, dans le dossier de sortie (--output-dir) :
 - CandidatsX_generated_<année>.xlsx : tableau maître des candidats ;
 - model-libraries/xpansion_models.yml ;
-- data-series/coef_disponibilite_<composant>.txt ;
+- data-series/coef_disponibilite_<composant>.tsv ;
+- data-series/modeler-scenariobuilder.dat : un scenario group par composant ;
 - system.yml ;
+- optim-config.yml : résolution par décomposition de Benders ;
 - log_composants_system_<année>.txt : composants créés / non créés.
+
+system.yml, optim-config.yml, model-libraries et data-series vont dans le
+dossier input/ de l'étude hybride, résolue avec Antares Xpansion
+(antares-xpansion-launcher --step gems ; user/expansion/settings.ini requis).
 
 Deux familles de candidats, traitées séparément :
 - thermiques (TAC/CCG) : modèle thermal_candidate_to_invest, série de
   disponibilité du cluster Antares, thermal-capacity-connections ;
-- batteries : modèle battery_candidate_to_invest, investissement direct en
-  capacité, st-storage-capacity-connections.
+- batteries : journalisées seulement, Antares ne sachant pas encore connecter
+  un port de capacité à un short-term storage.
 
 Seul le cas YEAR == ANNEE_REF_EQUILIBRAGE est géré pour le moment.
 Le détail des traitements est dans xpansion_direct_generator_lib.py.
@@ -48,6 +54,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import pandas as pd
+from gems_craft_hybrid.study.parsing import HybridSystemSchema
 
 from antares_gems_converter.xpansion_generator import (
     xpansion_direct_generator_lib as lib,
@@ -92,8 +99,6 @@ CALAGE_EU = True  # True = candidats EU, False = candidats FR uniquement
 # Configuration du system.yml
 ID_SYSTEME = "generation_etude_xpansion"
 NOM_MODELE_THERMIQUE = "xpansion_models.thermal_candidate_to_invest"
-NOM_MODELE_BATTERIE = "xpansion_models.battery_candidate_to_invest"
-SCENARIO_GROUP = "scenario_thermal_xpansion"
 PREFIXE_COMPOSANT = "candidat_invest_"
 PORT_CAPACITE = "capacity_port"
 
@@ -128,9 +133,7 @@ def generate(
 
     print("\n[1/6] Librairie de modèles (GemsPy)...")
     library_file = lib.copy_model_library(model_source, output_dir / "model-libraries")
-    lib.check_models_in_library(
-        library_file, [NOM_MODELE_THERMIQUE, NOM_MODELE_BATTERIE]
-    )
+    lib.check_models_in_library(library_file, [NOM_MODELE_THERMIQUE])
     print(f"  ✓ Modèles vérifiés et copiés vers: {library_file}")
 
     print("\n[2/6] Lecture des fichiers Excel Xpansion...")
@@ -170,31 +173,32 @@ def generate(
         series_dir=output_dir / "data-series",
         series_prefix=PREFIXE_COEF_DISPONIBILITE,
         settings=lib.ComponentSettings(
-            NOM_MODELE_THERMIQUE, SCENARIO_GROUP, PREFIXE_COMPOSANT, PORT_CAPACITE
+            NOM_MODELE_THERMIQUE, PREFIXE_COMPOSANT, PORT_CAPACITE
         ),
     )
     lib.print_family_summary("thermique", thermal.log)
     print("  Candidats batteries :")
     battery = lib.build_battery_components(
-        battery_candidates,
-        study,
-        SUFFIXE_STORAGE_BATTERIE,
-        settings=lib.ComponentSettings(
-            NOM_MODELE_BATTERIE, SCENARIO_GROUP, PREFIXE_COMPOSANT, PORT_CAPACITE
-        ),
+        battery_candidates, study, SUFFIXE_STORAGE_BATTERIE, PREFIXE_COMPOSANT
     )
     lib.print_family_summary("batterie", battery.log)
 
-    print("\n[6/6] Écriture du system.yml et du journal...")
-    system = lib.XpansionSystemSchema(
+    print("\n[6/6] Écriture du system.yml, de l'optim-config.yml et du journal...")
+    system = HybridSystemSchema(
         id=ID_SYSTEME,
-        components=thermal.components + battery.components,
+        components=thermal.components,
         thermal_capacity_connections=thermal.connections,
-        st_storage_capacity_connections=battery.connections,
     )
     system_file = output_dir / "system.yml"
     lib.write_system_yml(system, system_file)
     print(f"  ✓ Fichier écrit: {system_file}")
+    optim_config_file = output_dir / "optim-config.yml"
+    lib.write_optim_config(NOM_MODELE_THERMIQUE, optim_config_file)
+    print(f"  ✓ Fichier écrit: {optim_config_file}")
+    lib.write_modeler_scenario_builder(
+        thermal.scenario_groups, output_dir / "data-series"
+    )
+    print("  ✓ Scenario builder écrit: data-series/modeler-scenariobuilder.dat")
 
     log_file = output_dir / FICHIER_LOG_SORTIE.format(year=YEAR)
     lib.write_generation_log(

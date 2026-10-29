@@ -28,11 +28,12 @@ Organisation :
 2. Tableau maître des candidats (``CandidatsX_generated_<année>.xlsx``)
 3. Librairie de modèles
 4. Composants thermiques (TAC/CCG)
-5. Composants batteries
-6. Écriture du ``system.yml``
+5. Candidats batteries (journalisés, pas encore de composant)
+6. Écriture du ``system.yml``, de l'``optim-config.yml`` et du scenario builder
 7. Journal des composants créés / non créés
 """
 
+import logging
 import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -42,15 +43,23 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 import yaml
 from antares.craft import Study, read_study_local
+from antares.craft.exceptions.exceptions import InvalidRequestForScenarioBuilder
+from antares.craft.model.scenario_builder import ScenarioBuilder
 from gems_craft.model.parsing import parse_yaml_library
 from gems_craft.model.resolve_library import resolve_library
 from gems_craft.study.parsing import ComponentParameterSchema, ComponentSchema
-from gems_craft.utils import ModifiedBaseModel
 from gems_craft_hybrid.study.parsing import (
     HybridSystemSchema,
     ThermalCapacityConnectionSchema,
     ThermalComponentSchema,
 )
+
+from antares_gems_converter.input_converter.src.scenario_builder import (
+    get_legacy_sb,
+    write_scenario_builder_file,
+)
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # 1. ENTRÉES EXCEL XPANSION
@@ -318,32 +327,14 @@ def check_models_in_library(library_file: Path, model_ids: List[str]) -> None:
 # 4 & 5. COMPOSANTS (schémas GemsPy)
 # =============================================================================
 
-
-class StStorageComponentSchema(ModifiedBaseModel):
-    """Short-term storage Antares ciblé, sur le modèle de ThermalComponentSchema."""
-
-    area: str
-    cluster_id: str
-
-
-class StStorageCapacityConnectionSchema(ModifiedBaseModel):
-    """Connexion d'un port de capacité à un short-term storage Antares.
-
-    Pendant de ThermalCapacityConnectionSchema pour les batteries. Cette clé
-    n'existe pas (encore) dans le format hybride de GemsPy.
-    """
-
-    component: str
-    port: str
-    st_storage_component: StStorageComponentSchema
-
-
-class XpansionSystemSchema(HybridSystemSchema):
-    """System hybride GemsPy complété des connexions aux short-term storages."""
-
-    st_storage_capacity_connections: Optional[
-        List[StStorageCapacityConnectionSchema]
-    ] = None
+# Antares (10.2) ne sait connecter un port de capacité qu'à un cluster
+# thermique (thermal-capacity-connections) : un candidat batterie n'aurait
+# aucun effet sur le short-term storage, et sa variable, absente des
+# sous-problèmes, fait échouer le Benders d'Xpansion.
+BATTERY_NOT_SUPPORTED = (
+    "connexion aux short-term storages non supportée par Antares "
+    "(st-storage-capacity-connections)"
+)
 
 
 @dataclass(frozen=True)
@@ -351,7 +342,6 @@ class ComponentSettings:
     """Réglages communs à tous les composants d'une famille."""
 
     model: str
-    scenario_group: str
     component_prefix: str
     port: str
 
@@ -374,10 +364,14 @@ class ComponentLogEntry:
 
 @dataclass
 class FamilyComponents:
-    """Composants, connexions et journal d'une famille de candidats."""
+    """Composants, connexions, scenario groups et journal d'une famille de candidats.
+
+    scenario_groups : {scenario group: {année MC (0-based): colonne de la série (1-based)}}
+    """
 
     components: List[ComponentSchema] = field(default_factory=list)
-    connections: List[Any] = field(default_factory=list)
+    connections: List[ThermalCapacityConnectionSchema] = field(default_factory=list)
+    scenario_groups: Dict[str, Dict[int, int]] = field(default_factory=dict)
     log: List[ComponentLogEntry] = field(default_factory=list)
 
 
@@ -415,29 +409,6 @@ def build_thermal_component_without_cluster(
     return None
 
 
-def build_battery_component_without_storage(
-    candidate: pd.Series,
-    component_id: str,
-    storage_id: str,
-    settings: ComponentSettings,
-) -> Optional[Tuple[ComponentSchema, Optional[StStorageCapacityConnectionSchema]]]:
-    """À compléter : candidat batterie dont le short-term storage n'existe pas dans l'étude legacy.
-
-    Appelée uniquement quand le short-term storage <zone><suffixe> est absent
-    de l'étude Antares. Pour créer quand même le composant d'investissement,
-    retourner (composant, connexion) :
-
-    - composant : ComponentSchema avec les paramètres du modèle
-      settings.model (gisement_total, cost_per_year, Pmax de la ligne candidate) ;
-    - connexion : StStorageCapacityConnectionSchema, ou None si le composant
-      ne doit pas être connecté.
-
-    Retourner None : le candidat n'est pas créé et le journal indique
-    « short-term storage absent » (comportement actuel).
-    """
-    return None
-
-
 def read_antares_study(study_path: Path) -> Study:
     """Lit l'étude Antares de base avec AntaresCraft."""
     return read_study_local(study_path)
@@ -448,14 +419,43 @@ def _thermal_cluster_exists(study: Study, area: str, cluster_id: str) -> bool:
     return area in areas and cluster_id in areas[area].get_thermals()
 
 
-def _empty_cluster_reason(study: Study, area: str, cluster_id: str) -> Optional[str]:
-    """Raison pour laquelle un cluster existant est vide, None s'il est utilisable."""
+def _unusable_cluster_reason(study: Study, area: str, cluster_id: str) -> Optional[str]:
+    """Raison pour laquelle un cluster existant est inutilisable, None sinon.
+
+    Antares ignore un cluster désactivé : une thermal-capacity-connection vers
+    lui arrête la simulation (« Area has no thermal cluster named ... »).
+    """
     properties = study.get_areas()[area].get_thermals()[cluster_id].properties
+    if not properties.enabled:
+        return "cluster désactivé (enabled = false)"
     if properties.nominal_capacity * properties.unit_count <= 0:
-        return "cluster vide (capacité installée nulle)" + (
-            "" if properties.enabled else ", désactivé (enabled = false)"
-        )
+        return "cluster vide (capacité installée nulle)"
     return None
+
+
+def thermal_year_ts(
+    legacy_sb: Optional[ScenarioBuilder],
+    area: str,
+    cluster_id: str,
+    nb_years: int,
+    nb_columns: int,
+) -> Dict[int, int]:
+    """{année MC (0-based): colonne de la série (1-based)} d'un cluster thermique.
+
+    Reprend le scenario builder legacy du cluster. Une année sans entrée (tirage
+    aléatoire côté Antares) prend la colonne (année modulo nb_columns) + 1.
+    """
+    scenario: List[Optional[int]] = []
+    if legacy_sb is not None:
+        try:
+            scenario = legacy_sb.thermal.get_cluster(area, cluster_id).get_scenario()
+        except InvalidRequestForScenarioBuilder:
+            pass
+    year_ts = {}
+    for year in range(nb_years):
+        ts = scenario[year] if year < len(scenario) else None
+        year_ts[year] = ts if ts is not None else year % nb_columns + 1
+    return year_ts
 
 
 def build_thermal_components(
@@ -471,11 +471,15 @@ def build_thermal_components(
     Pour chaque candidat, le cluster <zone><suffixe> de l'étude Antares fournit
     la série de disponibilité, divisée par sa capacité installée
     (nominal_capacity x unit_count) et écrite dans
-    data-series/<series_prefix><composant>.txt. Les candidats dont le cluster
-    est absent, vide ou sans série ne sont pas créés.
+    data-series/<series_prefix><composant>.tsv. Chaque composant a son propre
+    scenario group (son id), les séries n'ayant pas toutes le même nombre de
+    colonnes. Les candidats dont le cluster est absent, désactivé, vide ou sans
+    série ne sont pas créés.
     """
     result = FamilyComponents()
     series_dir.mkdir(parents=True, exist_ok=True)
+    legacy_sb = get_legacy_sb(study, logger)
+    nb_years = study.get_settings().general_parameters.nb_years
 
     for _, row in candidates.iterrows():
         area = row["zone"]
@@ -509,7 +513,7 @@ def build_thermal_components(
             log()
             continue
 
-        reason = _empty_cluster_reason(study, area, cluster_id)
+        reason = _unusable_cluster_reason(study, area, cluster_id)
         if reason:
             log(reason)
             continue
@@ -529,19 +533,23 @@ def build_thermal_components(
             cluster.properties.nominal_capacity * cluster.properties.unit_count
         )
         series_name = f"{series_prefix}{component_id}"
+        # Antares ne lit que les data-series .tsv ou .csv
         (series / installed_capacity).to_csv(
-            series_dir / f"{series_name}.txt",
+            series_dir / f"{series_name}.tsv",
             sep="\t",
             header=False,
             index=False,
             float_format="%.6g",
+        )
+        result.scenario_groups[component_id] = thermal_year_ts(
+            legacy_sb, area, cluster_id, nb_years, series.shape[1]
         )
 
         result.components.append(
             ComponentSchema(
                 id=component_id,
                 model=settings.model,
-                scenario_group=settings.scenario_group,
+                scenario_group=component_id,
                 parameters=[
                     constant_parameter("gisement_total", row["gisement_total"]),
                     constant_parameter("max_unit", row["max_unit"]),
@@ -574,71 +582,33 @@ def build_battery_components(
     candidates: pd.DataFrame,
     study: Study,
     storage_suffix: str,
-    settings: ComponentSettings,
+    component_prefix: str,
 ) -> FamilyComponents:
-    """Composants batteries, connectés au short-term storage <zone><storage_suffix>.
+    """Candidats batteries : journalisés, aucun composant créé pour le moment.
 
-    Seuls gisement_total, cost_per_year et Pmax sont écrits : pas d'unité ni de
-    série de disponibilité. Les zones sans ce short-term storage dans l'étude
-    Antares ne sont pas créées.
+    Le short-term storage <zone><storage_suffix> visé est cherché dans l'étude
+    Antares pour que le journal distingue les zones sans storage de celles où
+    seule la connexion manque (voir BATTERY_NOT_SUPPORTED).
     """
     result = FamilyComponents()
     areas = study.get_areas()
 
     for _, row in candidates.iterrows():
         area = row["zone"]
-        component_id = f"{settings.component_prefix}{row['name']}"
         storage_id = f"{area}{storage_suffix}"
         if area not in areas or storage_id not in areas[area].get_st_storages():
-            fallback = build_battery_component_without_storage(
-                row, component_id, storage_id, settings
-            )
-            if fallback is None:
-                result.log.append(
-                    ComponentLogEntry(
-                        "batterie",
-                        component_id,
-                        row["type"],
-                        area,
-                        storage_id,
-                        "short-term storage absent du list.ini de l'étude Antares",
-                    )
-                )
-                continue
-            component, connection = fallback
-            result.components.append(component)
-            if connection is not None:
-                result.connections.append(connection)
-            result.log.append(
-                ComponentLogEntry(
-                    "batterie", component_id, row["type"], area, storage_id
-                )
-            )
-            continue
-
-        result.components.append(
-            ComponentSchema(
-                id=component_id,
-                model=settings.model,
-                scenario_group=settings.scenario_group,
-                parameters=[
-                    constant_parameter("gisement_total", row["gisement_total"]),
-                    constant_parameter("cost_per_year", row["cost_per_year"]),
-                    constant_parameter("Pmax", row["Pmax"]),
-                ],
-            )
-        )
-        result.connections.append(
-            StStorageCapacityConnectionSchema(
-                component=component_id,
-                port=settings.port,
-                st_storage_component=StStorageComponentSchema(
-                    area=area, cluster_id=storage_id
-                ),
-            )
-        )
+            reason = "short-term storage absent du list.ini de l'étude Antares"
+        else:
+            reason = BATTERY_NOT_SUPPORTED
         result.log.append(
-            ComponentLogEntry("batterie", component_id, row["type"], area, storage_id)
+            ComponentLogEntry(
+                "batterie",
+                f"{component_prefix}{row['name']}",
+                row["type"],
+                area,
+                storage_id,
+                reason,
+            )
         )
 
     return result
@@ -679,30 +649,7 @@ def _component_to_yaml(component: ComponentSchema) -> Dict[str, Any]:
     }
 
 
-def write_system_yml(system: XpansionSystemSchema, output_file: Path) -> None:
-    """Écrit le system.yml.
-
-    Le contenu est celui du schéma GemsPy ; la mise en forme (ordre des clés,
-    entiers sans décimale, listes indentées, pas de integer-strategy par
-    défaut) reprend celle des versions précédentes du générateur, ce que
-    gems_craft.study.parsing.write_yaml_system ne permet pas.
-    """
-    content = {
-        "system": {
-            "components": [
-                _component_to_yaml(component) for component in system.components
-            ],
-            "id": system.id,
-            "thermal-capacity-connections": [
-                connection.model_dump(by_alias=True)
-                for connection in system.thermal_capacity_connections or []
-            ],
-            "st-storage-capacity-connections": [
-                connection.model_dump(by_alias=True)
-                for connection in system.st_storage_capacity_connections or []
-            ],
-        }
-    }
+def _dump_yaml(content: Dict[str, Any], output_file: Path) -> None:
     with open(output_file, "w", encoding="utf-8") as file:
         yaml.dump(
             content,
@@ -712,6 +659,72 @@ def write_system_yml(system: XpansionSystemSchema, output_file: Path) -> None:
             sort_keys=False,
             allow_unicode=True,
         )
+
+
+def write_system_yml(system: HybridSystemSchema, output_file: Path) -> None:
+    """Écrit le system.yml.
+
+    Le contenu est celui du schéma GemsPy ; la mise en forme (ordre des clés,
+    entiers sans décimale, listes indentées, pas de integer-strategy par
+    défaut) reprend celle des versions précédentes du générateur, ce que
+    gems_craft.study.parsing.write_yaml_system ne permet pas.
+    """
+    _dump_yaml(
+        {
+            "system": {
+                "components": [
+                    _component_to_yaml(component) for component in system.components
+                ],
+                "id": system.id,
+                "thermal-capacity-connections": [
+                    connection.model_dump(by_alias=True)
+                    for connection in system.thermal_capacity_connections or []
+                ],
+            }
+        },
+        output_file,
+    )
+
+
+def write_optim_config(thermal_model: str, output_file: Path) -> None:
+    """Écrit l'optim-config.yml, exigé par Antares dès qu'un system.yml existe.
+
+    Les variables d'investissement ne dépendant pas du scénario, l'étude doit
+    être résolue par décomposition de Benders (Xpansion, étape « gems »). Sans
+    model-decomposition, le problème maître est vide : la variable va dans le
+    maître et les sous-problèmes, la contrainte de gisement et le coût
+    d'investissement dans le maître.
+    """
+    _dump_yaml(
+        {
+            "resolution-mode": "benders-decomposition",
+            "models": [
+                {
+                    "id": thermal_model,
+                    "model-decomposition": {
+                        "variables": [
+                            {
+                                "id": "units_to_invest",
+                                "location": "master-and-subproblems",
+                            }
+                        ],
+                        "constraints": [{"id": "capa_max", "location": "master"}],
+                        "objective-contributions": [
+                            {"id": "obj", "location": "master"}
+                        ],
+                    },
+                }
+            ],
+        },
+        output_file,
+    )
+
+
+def write_modeler_scenario_builder(
+    scenario_groups: Dict[str, Dict[int, int]], series_dir: Path
+) -> None:
+    """Écrit data-series/modeler-scenariobuilder.dat (une ligne par groupe et année)."""
+    write_scenario_builder_file(scenario_groups, series_dir, logger)
 
 
 # =============================================================================
