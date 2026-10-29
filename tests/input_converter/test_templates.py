@@ -613,6 +613,20 @@ def test_cluster_values_resolving_to_the_same_cluster(study_w_clusters: Study):
     ]
 
 
+def test_cluster_values_listing_a_disabled_cluster(
+    study_w_clusters: Study, caplog: pytest.LogCaptureFixture
+):
+    # A listed disabled cluster is found, so it is not an error, but skipped
+    study_w_clusters.get_areas()["fr"].create_thermal_cluster(
+        "off", ThermalClusterProperties(enabled=False)
+    )
+    template = _with_parameter("thermal", values=["fr"], cluster_values=["gaz", "off"])
+    with caplog.at_level(logging.WARNING):
+        objects = _study_objects(template, study_w_clusters)
+    assert objects == [FR_GAZ]
+    assert "'off'" in caplog.text and "is disabled" in caplog.text
+
+
 def test_exclude_applies_after_lists(study_w_clusters: Study):
     exclude = [
         {"id": "it", "object-properties": {"type": "area", "area": "it"}},

@@ -24,7 +24,8 @@ The converter reads the templates from the package: `src/antares_gems_converter/
 - Link ids are the antares-craft ids: `"<area 1> / <area 2>"`, the areas sorted alphabetically (`"de / fr"`, not `"fr / de"`).
 - A listed area or link that is not in the study, or a listed cluster that is in none of the listed areas, is an error. The conversion fails before anything is converted.
 - An exclusion naming an object that is not in the study is not an error: it excludes nothing (a template can exclude `z_batteries` in a study without batteries). Check the spelling of the exclusions.
-- Objects not converted (not listed, or excluded) are handled differently in the two modes:
+- A disabled cluster (`enabled = false`) is never converted, even if listed in `cluster-values`. Listing it is not an error: it is skipped with a warning.
+- Objects not converted (not listed, excluded, or disabled clusters) are handled differently in the two modes:
   - **hybrid mode**: they stay legacy, simulated as before;
   - **full mode**: they are absent from the converted system. Leaving out an area also leaves out what its other templates would connect to it: restrict the templates consistently (for example, exclude the area in the link, thermal, load… templates too).
 - Every placeholder of the template must be given by a parameter (`${stie}` instead of `${site}` is an error when the templates are loaded).
