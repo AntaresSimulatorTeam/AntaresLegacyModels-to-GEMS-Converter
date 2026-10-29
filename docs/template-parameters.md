@@ -13,7 +13,7 @@ The `template-parameters` of a conversion template define what the template is i
 
 ## Where the templates are
 
-The converter reads the templates from the package: `src/antares_gems_converter/input_converter/data/model_configuration/*.yaml`. To restrict or extend what a template converts, edit its file there (in a source checkout, or in the installed package). Only the models listed in `MODEL_NAME_TO_FILE_NAME` (`src/antares_gems_converter/input_converter/src/config.py`) can be converted, and only those named in `model_list` of the converter configuration are. A new template, such as the `electrolyser` of example 4, therefore needs a new YAML file and an entry in `MODEL_NAME_TO_FILE_NAME`; its `model` must exist in one of the libraries given to the converter.
+The converter reads the templates from the package: `src/antares_gems_converter/input_converter/data/model_configuration/*.yaml`. To restrict or extend what a template converts, edit its file there (in a source checkout, or in the installed package). Only the models listed in `MODEL_NAME_TO_FILE_NAME` (`src/antares_gems_converter/input_converter/src/config.py`) can be converted: in hybrid mode, those named in `model_list` of the converter configuration; in full mode, all of them. A new template, such as the `electrolyser` of example 4, therefore needs a new YAML file and an entry in `MODEL_NAME_TO_FILE_NAME`; its `model` must exist in one of the libraries given to the converter.
 
 ## Rules
 
@@ -27,7 +27,7 @@ The converter reads the templates from the package: `src/antares_gems_converter/
 - A disabled cluster (`enabled = false`) is never converted, even if listed in `cluster-values`. Listing it is not an error: it is skipped with a warning.
 - Objects not converted (not listed, excluded, or disabled clusters) are handled differently in the two modes:
   - **hybrid mode**: they stay legacy, simulated as before;
-  - **full mode**: they are absent from the converted system. Leaving out an area also leaves out what its other templates would connect to it: restrict the templates consistently (for example, exclude the area in the link, thermal, load… templates too).
+  - **full mode**: they are absent from the converted system. Leaving out an area does not leave out what the other templates connect to it: their components still connect to the area's node, which is missing, and the converter does not check it. Restrict the templates consistently (for example, exclude the area in the link, thermal, load… templates too).
 - Every placeholder of the template must be given by a parameter (`${stie}` instead of `${site}` is an error when the templates are loaded).
 
 The examples below assume a study with:

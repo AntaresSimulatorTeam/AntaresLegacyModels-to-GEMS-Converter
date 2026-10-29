@@ -356,8 +356,18 @@ class ConversionTemplate(TemplateBody):
         # An ad-hoc value used nowhere would give the same components once per
         # value, hence duplicate component ids
         for i, parameter in enumerate(self.template_parameters):
+            # Only the lists of the parameters after it select study objects
             inner = json.dumps(
-                [p.model_dump() for p in self.template_parameters[i + 1 :]]
+                [
+                    p.model_dump(
+                        include={
+                            "values": True,
+                            "cluster_values": True,
+                            "exclude": {"__all__": {"object_properties"}},
+                        }
+                    )
+                    for p in self.template_parameters[i + 1 :]
+                ]
             )
             if parameter.ad_hoc and not any(
                 placeholder in text

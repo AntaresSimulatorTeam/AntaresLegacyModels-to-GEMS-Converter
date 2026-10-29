@@ -114,11 +114,12 @@ def _check_listed(
     listed: Iterable[str],
     found: Iterable[str],
     what: str,
+    where: str = "in the study",
 ) -> None:
     if missing := sorted(set(listed) - set(found)):
         raise ValueError(
             f"Template '{template_name}', parameter '{parameter.name}': "
-            f"{what} {missing} not found in the study"
+            f"{what} {missing} not found {where}"
         )
 
 
@@ -206,6 +207,7 @@ def study_objects(
             parameter.cluster_values,
             found_clusters,
             f"{kind} clusters",
+            f"in the areas {parameter.values or sorted(areas)}",
         )
     return objects
 

@@ -283,6 +283,10 @@ def test_unused_ad_hoc_parameter():
     # Used in the list of an inner parameter only
     area = {"name": "area", "values": ["${site}"]}
     _template([site, area], components=components)
+    # A description selects nothing
+    area = {"name": "area", "description": "per ${site}"}
+    with pytest.raises(ValueError, match="parameter 'site': '\\$\\{site\\}' is used"):
+        _template([site, area], components=components)
 
 
 def test_exclusion_uses_outer_placeholders():
@@ -662,7 +666,7 @@ def test_exclude_applies_after_lists(study_w_clusters: Study):
         (
             "thermal",
             {"values": ["it"], "cluster-values": ["gaz"]},
-            "thermal clusters \\['gaz'\\] not found",
+            "thermal clusters \\['gaz'\\] not found in the areas \\['it'\\]",
         ),
         (
             "short-term-storage",

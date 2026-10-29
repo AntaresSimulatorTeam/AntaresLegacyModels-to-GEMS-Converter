@@ -2,6 +2,7 @@ import logging
 import shutil
 from pathlib import Path
 from typing import Optional
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -46,9 +47,15 @@ def convert_study(
         "models_to_convert": model_list,
     }
     converter = AntaresStudyConverter(**params)  # type: ignore
-    if templates is not None:
-        converter.load_and_check_templates = lambda: templates  # type: ignore
-    converter.process_all()
+    if templates is None:
+        converter.process_all()
+    else:
+        # Replace only the loading: the templates are still checked against the libs
+        with patch(
+            f"{AntaresStudyConverter.__module__}.load_conversion_templates",
+            return_value=templates,
+        ):
+            converter.process_all()
     return study_path, converter.output_folder
 
 
