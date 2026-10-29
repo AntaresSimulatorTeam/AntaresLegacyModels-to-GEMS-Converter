@@ -64,10 +64,10 @@ KNOWN_GAPS: dict[tuple[str, Optional[str]], str] = {
         None,
     ): "Antares capacity_shadow_price differs from MARG. COST",
     (f"{_LINK}.CONG_PROB_DIR", "annual_per_scenario"): (
-        "legacy annual CONG. PROB is 100 if congested at least one hour: needs a max time operator (#159)"
+        "legacy annual CONG. PROB is not the time sum of the hourly one"
     ),
     (f"{_LINK}.CONG_PROB_DIR", "annual_all_scenario"): (
-        "legacy annual CONG. PROB is 100 if congested at least one hour: needs a max time operator (#159)"
+        "legacy annual CONG. PROB is not the time sum of the hourly one"
     ),
     **{
         (f"{_AREA}.{metric}", None): _UNDATED_ROWS
