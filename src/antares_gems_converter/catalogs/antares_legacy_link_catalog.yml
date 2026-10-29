@@ -48,7 +48,7 @@ catalog:
           output-id: capacity_shadow_price
           location-port: null
       terms-operator: sum
-      time-operator: sum
+      time-operator: avg
 
     - id: CONG_PROB_DIR
       terms:
