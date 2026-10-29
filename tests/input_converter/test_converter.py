@@ -486,7 +486,7 @@ class TestConverter:
                 ],
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
-                    ComponentPropertySchema(id="group", value="other1"),
+                    ComponentPropertySchema(id="technology", value="other1"),
                     ComponentPropertySchema(id="name", value="storage_1"),
                 ],
             )
@@ -710,6 +710,7 @@ class TestConverter:
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),
                     ComponentPropertySchema(id="technology", value="other res 1"),
+                    ComponentPropertySchema(id="name", value="generation"),
                 ],
             )
         ]
@@ -1096,6 +1097,7 @@ class TestConverter:
             properties=[
                 ComponentPropertySchema(id="carrier", value="electricity"),
                 ComponentPropertySchema(id="technology", value="solar"),
+                ComponentPropertySchema(id="name", value="solar"),
             ],
         )
         assert solar_fr_connection == expected_solar_connection
@@ -1199,6 +1201,7 @@ class TestConverter:
             properties=[
                 ComponentPropertySchema(id="carrier", value="electricity"),
                 ComponentPropertySchema(id="technology", value="wind"),
+                ComponentPropertySchema(id="name", value="wind"),
             ],
         )
         assert wind_fr_connection == expected_wind_connection
@@ -1445,6 +1448,7 @@ class TestConverter:
             properties=[
                 ComponentPropertySchema(id="carrier", value="electricity"),
                 ComponentPropertySchema(id="technology", value="run_of_river"),
+                ComponentPropertySchema(id="name", value="run_of_river"),
             ],
         )
         assert ror_fr_connection == expected_ror_connection

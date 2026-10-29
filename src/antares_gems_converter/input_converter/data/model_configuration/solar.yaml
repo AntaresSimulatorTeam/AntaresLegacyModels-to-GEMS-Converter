@@ -48,6 +48,9 @@ template:
         - id: technology
           value:
             constant: solar
+        - id: name
+          value:
+            constant: solar
 
   # For full modeler mode
   connections:
