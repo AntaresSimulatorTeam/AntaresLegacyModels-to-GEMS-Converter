@@ -442,7 +442,7 @@ library:
           expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price)+0.5)
       properties:
         - id: carrier
-        - id: group
+        - id: technology
         - id: name
     
     - id: long_term_storage

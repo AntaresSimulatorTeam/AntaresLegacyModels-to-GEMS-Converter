@@ -119,7 +119,7 @@ taxonomy:
       extra-outputs:
         - id: profit
       properties:
-        - id: group
+        - id: technology
         - id: name
 
     - id: link

@@ -13,6 +13,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 ## [2.3.0]
 
 - Added `name` property to the `renewable` model (cluster name, used to break down GEMS-ViewsBuilder metrics). Every component of this model must now set it, including the aggregated wind, solar and run-of-river components.
+- `short_term_storage` model: renamed the `group` property to `technology`, like `thermal` and `renewable`, where it also holds the Antares cluster group. The taxonomy category `short_term_storage` and the `STS_INJECTION`, `STS_WITHDRAWAL` and `STS_LEVEL` breakdowns of the area catalog are renamed accordingly.
 
 ---
 
