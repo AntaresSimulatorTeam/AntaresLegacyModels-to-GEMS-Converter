@@ -132,7 +132,7 @@ def study_objects(
     """Return, in study order, the links, areas or clusters that `parameter`,
     a parameter of the template named `template_name` with no ad-hoc flag,
     yields: those listed in its values and cluster-values, if any, except those
-    it excludes and the disabled renewable clusters.
+    it excludes and the disabled clusters.
 
     A listed link or area that is not in the study, or a listed cluster that is
     in none of the listed areas, raises a ValueError.
@@ -190,9 +190,11 @@ def study_objects(
             cluster_object = StudyObject(kind, area=area.id, cluster=cluster_id)
             if is_excluded(cluster_object, exclusions):
                 continue
-            if kind == ObjectKind.RENEWABLE and not cluster.properties.enabled:
+            # A disabled cluster contributes nothing in Antares: no component, and
+            # in hybrid mode it is not deleted, so it stays, disabled, in the study
+            if not cluster.properties.enabled:
                 logger.warning(
-                    f"Renewable cluster '{cluster_id}' in area "
+                    f"{kind} cluster '{cluster_id}' in area "
                     f"'{area.id}' is disabled; skipping conversion."
                 )
                 continue

@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 from pathlib import Path
 from time import time
 from types import NoneType
@@ -39,6 +40,7 @@ LOAD_TIME_SERIE_FILES = [
 # General tests [OK:test_general_thermal]
 
 # Testing Boolean/discrete parameters
+## enabled: [OK : test_disabled_cluster]
 ## group: [TODO]
 ## gen_ts: [TODO]
 ## must_run: [TODO]
@@ -996,3 +998,59 @@ def test_restricted_thermal_clusters(
         THERMAL_TEST_SOLVER,
     )
     assert rel_gap < THERMAL_TEST_REL_ACCURACY
+
+
+@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES)
+def test_disabled_cluster(
+    load_time_serie_file: str,
+    auto_generated_studies_path: Path,
+    antares_exec_folder: Path,
+) -> None:
+    # The two base clusters stay enabled; a cheap marginal cluster is disabled
+    marg_cluster_properties = ThermalClusterProperties(
+        nominal_capacity=100,
+        unit_count=2,
+        marginal_cost=1,
+        market_bid_cost=1,
+        group=ThermalClusterGroup.GAS,
+        enabled=False,
+    )
+    cluster_data_frame = pd.DataFrame(
+        data=marg_cluster_properties.unit_count
+        * marg_cluster_properties.nominal_capacity
+        * np.ones((8760, 1))
+    )
+
+    # Run base test: the disabled cluster must not be converted
+    study_name_base = f"e2e_disabled_base_{str(int(100*time()))}"
+    createThermalTestAntaresStudy(
+        study_name_base,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        marg_cluster_properties,
+        cluster_data_frame,
+    )
+    orig_path_base, conv_path_base = convert_study(
+        auto_generated_studies_path, study_name_base, ["thermal"]
+    )
+    rel_gap_base = first_optim_relgap(
+        antares_exec_folder, orig_path_base, conv_path_base, THERMAL_TEST_SOLVER
+    )
+    assert rel_gap_base < THERMAL_TEST_REL_ACCURACY
+
+    # Same study with the cluster enabled: it must change the optimum
+    study_name_enabled = f"e2e_disabled_enabled_{str(int(100*time()))}"
+    createThermalTestAntaresStudy(
+        study_name_enabled,
+        auto_generated_studies_path,
+        LOAD_FILES_DIR / load_time_serie_file,
+        replace(marg_cluster_properties, enabled=True),
+        cluster_data_frame,
+    )
+    rel_gap_enabled = first_optim_relgap(
+        antares_exec_folder,
+        auto_generated_studies_path / study_name_enabled,
+        conv_path_base,
+        THERMAL_TEST_SOLVER,
+    )
+    assert rel_gap_enabled > 10 * THERMAL_TEST_REL_ACCURACY

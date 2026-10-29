@@ -27,7 +27,7 @@ src/antares_gems_converter/
 - Full: also converts areas themselves into GEMS components
 - `process_all()` copies the libraries, writes modeler-scenariobuilder.dat, deletes the converted legacy objects (hybrid), dumps output/input/system.yml and writes optim-config.yml
 
-      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` returns the objects a template parameter yields, restricted to its lists, skipping those it excludes (`is_excluded()`) and the disabled renewable clusters; `template_arguments()` returns what a template is instantiated for (`TemplateArguments`: one combination of the values of its parameters, for each instance)
+      templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` returns the objects a template parameter yields, restricted to its lists, skipping those it excludes (`is_excluded()`) and the disabled clusters; `template_arguments()` returns what a template is instantiated for (`TemplateArguments`: one combination of the values of its parameters, for each instance)
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
       scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
@@ -114,7 +114,7 @@ flowchart TD
     setup["<b>Setup</b><br/>copy the libs to model-libraries/<br/>copy the user modeler SB file, if given<br/>create data-series/"]
     load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: no template parameter,<br/>more than one not ad-hoc, ill-formed parameter or list,<br/>unknown placeholder, cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
     sb["<b>get_legacy_sb()</b><br/>legacy scenario builder, read once"]
-    args["<b>template_arguments()</b>, for every template<br/>combinations of the parameters' values, outer first<br/>study_objects(): values and cluster-values,<br/>then the parameter's exclusions,<br/>minus the disabled renewable clusters<br/>a listed id missing from the study: ValueError"]
+    args["<b>template_arguments()</b>, for every template<br/>combinations of the parameters' values, outer first<br/>study_objects(): values and cluster-values,<br/>then the parameter's exclusions,<br/>minus the disabled clusters<br/>a listed id missing from the study: ValueError"]
 
     subgraph perTemplate["For each template: apply_conversion_template() gives a SystemFragment"]
         direction TB
@@ -374,6 +374,8 @@ Runs on every push to any branch:
 10. **Version tracking.** The Antares Simulator version is tracked in `dependencies.json`. When updating, also check the CI workflow and test conftest for hardcoded version references. Likewise, the `gems-views-builder` pin in `pyproject.toml` is the GEMS-ViewsBuilder version the catalogs and view configs are validated against; when the `check-views-builder-update` workflow opens an issue, re-check them, then update the pin (and `uv lock`).
 
 11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
+
+12. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 
 ---
 
