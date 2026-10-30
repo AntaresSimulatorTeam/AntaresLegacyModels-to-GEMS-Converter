@@ -13,11 +13,14 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 ## [1.0.0]
 
 - Initial release, replacing `xpansion_models.yml` of the Xpansion direct generator (`xpansion_generator/`).
-- `continuous_investment_candidate`: continuous invested capacity, bounded by `max_capacity`.
-- `discrete_investment_candidate`: integer number of units of `unit_size`, bounded by `max_units`.
-- Both have a `capacity_port`, connected to an Antares thermal cluster through `thermal-capacity-connections` (hybrid mode only).
+- `continuous_investment_candidate`: continuous invested capacity, between `min_investment` and `max_investment` (MW).
+- `discrete_investment_candidate`: integer number of units of `unit_size`, whose invested capacity is between `min_investment` and `max_investment` (MW).
+- Both models, inspired by Antares Xpansion link candidates:
+  - `existing_capacity` (MW): capacity already installed, without investment cost, with the same `availability_rate` as the invested capacity (Xpansion's `already-installed-capacity`, without a separate profile).
+  - `min_investment` / `max_investment` (MW): limits on the invested capacity, existing capacity excluded (Xpansion's `max-investment`; Xpansion has no minimum).
+  - A `capacity_port`, connected to an Antares thermal cluster through `thermal-capacity-connections` (hybrid mode only).
 - Changes from `xpansion_models.yml`:
-  - Identifiers in English: `gisement_total` → `max_capacity`, `coef_disponibilite` → `availability_rate`, `max_unit` → `max_units`, `cost_per_year` → `annual_investment_cost`, `units_to_invest` → `invested_units`.
+  - Identifiers in English: `gisement_total` → `max_investment`, `coef_disponibilite` → `availability_rate`, `cost_per_year` → `annual_investment_cost`, `units_to_invest` → `invested_units`.
   - `annual_investment_cost` is per MW and per year in both models, as Xpansion's `annual-cost-per-mw`; the old `cost_per_year` was per unit.
-  - The `capa_max` constraint (`units_to_invest * unit_size <= gisement_total`) is removed: the `max_units` bound gives the same limit when the capacity limit is a multiple of `unit_size`.
+  - `max_unit` (units) and the `capa_max` constraint (`units_to_invest * unit_size <= gisement_total`) are replaced by the `max_investment` bound (MW): `invested_units <= max_investment / unit_size`.
   - The battery model and the `storage_capacity_port` port type are removed: Antares cannot connect a capacity port to a short-term storage yet.
