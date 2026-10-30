@@ -212,50 +212,34 @@ def study_objects(
     return objects
 
 
-@dataclass(frozen=True)
-class TemplateArguments:
-    """The values of the parameters of a template for one of its instances:
-    the substitutions to instantiate it, and the study object of its parameter
-    with no ad-hoc flag, if any."""
-
-    substitutions: dict[str, str]
-    study_object: Optional[StudyObject] = None
-
-
 def template_arguments(
     conversion_template: ConversionTemplate,
     study: Study,
     areas: Mapping[str, Area],
     logger: logging.Logger,
-) -> list[TemplateArguments]:
-    """Return the arguments `conversion_template` is instantiated for: every
-    combination of the values of its parameters, nested in declaration order
-    (outer first), each parameter's lists resolved with the values of the
-    outer parameters."""
+) -> list[dict[str, str]]:
+    """Return the arguments `conversion_template` is instantiated for, as the
+    placeholder substitutions of each instance: every combination of the
+    values of its parameters, nested in declaration order (outer first), each
+    parameter's lists resolved with the values of the outer parameters."""
 
     def walk(
-        parameters: Sequence[TemplateParameter],
-        substitutions: dict[str, str],
-        study_object: Optional[StudyObject],
-    ) -> Iterator[TemplateArguments]:
+        parameters: Sequence[TemplateParameter], substitutions: dict[str, str]
+    ) -> Iterator[dict[str, str]]:
         if not parameters:
-            yield TemplateArguments(substitutions, study_object)
+            yield substitutions
             return
         parameter = parameters[0].resolve(substitutions)
         if parameter.ad_hoc:
             assert parameter.values
             for value in parameter.values:
                 yield from walk(
-                    parameters[1:],
-                    {**substitutions, f"${{{parameter.name}}}": value},
-                    study_object,
+                    parameters[1:], {**substitutions, f"${{{parameter.name}}}": value}
                 )
             return
         for obj in study_objects(
             conversion_template.name, parameter, study, areas, logger
         ):
-            yield from walk(
-                parameters[1:], {**substitutions, **obj.substitutions()}, obj
-            )
+            yield from walk(parameters[1:], {**substitutions, **obj.substitutions()})
 
-    return list(walk(conversion_template.template_parameters, {}, None))
+    return list(walk(conversion_template.template_parameters, {}))

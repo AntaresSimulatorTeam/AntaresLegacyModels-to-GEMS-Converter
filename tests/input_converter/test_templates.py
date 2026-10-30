@@ -14,6 +14,7 @@ import json
 import logging
 import shutil
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from antares.craft.model.renewable import RenewableClusterProperties
@@ -27,14 +28,17 @@ from antares_gems_converter.input_converter.src.converter import AntaresStudyCon
 from antares_gems_converter.input_converter.src.deletion import delete_legacy_objects
 from antares_gems_converter.input_converter.src.logger import Logger
 from antares_gems_converter.input_converter.src.parsing import (
+    ComponentConversionConfig,
     ConversionTemplate,
     ObjectKind,
     ObjectProperties,
 )
-from antares_gems_converter.input_converter.src.scenario_builder import read_year_ts
+from antares_gems_converter.input_converter.src.scenario_builder import (
+    legacy_sb_source,
+    read_year_ts,
+)
 from antares_gems_converter.input_converter.src.templates import (
     StudyObject,
-    TemplateArguments,
     is_excluded,
     load_conversion_template,
     study_objects,
@@ -316,25 +320,59 @@ def test_study_object_substitutions():
     assert AT_FR.substitutions()["${link}"] == "at / fr"
 
 
-def test_read_year_ts_by_kind(fr_wind: Study):
+def test_read_year_ts_by_type(fr_wind: Study):
     sb = fr_wind.get_scenario_builder()
     sb.wind.get_area("fr").set_new_scenario([2])
     sb.thermal.get_cluster("fr", "gaz").set_new_scenario([3])
     sb.renewable.get_cluster("fr", "generation").set_new_scenario([4])
     sb.link.get_link("at / fr").set_new_scenario([5])
 
-    assert read_year_ts(sb, "wind", FR) == {0: 2}
-    # Templates without a legacy SB attribute
-    assert read_year_ts(sb, "area", FR) == {}
-    assert read_year_ts(sb, "misc_gen", FR) == {}
-    assert read_year_ts(sb, "battery", FR) == {}
-    assert read_year_ts(sb, "thermal", FR_GAZ) == {0: 3}
-    generation = StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="generation")
-    assert read_year_ts(sb, "renewable", generation) == {0: 4}
-    storage = StudyObject(ObjectKind.ST_STORAGE, area="fr", cluster="storage_1")
-    assert read_year_ts(sb, "st_storage", storage) == {}
-    assert read_year_ts(sb, "link", AT_FR) == {0: 5}
-    assert read_year_ts(None, "wind", FR) == {}
+    wind = ObjectProperties(type="wind", area="fr")
+    assert read_year_ts(sb, wind) == {0: 2}
+    gaz = ObjectProperties(type="thermal", area="fr", cluster="gaz")
+    assert read_year_ts(sb, gaz) == {0: 3}
+    generation = ObjectProperties(type="renewable", area="fr", cluster="generation")
+    assert read_year_ts(sb, generation) == {0: 4}
+    link = ObjectProperties(type="link", link="at / fr")
+    assert read_year_ts(sb, link) == {0: 5}
+    assert read_year_ts(None, wind) == {}
+
+
+def _component(*values: dict, scenario_dependent: bool = True):
+    parameters = [
+        {"id": f"p{i}", "scenario-dependent": scenario_dependent, "value": value}
+        for i, value in enumerate(values)
+    ]
+    return ComponentConversionConfig.model_validate(
+        {"id": "c", "parameters": parameters}
+    )
+
+
+def test_legacy_sb_source():
+    # The reference templates: their single legacy object, read in several
+    # fields for hydro
+    for model, obj, expected in [
+        ("thermal", FR_GAZ, ("thermal", "fr", "gaz", None)),
+        ("hydro", FR, ("hydro", "fr", None, None)),
+        ("ror", FR, ("hydro", "fr", None, None)),
+        ("wind", FR, ("wind", "fr", None, None)),
+        ("link", AT_FR, ("link", None, None, "at / fr")),
+    ]:
+        template = load_conversion_template(model)
+        component = template.instantiate(obj.substitutions()).components[0]
+        source = legacy_sb_source(model, component)
+        assert source is not None
+        assert (source.type, source.area, source.cluster, source.link) == expected
+
+    gaz = {"object-properties": {"type": "thermal", "area": "fr", "cluster": "gaz"}}
+    storage = {"object-properties": {"type": "st_storage", "area": "fr"}}
+    # No source: a constant, a type with no legacy SB entry, or a parameter
+    # that is not scenario-dependent
+    assert legacy_sb_source("t", _component({"constant": 1}, storage)) is None
+    assert legacy_sb_source("t", _component(gaz, scenario_dependent=False)) is None
+    coal = {"object-properties": {"type": "thermal", "area": "fr", "cluster": "coal"}}
+    with pytest.raises(ValueError, match="component 'c'.*several legacy objects"):
+        legacy_sb_source("t", _component(gaz, coal))
 
 
 def test_battery_exclusions():
@@ -687,7 +725,7 @@ def test_unknown_listed_ids(
         _study_objects(template, study_w_clusters)
 
 
-def _arguments(template: ConversionTemplate, study: Study) -> list[TemplateArguments]:
+def _arguments(template: ConversionTemplate, study: Study) -> list[dict[str, str]]:
     return template_arguments(
         template, study, study.get_areas(), logging.getLogger(__name__)
     )
@@ -700,7 +738,7 @@ def test_arguments_nest_parameters_in_declaration_order(study_w_clusters: Study)
             {"name": "site", "ad-hoc": True, "values": ["n", "${area}_s"]},
         ]
     )
-    assert [b.substitutions for b in _arguments(area_site, study_w_clusters)] == [
+    assert _arguments(area_site, study_w_clusters) == [
         {"${area}": "fr", "${site}": "n"},
         {"${area}": "fr", "${site}": "fr_s"},
         {"${area}": "it", "${site}": "n"},
@@ -713,20 +751,18 @@ def test_arguments_nest_parameters_in_declaration_order(study_w_clusters: Study)
         ]
     )
     result = _arguments(site_area, study_w_clusters)
-    assert [b.substitutions["${thermal}"] for b in result] == [
+    assert [b["${thermal}"] for b in result] == [
         "gaz",
         "coal",
         "it_gaz",
         "it_gaz",
         "coal",
     ]
-    assert result[0] == TemplateArguments(
-        {"${site}": "fr", "${area}": "fr", "${thermal}": "gaz"}, FR_GAZ
-    )
+    assert result[0] == {"${site}": "fr", "${area}": "fr", "${thermal}": "gaz"}
     ad_hoc_only = _template([{"name": "site", "ad-hoc": True, "values": ["a", "b"]}])
     assert _arguments(ad_hoc_only, study_w_clusters) == [
-        TemplateArguments({"${site}": "a"}),
-        TemplateArguments({"${site}": "b"}),
+        {"${site}": "a"},
+        {"${site}": "b"},
     ]
 
 
@@ -735,9 +771,7 @@ def test_arguments_resolve_outer_placeholders(study_w_clusters: Study):
     area = {"name": "area", "values": ["fr", "it"]}
     area["exclude"] = [_exclusion("area", area="${site}")]
     result = _arguments(_template([site, area]), study_w_clusters)
-    assert [
-        (b.substitutions["${site}"], b.substitutions["${area}"]) for b in result
-    ] == [
+    assert [(b["${site}"], b["${area}"]) for b in result] == [
         ("fr", "it"),
         ("it", "fr"),
     ]
@@ -749,19 +783,14 @@ def test_arguments_resolve_outer_placeholders(study_w_clusters: Study):
         "cluster-values": ["${unit}"],
     }
     result = _arguments(_template([cluster, thermal]), study_w_clusters)
-    assert [b.study_object for b in result] == [
-        FR_GAZ,
-        StudyObject(ObjectKind.THERMAL, area="fr", cluster="coal"),
-    ]
+    assert [b["${thermal}"] for b in result] == ["gaz", "coal"]
 
 
 def test_legacy_arguments_are_study_objects(study_w_clusters: Study):
     template = load_conversion_template("thermal")
-    result = _arguments(template, study_w_clusters)
-    assert [b.study_object for b in result] == _study_objects(
-        template, study_w_clusters
-    )
-    assert all(b.substitutions == b.study_object.substitutions() for b in result)
+    assert _arguments(template, study_w_clusters) == [
+        obj.substitutions() for obj in _study_objects(template, study_w_clusters)
+    ]
 
 
 ELECTROLYSER = {
@@ -805,7 +834,9 @@ ELECTROLYSER_IDS = [
 ]
 
 
-def _study_converter(study: Study, mode: str) -> AntaresStudyConverter:
+def _study_converter(
+    study: Study, mode: str, sb_file: Optional[Path] = None
+) -> AntaresStudyConverter:
     return AntaresStudyConverter(
         study_input=study,
         logger=Logger(__name__, study.path),
@@ -813,6 +844,7 @@ def _study_converter(study: Study, mode: str) -> AntaresStudyConverter:
         lib_paths=LIB_PATHS,
         models_to_convert=[],
         output_folder=study.path.parent / "converter_output",
+        modeler_scenario_builder_file=sb_file,
     )
 
 
@@ -865,25 +897,71 @@ def test_convert_ad_hoc_only_template(study_w_clusters: Study):
     ]
 
 
-def test_ad_hoc_parameter_drops_scenario_groups(study_w_clusters: Study):
+def _thermal_with_unit(units: list[str], **keys: object) -> ConversionTemplate:
+    """The thermal template restricted to fr, split by an ad-hoc unit."""
+    data = _with_parameter("thermal", values=["fr"], **keys).model_dump()
+    data["template_parameters"].append(
+        {"name": "unit", "ad_hoc": True, "values": units}
+    )
+    data["legacy_objects_to_delete"] = []
+    data["components"][0]["id"] += "_${unit}"
+    return ConversionTemplate.model_validate(data)
+
+
+def test_split_cluster_shares_its_group(study_w_clusters: Study):
     sb = study_w_clusters.get_scenario_builder()
     sb.thermal.get_cluster("fr", "gaz").set_new_scenario([2])
     study_w_clusters.set_scenario_builder(sb)
     converter = _study_converter(study_w_clusters, "full")
-    thermal = _with_parameter("thermal", values=["fr"], cluster_values=["gaz"])
-    _, scenario_groups = converter.system_and_scenario_groups({"thermal": thermal})
+    # Both components read fr/gaz: they take its legacy SB entry
+    split = _thermal_with_unit(["1", "2"], cluster_values=["gaz"])
+    system, scenario_groups = converter.system_and_scenario_groups({"thermal": split})
+    assert [(c.id, c.scenario_group) for c in system.components] == [
+        ("fr_thermal_gaz_1", "thermal_fr_gaz_group"),
+        ("fr_thermal_gaz_2", "thermal_fr_gaz_group"),
+    ]
     assert scenario_groups == {"thermal_fr_gaz_group": {0: 2}}
 
-    data = thermal.model_dump()
-    data["template_parameters"].append(
-        {"name": "unit", "ad_hoc": True, "values": ["1"]}
-    )
-    data["legacy_objects_to_delete"] = []
-    data["components"][0]["id"] += "_${unit}"
-    ad_hoc = ConversionTemplate.model_validate(data)
-    system, scenario_groups = converter.system_and_scenario_groups({"thermal": ad_hoc})
-    assert [c.id for c in system.components] == ["fr_thermal_gaz_1"]
-    assert system.components[0].scenario_group is None and scenario_groups == {}
+
+def test_group_with_different_legacy_sb_entries(study_w_clusters: Study):
+    sb = study_w_clusters.get_scenario_builder()
+    sb.thermal.get_cluster("fr", "gaz").set_new_scenario([2])
+    sb.thermal.get_cluster("fr", "coal").set_new_scenario([3])
+    study_w_clusters.set_scenario_builder(sb)
+    converter = _study_converter(study_w_clusters, "full")
+    data = _with_parameter(
+        "thermal", values=["fr"], cluster_values=["gaz", "coal"]
+    ).model_dump()
+    data["components"][0]["scenario_group"] = "thermal_${area}_group"
+    thermal = ConversionTemplate.model_validate(data)
+    with pytest.raises(ValueError, match="'thermal_fr_group': its components"):
+        converter.system_and_scenario_groups({"thermal": thermal})
+
+
+def test_group_with_no_legacy_source(
+    study_w_clusters: Study, tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
+    electrolyser = {"electrolyser": ConversionTemplate.model_validate(ELECTROLYSER)}
+    # Without a modeler-scenariobuilder.dat: dropped, with a warning
+    converter = _study_converter(study_w_clusters, "full")
+    with caplog.at_level(logging.WARNING):
+        system, scenario_groups = converter.system_and_scenario_groups(electrolyser)
+    assert all(c.scenario_group is None for c in system.components)
+    assert scenario_groups == {}
+    assert "'electrolyser_fr_north' dropped" in caplog.text
+
+    # Kept if the user's file defines it, an error if not
+    groups = [id_.replace("_electrolyser_", "_") for id_ in ELECTROLYSER_IDS]
+    groups = [f"electrolyser_{group}" for group in groups]
+    sb_file = tmp_path / "modeler-scenariobuilder.dat"
+    sb_file.write_text("# user groups\n" + "\n".join(f"{g}, 0 = 1" for g in groups))
+    converter = _study_converter(study_w_clusters, "full", sb_file)
+    system, _ = converter.system_and_scenario_groups(electrolyser)
+    assert [c.scenario_group for c in system.components] == groups
+    sb_file.write_text("\n".join(f"{g}, 0 = 1" for g in groups[1:]))
+    converter = _study_converter(study_w_clusters, "full", sb_file)
+    with pytest.raises(ValueError, match="'electrolyser_fr_north' is not defined"):
+        converter.system_and_scenario_groups(electrolyser)
 
 
 @pytest.mark.parametrize("mode", ["full", "hybrid"])

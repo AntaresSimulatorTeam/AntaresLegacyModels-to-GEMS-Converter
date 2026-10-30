@@ -62,7 +62,7 @@ antares-to-gems --conf path/to/config.ini --logging path/to/output.log
 
 The `--conf` and `--logging` arguments are optional — they default to `data/config.ini` and `data/logging.log` respectively.
 
-To choose which areas, links, clusters or other values a conversion template is applied to (`values`, `cluster-values`, `exclude`, ad-hoc parameters), see [docs/template-parameters.md](docs/template-parameters.md).
+To choose which areas, links, clusters or other values a conversion template is applied to (`values`, `cluster-values`, `exclude`, ad-hoc parameters), see [docs/template-parameters.md](docs/template-parameters.md). How the converter turns the legacy scenario builder into the scenario groups of the components: [docs/scenario-groups.md](docs/scenario-groups.md).
 
 ## Related projects
 
