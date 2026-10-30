@@ -32,12 +32,20 @@ library:
   models:
     - id: continuous_investment_candidate
       description: >-
-        Continuous invested capacity (MW), up to max_capacity (MW).
-        annual_investment_cost is in currency per MW per year. availability_rate
-        is the available fraction (between 0 and 1) of the invested capacity,
-        per hour and scenario.
+        Continuous invested capacity (MW), between min_investment and
+        max_investment (MW). existing_capacity (MW) is already installed and
+        has no investment cost. The capacity given to the connected object is
+        (existing_capacity + invested_capacity) * availability_rate, where
+        availability_rate is the available fraction (between 0 and 1), per hour
+        and scenario. annual_investment_cost is in currency per MW per year.
       parameters:
-        - id: max_capacity
+        - id: existing_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: min_investment
+          time-dependent: false
+          scenario-dependent: false
+        - id: max_investment
           time-dependent: false
           scenario-dependent: false
         - id: annual_investment_cost
@@ -49,8 +57,8 @@ library:
       variables:
         - id: invested_capacity
           variable-type: continuous
-          lower-bound: 0
-          upper-bound: max_capacity
+          lower-bound: min_investment
+          upper-bound: max_investment
           time-dependent: false
           scenario-dependent: false
       ports:
@@ -59,22 +67,32 @@ library:
       port-field-definitions:
         - port: capacity_port
           field: capacity
-          definition: invested_capacity * availability_rate
+          definition: (existing_capacity + invested_capacity) * availability_rate
       objective-contributions:
         - id: objective
           expression: annual_investment_cost * invested_capacity
 
     - id: discrete_investment_candidate
       description: >-
-        Integer number of invested units of unit_size (MW), up to max_units.
-        annual_investment_cost is in currency per MW per year, not per unit.
-        availability_rate is the available fraction (between 0 and 1) of the
-        invested capacity, per hour and scenario.
+        Integer number of invested units of unit_size (MW), whose invested
+        capacity unit_size * invested_units is between min_investment and
+        max_investment (MW). existing_capacity (MW) is already installed and
+        has no investment cost. The capacity given to the connected object is
+        (existing_capacity + unit_size * invested_units) * availability_rate,
+        where availability_rate is the available fraction (between 0 and 1),
+        per hour and scenario. annual_investment_cost is in currency per MW per
+        year, not per unit.
       parameters:
         - id: unit_size
           time-dependent: false
           scenario-dependent: false
-        - id: max_units
+        - id: existing_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: min_investment
+          time-dependent: false
+          scenario-dependent: false
+        - id: max_investment
           time-dependent: false
           scenario-dependent: false
         - id: annual_investment_cost
@@ -84,10 +102,12 @@ library:
           time-dependent: true
           scenario-dependent: true
       variables:
+        # Integrality rounds the bounds inwards: unit_size * invested_units
+        # stays within [min_investment, max_investment]
         - id: invested_units
           variable-type: integer
-          lower-bound: 0
-          upper-bound: max_units
+          lower-bound: min_investment / unit_size
+          upper-bound: max_investment / unit_size
           time-dependent: false
           scenario-dependent: false
       ports:
@@ -96,7 +116,7 @@ library:
       port-field-definitions:
         - port: capacity_port
           field: capacity
-          definition: invested_units * unit_size * availability_rate
+          definition: (existing_capacity + unit_size * invested_units) * availability_rate
       objective-contributions:
         - id: objective
           expression: annual_investment_cost * unit_size * invested_units
