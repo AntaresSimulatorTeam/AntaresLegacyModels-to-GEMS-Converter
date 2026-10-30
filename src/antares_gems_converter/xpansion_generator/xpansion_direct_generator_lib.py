@@ -259,8 +259,10 @@ def build_thermal_candidates(
 ) -> pd.DataFrame:
     """Candidats TAC et CCG : une ligne par technologie et par zone.
 
-    gisement_total = max_unit x unit_size ; identifiants consécutifs à partir
-    de first_id.
+    Candidat discret si nbr_unit_initial est renseigné : gisement_total =
+    max_unit x unit_size. Candidat continu sinon : max_unit vide et
+    gisement_total = gisement_ini (MW). Identifiants consécutifs à partir de
+    first_id.
     """
     candidates: List[Dict[str, Any]] = []
     for fuel_type in thermal_candidate_types(year):
@@ -269,6 +271,15 @@ def build_thermal_candidates(
         max_unit = thermal[
             find_column(thermal, "nbr_unit_initial", "nbr_unit_initial_2050")
         ]
+        if pd.isna(max_unit):
+            # Candidat continu : gisement donné directement en MW
+            gisement = thermal[
+                find_column(thermal, "gisement_ini", "gisement_ini_2050")
+            ]
+        else:
+            gisement = pd.to_numeric(max_unit, errors="coerce") * pd.to_numeric(
+                unit_size, errors="coerce"
+            )
         for area in areas:
             candidates.append(
                 {
@@ -281,8 +292,7 @@ def build_thermal_candidates(
                     "max_unit": max_unit,
                     "name": candidate_name(mapping, fuel_type, area),
                     "id": first_id + len(candidates),
-                    "gisement_total": pd.to_numeric(max_unit, errors="coerce")
-                    * pd.to_numeric(unit_size, errors="coerce"),
+                    "gisement_total": gisement,
                     "Pmax": unit_size,
                 }
             )
@@ -299,7 +309,7 @@ def write_candidates_excel(candidates: pd.DataFrame, output_file: Path) -> None:
 
 
 def copy_model_library(model_source: Path, library_dir: Path) -> Path:
-    """Copie xpansion_models.yml dans model-libraries/."""
+    """Copie la librairie de modèles dans model-libraries/."""
     if not model_source.exists():
         raise FileNotFoundError(f"Fichier modèle introuvable: {model_source}")
     library_dir.mkdir(parents=True, exist_ok=True)
@@ -337,13 +347,31 @@ BATTERY_NOT_SUPPORTED = (
 )
 
 
+# Variables d'investissement des modèles de la librairie
+# antares_legacy_investment_candidates
+CONTINUOUS_INVESTMENT_VARIABLE = "invested_capacity"
+DISCRETE_INVESTMENT_VARIABLE = "invested_units"
+
+
 @dataclass(frozen=True)
 class ComponentSettings:
-    """Réglages communs à tous les composants d'une famille."""
+    """Réglages communs à tous les composants d'une famille.
 
-    model: str
+    continuous_model / discrete_model : modèles des candidats sans / avec
+    nombre d'unités (max_unit).
+    """
+
+    continuous_model: str
+    discrete_model: str
     component_prefix: str
     port: str
+
+    def investment_variables(self) -> Dict[str, str]:
+        """{modèle: variable d'investissement}."""
+        return {
+            self.continuous_model: CONTINUOUS_INVESTMENT_VARIABLE,
+            self.discrete_model: DISCRETE_INVESTMENT_VARIABLE,
+        }
 
 
 @dataclass(frozen=True)
@@ -383,6 +411,48 @@ def constant_parameter(param_id: str, value: Any) -> ComponentParameterSchema:
     return ComponentParameterSchema(id=param_id, value=number)
 
 
+def investment_model_and_parameters(
+    candidate: pd.Series,
+    existing_capacity: float,
+    series_name: str,
+    settings: ComponentSettings,
+) -> Tuple[str, List[ComponentParameterSchema]]:
+    """Modèle et paramètres d'un candidat (librairie antares_legacy_investment_candidates).
+
+    - modèle discret si max_unit est renseigné, continu sinon ;
+    - existing_capacity : capacité installée du cluster connecté, que la
+      thermal-capacity-connection remplacerait sinon ;
+    - max_investment : gisement_total (MW), min_investment : 0 ;
+    - annual_investment_cost (par MW et par an) : cost_per_year, donné par
+      unité de Pmax (unit_size) dans les fichiers d'entrée, divisé par unit_size.
+    """
+    unit_size = float(candidate["unit_size"])
+    if pd.isna(unit_size) or unit_size <= 0:
+        raise ValueError(
+            f"Taille d'unité (Pmax) absente ou nulle pour le type '{candidate['type']}'"
+        )
+    parameters = [
+        constant_parameter("existing_capacity", existing_capacity),
+        constant_parameter("min_investment", 0),
+        constant_parameter("max_investment", candidate["gisement_total"]),
+        constant_parameter(
+            "annual_investment_cost", float(candidate["cost_per_year"]) / unit_size
+        ),
+        ComponentParameterSchema(
+            id="availability_rate",
+            value=series_name,
+            time_dependent=True,
+            scenario_dependent=True,
+        ),
+    ]
+    if pd.isna(candidate["max_unit"]):
+        return settings.continuous_model, parameters
+    return (
+        settings.discrete_model,
+        [constant_parameter("unit_size", unit_size)] + parameters,
+    )
+
+
 def build_thermal_component_without_cluster(
     candidate: pd.Series,
     component_id: str,
@@ -395,10 +465,10 @@ def build_thermal_component_without_cluster(
     Antares (pas quand il existe mais est vide). Pour créer quand même le
     composant d'investissement, retourner (composant, connexion) :
 
-    - composant : ComponentSchema avec les paramètres du modèle
-      settings.model, construits à partir de la ligne candidate
-      (gisement_total, max_unit, unit_size, cost_per_year) ; il faudra
-      décider d'où vient coef_disponibilite, puisqu'il n'y a pas de série ;
+    - composant : ComponentSchema construit avec
+      investment_model_and_parameters ; il faudra décider d'où viennent
+      existing_capacity et availability_rate, puisqu'il n'y a ni cluster ni
+      série ;
     - connexion : ThermalCapacityConnectionSchema, ou None si le composant ne
       doit pas être connecté (le cluster n'existant pas, une connexion vers
       cluster_id n'aurait de sens que s'il est créé côté Antares).
@@ -471,7 +541,8 @@ def build_thermal_components(
     Pour chaque candidat, le cluster <zone><suffixe> de l'étude Antares fournit
     la série de disponibilité, divisée par sa capacité installée
     (nominal_capacity x unit_count) et écrite dans
-    data-series/<series_prefix><composant>.tsv. Chaque composant a son propre
+    data-series/<series_prefix><composant>.tsv ; la capacité installée devient
+    l'existing_capacity du candidat. Chaque composant a son propre
     scenario group (son id), les séries n'ayant pas toutes le même nombre de
     colonnes. Les candidats dont le cluster est absent, désactivé, vide ou sans
     série ne sont pas créés.
@@ -545,23 +616,15 @@ def build_thermal_components(
             legacy_sb, area, cluster_id, nb_years, series.shape[1]
         )
 
+        model, parameters = investment_model_and_parameters(
+            row, installed_capacity, series_name, settings
+        )
         result.components.append(
             ComponentSchema(
                 id=component_id,
-                model=settings.model,
+                model=model,
                 scenario_group=component_id,
-                parameters=[
-                    constant_parameter("gisement_total", row["gisement_total"]),
-                    constant_parameter("max_unit", row["max_unit"]),
-                    constant_parameter("unit_size", row["unit_size"]),
-                    constant_parameter("cost_per_year", row["cost_per_year"]),
-                    ComponentParameterSchema(
-                        id="coef_disponibilite",
-                        value=series_name,
-                        time_dependent=True,
-                        scenario_dependent=True,
-                    ),
-                ],
+                parameters=parameters,
             )
         )
         result.connections.append(
@@ -686,34 +749,32 @@ def write_system_yml(system: HybridSystemSchema, output_file: Path) -> None:
     )
 
 
-def write_optim_config(thermal_model: str, output_file: Path) -> None:
+def write_optim_config(investment_variables: Dict[str, str], output_file: Path) -> None:
     """Écrit l'optim-config.yml, exigé par Antares dès qu'un system.yml existe.
 
-    Les variables d'investissement ne dépendant pas du scénario, l'étude doit
-    être résolue par décomposition de Benders (Xpansion, étape « gems »). Sans
-    model-decomposition, le problème maître est vide : la variable va dans le
-    maître et les sous-problèmes, la contrainte de gisement et le coût
-    d'investissement dans le maître.
+    investment_variables : {modèle utilisé dans le system.yml: sa variable
+    d'investissement}. Les variables d'investissement ne dépendant pas du
+    scénario, l'étude doit être résolue par décomposition de Benders (Xpansion,
+    étape « gems »). Sans model-decomposition, le problème maître est vide : la
+    variable va dans le maître et les sous-problèmes, le coût d'investissement
+    dans le maître.
     """
     _dump_yaml(
         {
             "resolution-mode": "benders-decomposition",
             "models": [
                 {
-                    "id": thermal_model,
+                    "id": model,
                     "model-decomposition": {
                         "variables": [
-                            {
-                                "id": "units_to_invest",
-                                "location": "master-and-subproblems",
-                            }
+                            {"id": variable, "location": "master-and-subproblems"}
                         ],
-                        "constraints": [{"id": "capa_max", "location": "master"}],
                         "objective-contributions": [
-                            {"id": "obj", "location": "master"}
+                            {"id": "objective", "location": "master"}
                         ],
                     },
                 }
+                for model, variable in investment_variables.items()
             ],
         },
         output_file,

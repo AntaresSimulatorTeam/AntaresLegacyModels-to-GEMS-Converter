@@ -17,10 +17,13 @@
 - it: in the Excel zones, not in the study;
 - be (optional): OCGT "pcomp" cluster, disabled.
 
-Candidates: OCGT ("peak") 10 units of 50 MW at 1.5 MEUR/unit/year, CCGT
-("semibase") 3 units of 100 MW at 6 MEUR/unit/year. Unsupplied energy costs
-1000 EUR/MWh, so every candidate is built up to the load: fr 3 CCGT + 2.6 OCGT
-units (OCGT covers 1000 - 600 - 0.9 x 300 = 130 MW), de 3 CCGT units.
+Candidates: OCGT ("peak") 10 units of 50 MW at 1.5 MEUR/unit/year (discrete),
+or up to 500 MW at the same cost per MW (continuous, ocgt_units=None); CCGT
+("semibase") 3 units of 100 MW at 6 MEUR/unit/year. Each candidate keeps the
+installed capacity of its cluster (existing_capacity). Unsupplied energy costs
+1000 EUR/MWh, so every candidate is built up to the load: fr 3 CCGT units and
+OCGT for 1000 - 600 - 0.9 x 400 - 50 = -10 MW, i.e. none, with 1 MC year;
+de 3 CCGT units.
 """
 
 import shutil
@@ -50,6 +53,9 @@ UNSUPPLIED_COST = 1000
 
 CCGT_COST_PER_UNIT = 6.0e6
 OCGT_COST_PER_UNIT = 1.5e6
+CCGT_UNIT_SIZE = 100
+OCGT_UNIT_SIZE = 50
+OCGT_MAX_INVESTMENT = 500
 
 FR_CCGT = "fr_ccgt ch4 pcomp"
 FR_OCGT = "fr_ocgt ch4 pcomp"
@@ -62,7 +68,10 @@ SEMIBASE_FR = "candidat_invest_semibase_fr"
 SEMIBASE_DE = "candidat_invest_semibase_de"
 
 
-def write_excel_inputs(input_dir: Path, areas: List[str]) -> None:
+def write_excel_inputs(
+    input_dir: Path, areas: List[str], ocgt_units: Optional[int] = 10
+) -> None:
+    """ocgt_units=None: continuous OCGT candidates, up to OCGT_MAX_INVESTMENT MW."""
     input_dir.mkdir(parents=True, exist_ok=True)
     pd.DataFrame({"xp_nodes": ["FR"], "mod_generateur": ["x"]}).to_excel(
         input_dir / "X_caract_generateur.xlsx", index=False
@@ -76,8 +85,15 @@ def write_excel_inputs(input_dir: Path, areas: List[str]) -> None:
     pd.DataFrame(
         [
             ["batterie", 2031, 4.0e6, 100, None, 500],
-            ["tac_ch4", 2031, OCGT_COST_PER_UNIT, 50, 10, None],
-            ["ccg_ch4", 2031, CCGT_COST_PER_UNIT, 100, 3, None],
+            [
+                "tac_ch4",
+                2031,
+                OCGT_COST_PER_UNIT,
+                OCGT_UNIT_SIZE,
+                ocgt_units,
+                OCGT_MAX_INVESTMENT if ocgt_units is None else None,
+            ],
+            ["ccg_ch4", 2031, CCGT_COST_PER_UNIT, CCGT_UNIT_SIZE, 3, None],
             # another year: must be ignored
             ["tac_ch4", 2035, 9.9e9, 50, 10, None],
         ],
@@ -198,10 +214,11 @@ def run_generator(
     nb_years: int = 1,
     fr_ccgt_availability: Optional[List[float]] = None,
     with_disabled_cluster: bool = False,
+    ocgt_units: Optional[int] = 10,
 ) -> Tuple[Study, Path]:
     """Build the inputs under root and run the generator; return the base study
     and the output folder."""
-    write_excel_inputs(root / "xlsx", areas or ["fr", "de", "it"])
+    write_excel_inputs(root / "xlsx", areas or ["fr", "de", "it"], ocgt_units)
     study = create_base_study(
         root, nb_years, fr_ccgt_availability, with_disabled_cluster
     )

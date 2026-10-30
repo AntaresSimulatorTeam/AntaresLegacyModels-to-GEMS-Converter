@@ -27,11 +27,14 @@ from antares_gems_converter.xpansion_generator.xpansion_direct_generator_lib imp
 from tests.xpansion_generator.utils import (
     BE_OCGT,
     CCGT_COST_PER_UNIT,
+    CCGT_UNIT_SIZE,
     DE_CCGT,
     FR_CCGT,
     FR_OCGT,
     HOURS,
     OCGT_COST_PER_UNIT,
+    OCGT_MAX_INVESTMENT,
+    OCGT_UNIT_SIZE,
     PEAK_FR,
     SEMIBASE_DE,
     SEMIBASE_FR,
@@ -39,6 +42,11 @@ from tests.xpansion_generator.utils import (
     run_generator,
     write_excel_inputs,
 )
+
+
+LIBRARY = "antares_legacy_investment_candidates"
+CONTINUOUS_MODEL = f"{LIBRARY}.continuous_investment_candidate"
+DISCRETE_MODEL = f"{LIBRARY}.discrete_investment_candidate"
 
 
 @pytest.fixture
@@ -63,7 +71,7 @@ def test_system_yml_is_a_gemspy_hybrid_system(generated: Path) -> None:
     components = {component.id: component for component in system.components}
     assert list(components) == [PEAK_FR, SEMIBASE_FR, SEMIBASE_DE]
     for component_id, component in components.items():
-        assert component.model == "xpansion_models.thermal_candidate_to_invest"
+        assert component.model == DISCRETE_MODEL
         # one scenario group per component: series differ in column count
         assert component.scenario_group == component_id
 
@@ -71,14 +79,20 @@ def test_system_yml_is_a_gemspy_hybrid_system(generated: Path) -> None:
         return {p.id: p.value for p in components[component_id].parameters or []}
 
     assert parameters(PEAK_FR) == {
-        "gisement_total": 500,
-        "max_unit": 10,
-        "unit_size": 50,
-        "cost_per_year": OCGT_COST_PER_UNIT,
-        "coef_disponibilite": f"coef_disponibilite_{PEAK_FR}",
+        "unit_size": OCGT_UNIT_SIZE,
+        # installed capacity of fr_ocgt ch4 pcomp
+        "existing_capacity": 50,
+        "min_investment": 0,
+        # 10 units of 50 MW
+        "max_investment": 500,
+        # per MW: the inputs give it per unit
+        "annual_investment_cost": pytest.approx(OCGT_COST_PER_UNIT / OCGT_UNIT_SIZE),
+        "availability_rate": f"availability_rate_{PEAK_FR}",
     }
-    assert parameters(SEMIBASE_DE)["gisement_total"] == 300
-    assert parameters(SEMIBASE_DE)["cost_per_year"] == CCGT_COST_PER_UNIT
+    assert parameters(SEMIBASE_DE)["max_investment"] == 300
+    assert parameters(SEMIBASE_DE)["annual_investment_cost"] == pytest.approx(
+        CCGT_COST_PER_UNIT / CCGT_UNIT_SIZE
+    )
 
     assert [
         (c.component, c.port, c.thermal_component.area, c.thermal_component.cluster_id)
@@ -93,33 +107,60 @@ def test_system_yml_is_a_gemspy_hybrid_system(generated: Path) -> None:
 def test_availability_series_are_tsv_files(generated: Path) -> None:
     series_dir = generated / "data-series"
     assert sorted(path.name for path in series_dir.iterdir()) == sorted(
-        [f"coef_disponibilite_{c}.tsv" for c in [PEAK_FR, SEMIBASE_FR, SEMIBASE_DE]]
+        [f"availability_rate_{c}.tsv" for c in [PEAK_FR, SEMIBASE_FR, SEMIBASE_DE]]
         + ["modeler-scenariobuilder.dat"]
     )
     coef = pd.read_csv(
-        series_dir / f"coef_disponibilite_{SEMIBASE_FR}.tsv", sep="\t", header=None
+        series_dir / f"availability_rate_{SEMIBASE_FR}.tsv", sep="\t", header=None
     )
     assert coef.shape == (HOURS, 1)
     assert coef[0].tolist() == pytest.approx([0.9] * HOURS)
 
 
+def _decomposition(model: str, variable: str) -> dict:
+    return {
+        "id": model,
+        "model-decomposition": {
+            "variables": [{"id": variable, "location": "master-and-subproblems"}],
+            "objective-contributions": [{"id": "objective", "location": "master"}],
+        },
+    }
+
+
 def test_optim_config_puts_investment_in_master(generated: Path) -> None:
     optim_config = yaml.safe_load((generated / "optim-config.yml").read_text())
+    # only the models used: every candidate is discrete
     assert optim_config == {
         "resolution-mode": "benders-decomposition",
-        "models": [
-            {
-                "id": "xpansion_models.thermal_candidate_to_invest",
-                "model-decomposition": {
-                    "variables": [
-                        {"id": "units_to_invest", "location": "master-and-subproblems"}
-                    ],
-                    "constraints": [{"id": "capa_max", "location": "master"}],
-                    "objective-contributions": [{"id": "obj", "location": "master"}],
-                },
-            }
-        ],
+        "models": [_decomposition(DISCRETE_MODEL, "invested_units")],
     }
+
+
+def test_candidate_without_unit_count_is_continuous(tmp_path: Path) -> None:
+    _, output_dir = run_generator(tmp_path, ocgt_units=None)
+
+    with (output_dir / "system.yml").open() as file:
+        system = parse_yaml_hybrid_system(file)
+    components = {component.id: component for component in system.components}
+    assert {c: components[c].model for c in components} == {
+        PEAK_FR: CONTINUOUS_MODEL,
+        SEMIBASE_FR: DISCRETE_MODEL,
+        SEMIBASE_DE: DISCRETE_MODEL,
+    }
+    assert {p.id: p.value for p in components[PEAK_FR].parameters or []} == {
+        "existing_capacity": 50,
+        "min_investment": 0,
+        # gisement_ini, in MW
+        "max_investment": OCGT_MAX_INVESTMENT,
+        "annual_investment_cost": pytest.approx(OCGT_COST_PER_UNIT / OCGT_UNIT_SIZE),
+        "availability_rate": f"availability_rate_{PEAK_FR}",
+    }
+
+    optim_config = yaml.safe_load((output_dir / "optim-config.yml").read_text())
+    assert optim_config["models"] == [
+        _decomposition(CONTINUOUS_MODEL, "invested_capacity"),
+        _decomposition(DISCRETE_MODEL, "invested_units"),
+    ]
 
 
 def test_scenario_builder_follows_legacy_thermal_scenario_builder(
@@ -141,7 +182,7 @@ def test_scenario_builder_follows_legacy_thermal_scenario_builder(
         SEMIBASE_DE: {0: 1, 1: 1},
     }
     coef = pd.read_csv(
-        output_dir / "data-series" / f"coef_disponibilite_{SEMIBASE_FR}.tsv",
+        output_dir / "data-series" / f"availability_rate_{SEMIBASE_FR}.tsv",
         sep="\t",
         header=None,
     )

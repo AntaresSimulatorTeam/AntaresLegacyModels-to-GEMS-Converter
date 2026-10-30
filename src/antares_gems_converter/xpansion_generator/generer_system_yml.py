@@ -46,7 +46,7 @@ import yaml
 PREFIXE_DOSSIER_CANDIDAT = "00_xp"
 
 # Nom du modele Andromede utilise pour les composants d'investissement
-NOM_MODELE = "xpansion_models.thermal_candidate_to_invest"
+NOM_MODELE = "antares_legacy_investment_candidates.discrete_investment_candidate"
 
 # Nom du groupe de scenarios associe aux composants generes
 SCENARIO_GROUP = "scenario_thermal_xpansion"
@@ -59,8 +59,13 @@ ID_SYSTEME = "generation_etude_xpansion"
 AREA_CONNECTIONS: list = []
 
 # Chemin du fichier modele source a copier dans input/model-libraries
-# (celui livre avec ce script)
-CHEMIN_MODELE_SOURCE = os.path.join(os.path.dirname(__file__), "xpansion_models.yml")
+# (celui livre avec le convertisseur)
+CHEMIN_MODELE_SOURCE = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)),
+    "libs",
+    "antares_legacy_investment_candidates",
+    "antares_legacy_investment_candidates.yml",
+)
 
 
 # ---------------------------------------------------------------------------
