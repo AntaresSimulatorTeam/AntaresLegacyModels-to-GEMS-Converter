@@ -242,8 +242,9 @@ template:
 
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
+- **`antares_legacy_investment_candidates.yml`** — Defines `continuous_investment_candidate` and `discrete_investment_candidate`: investment on Antares legacy thermal clusters, HYBRID mode only, solved with Antares Xpansion. No conversion template uses it yet.
 
-Both use the `flow` port-type with a single `flow` field for power balance connections.
+The first two use the `flow` port-type with a single `flow` field for power balance connections. The investment candidates use `capacity_port`, connected through `thermal-capacity-connections`: its capacity **replaces** the cluster's availability (`existing_capacity` keeps the installed capacity). Their investment variables are scenario-independent, so a study using them needs `resolution-mode: benders-decomposition` in `optim-config.yml`, even when only `antares-solver` runs it, and a MIP-capable solver (e.g. `highs`, not `sirius`) for the discrete model. Their E2E tests (`test_investment_candidates_model.py`) compare a fixed investment with the legacy study (as the other libraries), and check the Benders master and the Xpansion optimum (opt-in: set `ANTARES_XPANSION_DIR`; Xpansion needs OpenMPI).
 
 ---
 

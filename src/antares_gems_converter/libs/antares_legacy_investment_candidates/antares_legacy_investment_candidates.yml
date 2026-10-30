@@ -18,12 +18,17 @@ library:
     port is connected to a legacy object of the study, and only Antares
     thermal clusters can be connected for now (thermal-capacity-connections).
     These models do not represent any production or consumption themselves.
+    Their investment variables are scenario-independent: a study using them
+    needs an optim-config.yml with resolution-mode benders-decomposition, and
+    a solver supporting integer variables for the discrete model.
   version: "1.0.0"
   taxonomy: antares_legacy_taxonomy
 
   port-types:
     - id: capacity_port
-      description: Capacity added to the connected Antares legacy object, in MW.
+      description: >-
+        Available capacity of the connected Antares legacy object, in MW. It
+        replaces the availability of the connected thermal cluster.
       fields:
         - id: capacity
       thermal-capacity-connection:
