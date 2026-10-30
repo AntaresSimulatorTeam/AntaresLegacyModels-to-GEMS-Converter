@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 from gems_craft.model.parsing import LibrarySchema, parse_yaml_library
-from gems_craft.model.taxonomy import check_library_against_taxonomy, load_taxonomy
+from gems_craft.model.taxonomy import load_taxonomy
+from gems_craft.model.validation import check_library_against_taxonomy
 
 TAXONOMIES_DIR = Path("src/antares_gems_converter/taxonomies")
 MODEL_LIBRARIES_DIR = Path("src/antares_gems_converter/libs")

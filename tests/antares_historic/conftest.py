@@ -14,6 +14,7 @@ import os
 import subprocess
 from pathlib import Path
 
+import gems_craft.model.taxonomy
 import pytest
 from antares.craft.model.area import AreaProperties
 from antares.craft.model.st_storage import STStorageProperties
@@ -24,6 +25,14 @@ from antares.craft.model.thermal import (
     ThermalClusterGroup,
     ThermalClusterProperties,
     ThermalCostGeneration,
+)
+from gems_craft.model.validation import check_library_against_taxonomy
+
+# GemsPy 0.3.0 moved check_library_against_taxonomy to gems_craft.model.validation;
+# gems-views-builder 0.1.0 still imports it from gems_craft.model.taxonomy.
+# Remove once a gems-views-builder release imports it from the new module.
+gems_craft.model.taxonomy.check_library_against_taxonomy = (  # type: ignore[attr-defined]
+    check_library_against_taxonomy
 )
 
 _dependencies = json.loads(

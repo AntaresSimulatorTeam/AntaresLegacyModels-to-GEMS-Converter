@@ -33,7 +33,7 @@ dependencies = [
     "numpy>=2.2.6",
     "pandas>=2.2.3",
     "pydantic>=2.11.10",
-    "gemspy==0.2.0",
+    "gemspy==0.3.0",
     "PyYAML>=6.0.3",
 ]
 
@@ -53,6 +53,10 @@ dev = [
     "black>=23.7.0",
     "gems-views-builder==0.1.0",
 ]
+
+[tool.uv]
+# gems-views-builder 0.1.0 pins gemspy==0.2.0; remove once a release supports 0.3.0
+override-dependencies = ["gemspy==0.3.0"]
 
 
 [tool.setuptools.packages.find]

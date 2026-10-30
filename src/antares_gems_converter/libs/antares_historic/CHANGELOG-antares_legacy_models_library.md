@@ -19,6 +19,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
     - `link`: `0` on both ports (imports may neither be spilled nor left unsupplied).
 - Hybrid results change when a converted load has unsupplied energy (the converted study was infeasible) or imports, when an area spills the imports of a converted link, and when a converted short-term storage or hydro reservoir charges on imports.
 - The bounds assume the nodal optimization options of the areas (`non-dispatchable-power`, `dispatchable-hydro-power`, `other-dispatchable-power`) are on, which is their default.
+- Zero port-field definitions are plain numbers (`definition: 0`), which requires GemsPy >= 0.3.0.
 
 ---
 
