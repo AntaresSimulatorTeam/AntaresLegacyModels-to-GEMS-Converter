@@ -40,7 +40,8 @@ from antares.craft import AreaProperties, ThermalClusterProperties, create_study
 from gems_craft.model.parsing import parse_yaml_library
 from gems_craft.model.resolve_library import resolve_library
 from gems_craft.study.parsing import ComponentParameterSchema, ComponentSchema
-from gems_craft.study.resolve_components import consistency_check, resolve_system
+from gems_craft.study.resolve_components import resolve_system
+from gems_craft.study.validation import check_component_models
 from gems_craft_hybrid.study.parsing import (
     HybridSystemSchema,
     ThermalCapacityConnectionSchema,
@@ -160,10 +161,10 @@ def _write_gems_input(
         ]
     )
     models = {k: v for library in libraries.values() for k, v in library.models.items()}
-    assert consistency_check(resolve_system(system, libraries), models)
+    check_component_models(resolve_system(system, libraries), models)
     dump_to_yaml(system, system_file)
     # Scenario-independent variables: Antares requires a Benders decomposition,
-    # also when antares-solver runs the study. Written by hand: GemsPy 0.2.0
+    # also when antares-solver runs the study. Written by hand: GemsPy 0.3.0
     # expects `resolution: {mode: ...}`, which Antares 10.2 ignores.
     decomposition = [
         {
