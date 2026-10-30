@@ -37,7 +37,18 @@ import pandas as pd
 import pytest
 import yaml
 from antares.craft import AreaProperties, ThermalClusterProperties, create_study_local
+from gems_craft.model.parsing import parse_yaml_library
+from gems_craft.model.resolve_library import resolve_library
+from gems_craft.study.parsing import ComponentParameterSchema, ComponentSchema
+from gems_craft.study.resolve_components import consistency_check, resolve_system
+from gems_craft_hybrid.study.parsing import (
+    HybridSystemSchema,
+    ThermalCapacityConnectionSchema,
+    ThermalComponentSchema,
+    parse_yaml_hybrid_system,
+)
 
+from antares_gems_converter.input_converter.src.utils import dump_to_yaml
 from antares_runner.antares_runner import AntaresHybridRunner
 from tests.antares_historic.conftest import assert_antares_exec_exists
 from tests.antares_historic.utils import (
@@ -77,13 +88,12 @@ def _variable(area: str, model: str) -> str:
     return f"{area}_candidate.{VARIABLES[model]}"
 
 
-def _parameter(param_id: str, value: float | str, series: bool = False) -> dict:
-    return {
-        "id": param_id,
-        "value": value,
-        "time-dependent": series,
-        "scenario-dependent": series,
-    }
+def _parameter(
+    param_id: str, value: float | str, series: bool = False
+) -> ComponentParameterSchema:
+    return ComponentParameterSchema(
+        id=param_id, value=value, time_dependent=series, scenario_dependent=series
+    )
 
 
 def _candidate(
@@ -94,9 +104,9 @@ def _candidate(
     max_investment: float,
     availability_rate: np.ndarray,
     input_dir: Path,
-) -> tuple[dict, dict]:
-    """Component and thermal-capacity-connection of a candidate on the cluster
-    candidate_cluster of area; writes its availability series."""
+) -> tuple[ComponentSchema, ThermalCapacityConnectionSchema]:
+    """Component and thermal-capacity-connection (GemsPy schemas) of a candidate
+    on the cluster candidate_cluster of area; writes its availability series."""
     component = f"{area}_candidate"
     series = f"availability_rate_{component}"
     (input_dir / "data-series").mkdir(parents=True, exist_ok=True)
@@ -112,33 +122,50 @@ def _candidate(
     ]
     if model == DISCRETE:
         parameters.append(_parameter("unit_size", UNIT_SIZE))
-    connection = {
-        "component": component,
-        "port": "capacity_port",
-        "thermal-component": {"area": area, "cluster-id": "candidate_cluster"},
-    }
-    return {"id": component, "model": model, "parameters": parameters}, connection
+    return ComponentSchema(
+        id=component, model=model, parameters=parameters
+    ), ThermalCapacityConnectionSchema(
+        component=component,
+        port="capacity_port",
+        thermal_component=ThermalComponentSchema(
+            area=area, cluster_id="candidate_cluster"
+        ),
+    )
 
 
 def _write_gems_input(
-    input_dir: Path, components: list[dict], connections: list[dict]
+    input_dir: Path,
+    components: list[ComponentSchema],
+    connections: list[ThermalCapacityConnectionSchema],
 ) -> None:
-    """Adds the candidates to the system.yml (created if absent), with the
-    library and the optim-config.yml."""
+    """Adds the candidates to the system.yml (created if absent) with GemsPy,
+    checks it against the library, and writes the library and optim-config.yml."""
     (input_dir / "model-libraries").mkdir(exist_ok=True)
     shutil.copy2(LIBRARY_PATH, input_dir / "model-libraries")
     system_file = input_dir / "system.yml"
-    system = (
-        yaml.safe_load(system_file.read_text())["system"]
-        if system_file.exists()
-        else {"id": "investment_candidates"}
+    if system_file.exists():
+        with system_file.open() as file:
+            system = parse_yaml_hybrid_system(file)
+    else:
+        system = HybridSystemSchema(id="investment_candidates")
+    system.components = system.components + components
+    system.thermal_capacity_connections = (
+        system.thermal_capacity_connections or []
+    ) + connections
+    # GemsPy resolves every component against its model (ids, parameters)
+    libraries = resolve_library(
+        [
+            parse_yaml_library(lib.open())
+            for lib in (input_dir / "model-libraries").glob("*.yml")
+        ]
     )
-    system.setdefault("components", []).extend(components)
-    system.setdefault("thermal-capacity-connections", []).extend(connections)
-    system_file.write_text(yaml.safe_dump({"system": system}))
+    models = {k: v for library in libraries.values() for k, v in library.models.items()}
+    assert consistency_check(resolve_system(system, libraries), models)
+    dump_to_yaml(system, system_file)
     # Scenario-independent variables: Antares requires a Benders decomposition,
-    # also when antares-solver runs the study
-    models = [
+    # also when antares-solver runs the study. Written by hand: GemsPy 0.2.0
+    # expects `resolution: {mode: ...}`, which Antares 10.2 ignores.
+    decomposition = [
         {
             "id": model,
             "model-decomposition": {
@@ -149,7 +176,9 @@ def _write_gems_input(
         for model, variable in VARIABLES.items()
     ]
     (input_dir / "optim-config.yml").write_text(
-        yaml.safe_dump({"resolution-mode": "benders-decomposition", "models": models})
+        yaml.safe_dump(
+            {"resolution-mode": "benders-decomposition", "models": decomposition}
+        )
     )
 
 
