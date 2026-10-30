@@ -51,12 +51,8 @@ dev = [
     "mypy>=2.1.0",
     "types-pyyaml>=6.0.12",
     "black>=23.7.0",
-    "gems-views-builder==0.1.0",
+    "gems-views-builder==0.1.1",
 ]
-
-[tool.uv]
-# gems-views-builder 0.1.0 pins gemspy==0.2.0; remove once a release supports 0.3.0
-override-dependencies = ["gemspy==0.3.0"]
 
 
 [tool.setuptools.packages.find]
