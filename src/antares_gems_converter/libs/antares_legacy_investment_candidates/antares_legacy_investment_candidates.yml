@@ -20,7 +20,10 @@ library:
     These models do not represent any production or consumption themselves.
     Their investment variables are scenario-independent: a study using them
     needs an optim-config.yml with resolution-mode benders-decomposition, and
-    a solver supporting integer variables for the discrete model.
+    a solver supporting integer variables for the discrete model. The
+    connected cluster's nominal capacity (nominal_capacity x unit_count) must
+    cover existing_capacity + max_investment: in accurate unit commitment, it
+    still bounds the cluster's generation.
   version: "1.0.0"
   taxonomy: antares_legacy_taxonomy
 
@@ -86,7 +89,9 @@ library:
         (existing_capacity + unit_size * invested_units) * availability_rate,
         where availability_rate is the available fraction (between 0 and 1),
         per hour and scenario. annual_investment_cost is in currency per MW per
-        year, not per unit.
+        year, not per unit. unit_size must be positive, and a multiple of
+        unit_size must lie between min_investment and max_investment, otherwise
+        the problem is infeasible.
       parameters:
         - id: unit_size
           time-dependent: false

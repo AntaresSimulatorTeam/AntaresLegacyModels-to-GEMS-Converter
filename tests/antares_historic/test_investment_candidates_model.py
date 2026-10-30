@@ -38,13 +38,12 @@ import pytest
 import yaml
 from antares.craft import AreaProperties, ThermalClusterProperties, create_study_local
 
+from antares_runner.antares_runner import AntaresHybridRunner
 from tests.antares_historic.conftest import assert_antares_exec_exists
 from tests.antares_historic.utils import (
     ANTARES_VERSION_CREATED_STUDIES,
     _create_area_with_base_clusters,
     addHybridBehavior,
-    first_optim_relgap,
-    random_availability_ratio,
 )
 
 LIBRARY_ID = "antares_legacy_investment_candidates"
@@ -54,6 +53,8 @@ DISCRETE = f"{LIBRARY_ID}.discrete_investment_candidate"
 VARIABLES = {CONTINUOUS: "invested_capacity", DISCRETE: "invested_units"}
 COST_PER_MW = {CONTINUOUS: 30000, DISCRETE: 20000}
 UNIT_SIZE = 30
+# MW per unit of the investment variable
+UNIT_SCALE = {CONTINUOUS: 1, DISCRETE: UNIT_SIZE}
 
 HOURS = 8760
 HOURS_SIMULATED = 8736  # 52 weeks
@@ -133,7 +134,7 @@ def _write_gems_input(
         else {"id": "investment_candidates"}
     )
     system.setdefault("components", []).extend(components)
-    system["thermal-capacity-connections"] = connections
+    system.setdefault("thermal-capacity-connections", []).extend(connections)
     system_file.write_text(yaml.safe_dump({"system": system}))
     # Scenario-independent variables: Antares requires a Benders decomposition,
     # also when antares-solver runs the study
@@ -208,7 +209,7 @@ def _run(command: list) -> None:
 # In accurate unit commitment the cluster's nominal capacity also bounds the
 # generation, so it is E + I in both studies.
 EQUIVALENCE_EXISTING = 50
-EQUIVALENCE_RATE = random_availability_ratio(seed=167)
+EQUIVALENCE_RATE = 0.2 + 0.8 * np.random.default_rng(167).random((HOURS, 1))
 EQUIVALENCE_REL_ACCURACY = 5 * 1e-5
 # model: invested capacity I
 FIXED_INVESTMENTS = {CONTINUOUS: 75.3, DISCRETE: 2 * UNIT_SIZE}
@@ -252,12 +253,23 @@ def test_fixed_investment_matches_legacy_cluster(
     )
     _write_gems_input(hybrid / "input", [component], [connection])
 
-    gap = first_optim_relgap(antares_exec_folder, legacy, hybrid, "highs")
-    assert gap < EQUIVALENCE_REL_ACCURACY
     # sensitivity: 10 % less capacity in the legacy study
     perturbated = _equivalence_study(tmp_path, "perturbated", total, 0.9 * total)
-    gap = first_optim_relgap(antares_exec_folder, perturbated, hybrid, "highs")
-    assert gap > 10 * EQUIVALENCE_REL_ACCURACY
+
+    def weekly_objectives(study: Path) -> np.ndarray:
+        runner = AntaresHybridRunner(antares_exec_folder, study, "highs")
+        runner.run()
+        table = runner.simulation_table_1
+        return table.query('output == "OBJECTIVE_VALUE"')["value"].to_numpy()
+
+    hybrid_objectives = weekly_objectives(hybrid)
+    for study, equivalent in [(legacy, True), (perturbated, False)]:
+        legacy_objectives = weekly_objectives(study)
+        # largest weekly gap
+        gap = np.abs(hybrid_objectives / legacy_objectives - 1).max()
+        assert (gap < EQUIVALENCE_REL_ACCURACY) == equivalent, gap
+        if not equivalent:
+            assert gap > 10 * EQUIVALENCE_REL_ACCURACY
 
 
 @pytest.mark.parametrize("case", CASES)
@@ -284,8 +296,10 @@ def _master_columns(master_mps: Path) -> dict[str, list]:
             integer = "'INTORG'" in fields
         elif section == "COLUMNS" and fields[1] == "OBJ":
             columns[fields[0]] = [float(fields[2]), 0.0, float("inf"), integer]
-        elif section == "BOUNDS" and fields[0] in ("LO", "LI", "UP", "UI"):
-            columns[fields[2]][1 if fields[0][0] == "L" else 2] = float(fields[3])
+        elif section == "BOUNDS" and fields[0] in ("LO", "LI", "FX"):
+            columns[fields[2]][1] = float(fields[3])
+        if section == "BOUNDS" and fields[0] in ("UP", "UI", "FX"):
+            columns[fields[2]][2] = float(fields[3])
     return columns
 
 
@@ -299,12 +313,11 @@ def test_problem_generator_writes_the_master_problem(
 
     (output,) = (study_path / "output").iterdir()
     # discrete: cost per unit, bounds in units, integer variable
-    scale = {CONTINUOUS: 1, DISCRETE: UNIT_SIZE}
     assert _master_columns(output / "master.mps") == {
         _variable(area, model): [
-            pytest.approx(COST_PER_MW[model] * scale[model]),
-            pytest.approx(min_investment / scale[model]),
-            pytest.approx(max_investment / scale[model]),
+            pytest.approx(COST_PER_MW[model] * UNIT_SCALE[model]),
+            pytest.approx(min_investment / UNIT_SCALE[model]),
+            pytest.approx(max_investment / UNIT_SCALE[model]),
             model == DISCRETE,
         ]
         for area, (model, min_investment, max_investment, _) in CASES[case].items()
@@ -341,7 +354,7 @@ def test_xpansion_finds_the_analytic_optimum(case: str, tmp_path: Path) -> None:
     }
     investment = operation = 0.0
     for model, _, _, value in candidates.values():
-        invested = value * (UNIT_SIZE if model == DISCRETE else 1)
+        invested = value * UNIT_SCALE[model]
         generation = min(LOAD - BASE, EXISTING + invested)
         investment += COST_PER_MW[model] * invested
         operation += HOURS_SIMULATED * (
