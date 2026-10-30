@@ -11,6 +11,7 @@
 # This file is part of the Antares project.
 import logging
 import shutil
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
@@ -46,12 +47,14 @@ from antares_gems_converter.input_converter.src.parsing import (
 from antares_gems_converter.input_converter.src.scenario_builder import (
     copy_scenario_builder_file,
     get_legacy_sb,
+    legacy_sb_source,
+    read_scenario_groups,
     read_year_ts,
     write_scenario_builder_file,
 )
 from antares_gems_converter.input_converter.src.templates import (
     load_conversion_templates,
-    study_objects,
+    template_arguments,
 )
 from antares_gems_converter.input_converter.src.utils import (
     dump_to_yaml,
@@ -87,6 +90,8 @@ class SystemFragment:
     area_connections: list[AreaConnectionsSchema] = field(default_factory=list)
     # {scenario group: {year: ts index}}, written to modeler-scenariobuilder.dat
     group_data: dict[str, dict[int, int]] = field(default_factory=dict)
+    # {scenario group: its components}, to report a group with two mappings
+    group_components: dict[str, list[str]] = field(default_factory=dict)
     # Hybrid mode: legacy objects replaced by the components, to delete
     legacy_objects: list[ObjectProperties] = field(default_factory=list)
 
@@ -94,8 +99,23 @@ class SystemFragment:
         self.components.extend(other.components)
         self.connections.extend(other.connections)
         self.area_connections.extend(other.area_connections)
-        self.group_data.update(other.group_data)
+        for group, year_ts in other.group_data.items():
+            for component_id in other.group_components[group]:
+                self.add_group(group, year_ts, component_id)
         self.legacy_objects.extend(other.legacy_objects)
+
+    def add_group(self, group: str, year_ts: dict[int, int], component_id: str) -> None:
+        """Record that the component `component_id` is in the scenario group
+        `group`, whose {year: ts index} is `year_ts`. Components of a group
+        must have the same mapping, otherwise a ValueError is raised."""
+        components = self.group_components.setdefault(group, [])
+        if group in self.group_data and self.group_data[group] != year_ts:
+            raise ValueError(
+                f"Scenario group '{group}': its components {components} and "
+                f"'{component_id}' have different legacy scenario builder entries"
+            )
+        self.group_data[group] = year_ts
+        components.append(component_id)
 
 
 class AntaresStudyConverter:
@@ -117,6 +137,12 @@ class AntaresStudyConverter:
         self.period: int = period if period else 168
         self.lib_paths: list[str] = lib_paths if lib_paths else []
         self.modeler_scenario_builder_file = modeler_scenario_builder_file
+        # The groups the user's modeler-scenariobuilder.dat defines, if given
+        self.user_scenario_groups = (
+            read_scenario_groups(modeler_scenario_builder_file)
+            if modeler_scenario_builder_file
+            else None
+        )
         try:
             self.mode = ConversionMode(mode)
         except ValueError:
@@ -176,25 +202,23 @@ class AntaresStudyConverter:
     def _convert_instance(
         self,
         instance: TemplateInstance,
-        year_ts: dict[int, int],
+        legacy_sb: ScenarioBuilder | None,
         id_suffix: str,
         mp: ModelConversionPreprocessor,
         fragment: SystemFragment,
     ) -> None:
-        """Add to `fragment` what `instance` converts its study object to.
+        """Add to `fragment` what `instance` converts to.
 
-        Components get their scenario group only when the legacy SB has
-        entries for the object (`year_ts`: {year: ts index}). Components of
-        a matrix type whose time series are empty or all zeros are skipped,
-        with their connections.
+        Components of a matrix type whose time series are empty or all zeros
+        are skipped, with their connections.
         """
         skipped_components: set[str] = set()
         for comp in instance.components:
-            scenario_group = None
-            if comp.scenario_group is not None and year_ts:
-                # " / " in group names comes from link IDs (e.g. "at / fr")
-                scenario_group = comp.scenario_group.replace(" / ", "_")
-                fragment.group_data[scenario_group] = year_ts
+            scenario_group = (
+                self._scenario_group(instance.name, comp, legacy_sb, fragment)
+                if comp.scenario_group is not None
+                else None
+            )
             if instance.name in MATRIX_TYPES and not all(
                 mp.check_timeseries_validity(param.value) for param in comp.parameters
             ):
@@ -238,6 +262,48 @@ class AntaresStudyConverter:
                         port2=connection.port2,
                     )
                 )
+
+    def _scenario_group(
+        self,
+        template_name: str,
+        comp: ComponentConversionConfig,
+        legacy_sb: ScenarioBuilder | None,
+        fragment: SystemFragment,
+    ) -> Optional[str]:
+        """The scenario group of `comp`, a component of the template named
+        `template_name` with a scenario-group, recorded in `fragment`.
+
+        A component reading a legacy object with a legacy SB entry (see
+        `legacy_sb_source()`) gets its group if that entry is explicit for some
+        years. A component reading none keeps its group only if the user's
+        modeler-scenariobuilder.dat defines it: a ValueError if that file does
+        not, a warning and no group without one. See docs/scenario-groups.md.
+        """
+        assert comp.scenario_group is not None
+        # " / " in group names comes from link IDs (e.g. "at / fr")
+        group = comp.scenario_group.replace(" / ", "_")
+        source = legacy_sb_source(template_name, comp)
+        if source is not None:
+            year_ts = read_year_ts(legacy_sb, source)
+            if not year_ts:
+                return None
+            fragment.add_group(group, year_ts, comp.id)
+            return group
+        if self.user_scenario_groups is None:
+            self.logger.warning(
+                f"Template '{template_name}', component '{comp.id}': scenario "
+                f"group '{group}' dropped, as the component reads no legacy "
+                f"object with a legacy scenario builder entry and no "
+                f"modeler-scenariobuilder.dat is given"
+            )
+            return None
+        if group not in self.user_scenario_groups:
+            raise ValueError(
+                f"Template '{template_name}', component '{comp.id}': scenario "
+                f"group '{group}' is not defined in "
+                f"{self.modeler_scenario_builder_file}"
+            )
+        return group
 
     def _component_schema(
         self,
@@ -287,37 +353,46 @@ class AntaresStudyConverter:
         # " / " in component ids comes from link IDs (e.g. "at / fr") — normalize to "_".
         return component_id.replace(" / ", "_") + suffix
 
+    def template_arguments(
+        self, conversion_template: ConversionTemplate
+    ) -> list[dict[str, str]]:
+        """What `conversion_template` is instantiated for in this study (see
+        `templates.template_arguments`)."""
+        return template_arguments(
+            conversion_template, self.study, self.areas, self.logger
+        )
+
     def apply_conversion_template(
         self,
         conversion_template: ConversionTemplate,
         legacy_sb: ScenarioBuilder | None = None,
+        instance_arguments: Optional[list[dict[str, str]]] = None,
     ) -> SystemFragment:
-        """Convert the study objects that `conversion_template` applies to,
-        except those it excludes; `legacy_sb` gives the scenario groups.
+        """Convert `conversion_template` for each of `instance_arguments`
+        (by default, `self.template_arguments(conversion_template)`);
+        `legacy_sb` gives the scenario groups.
 
         In hybrid mode, the fragment also lists the legacy objects to delete.
         """
+        if instance_arguments is None:
+            instance_arguments = self.template_arguments(conversion_template)
         fragment = SystemFragment()
         model_preprocessor = ModelConversionPreprocessor(
             self.study, self.mode, self.output_folder
         )
         id_suffix = self._component_id_suffix(conversion_template)
         try:
-            for study_object in study_objects(
-                conversion_template, self.study, self.areas, self.logger
-            ):
-                instance = conversion_template.instantiate(study_object.substitutions())
-                year_ts = read_year_ts(
-                    legacy_sb, conversion_template.name, study_object
-                )
+            for substitutions in instance_arguments:
+                instance = conversion_template.instantiate(substitutions)
                 self._convert_instance(
-                    instance, year_ts, id_suffix, model_preprocessor, fragment
+                    instance, legacy_sb, id_suffix, model_preprocessor, fragment
                 )
         except (KeyError, FileNotFoundError) as e:
-            # Not raised: a template is applied to every area, so the battery
-            # template fails on any area without the battery artefact (e.g. a
-            # study with no battery, while battery is converted by default).
-            # This also stops the model's conversion at the first such area.
+            # Not raised: a template without values is applied to every area,
+            # so the battery template fails on any area without the battery
+            # artefact (e.g. a study with no battery, while battery is
+            # converted by default). This also stops the model's conversion at
+            # the first such area. Restrict it with values to avoid this.
             self.logger.error(
                 f"Error while converting model '{conversion_template.name}' to "
                 f"component list: {e!r}. Please check the model configuration file."
@@ -352,17 +427,30 @@ class AntaresStudyConverter:
         In hybrid mode, also record the legacy objects to delete in
         `self.legacy_objects`.
         """
+        # What every template is instantiated for, before converting anything:
+        # an id listed in a template but not in the study fails early
+        arguments_by_model = {
+            model: self.template_arguments(conversion_template)
+            for model, conversion_template in model_conversion_templates.items()
+        }
         # Read the legacy SB once and pass it to every model conversion
         legacy_sb = get_legacy_sb(self.study, self.logger)
         converted = SystemFragment()
-        for conversion_template in model_conversion_templates.values():
+        for model, conversion_template in model_conversion_templates.items():
             self.logger.info(
                 f"Converting components of model {conversion_template.name}..."
             )
             converted.merge(
-                self.apply_conversion_template(conversion_template, legacy_sb)
+                self.apply_conversion_template(
+                    conversion_template, legacy_sb, arguments_by_model[model]
+                )
             )
         self.legacy_objects = converted.legacy_objects
+        component_ids = Counter(component.id for component in converted.components)
+        if duplicates := sorted(id_ for id_, n in component_ids.items() if n > 1):
+            raise ValueError(
+                f"Duplicate component ids in the converted system: {duplicates}"
+            )
 
         if self.mode == ConversionMode.HYBRID:
             system = HybridSystemSchema(
