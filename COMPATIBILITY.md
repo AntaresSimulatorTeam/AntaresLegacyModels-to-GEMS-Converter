@@ -45,8 +45,8 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | antares-craft | 0.17.1 |
 | antares-study-version | 1.0.20 |
 | antares-timeseries-generation | 0.1.9 |
-| gemspy | 0.2.0 |
-| gems-views-builder | 0.1.0 |
+| gemspy | 0.3.0 |
+| gems-views-builder | 0.1.1 |
 | numpy | 2.2.6 |
 | pandas | 2.2.3 |
 | pydantic | 2.11.10 |
@@ -68,7 +68,7 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
 | Converter | 0.5.1 | `pyproject.toml` |
-| Antares Legacy Models Library | 2.2.1 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
+| Antares Legacy Models Library | 2.4.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
 | Antares-Simulator | 10.2.0 | `dependencies.json` |
 | antares-craft | 0.17.1 | `pyproject.toml` |
-| GemsPy | 0.2.0 | `pyproject.toml` |
+| GemsPy | 0.3.0 | `pyproject.toml` |
