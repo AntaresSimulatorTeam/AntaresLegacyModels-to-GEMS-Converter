@@ -1,0 +1,102 @@
+# Copyright (c) 2024, RTE (https://www.rte-france.com)
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+library:
+  id: antares_legacy_investment_candidates
+  description: >-
+    Investment candidates on Antares legacy objects, for hybrid studies solved
+    with Antares Xpansion. Each candidate decides an invested capacity, either
+    continuous or as an integer number of units of fixed size. Its capacity
+    port is connected to a legacy object of the study, and only Antares
+    thermal clusters can be connected for now (thermal-capacity-connections).
+    These models do not represent any production or consumption themselves.
+  version: "1.0.0"
+  taxonomy: antares_legacy_taxonomy
+
+  port-types:
+    - id: capacity_port
+      description: Capacity added to the connected Antares legacy object, in MW.
+      fields:
+        - id: capacity
+      thermal-capacity-connection:
+        capacity-field: capacity
+
+  models:
+    - id: continuous_investment_candidate
+      description: >-
+        Continuous invested capacity (MW), up to max_capacity (MW).
+        annual_investment_cost is in currency per MW per year. availability_rate
+        is the available fraction (between 0 and 1) of the invested capacity,
+        per hour and scenario.
+      parameters:
+        - id: max_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: annual_investment_cost
+          time-dependent: false
+          scenario-dependent: false
+        - id: availability_rate
+          time-dependent: true
+          scenario-dependent: true
+      variables:
+        - id: invested_capacity
+          variable-type: continuous
+          lower-bound: 0
+          upper-bound: max_capacity
+          time-dependent: false
+          scenario-dependent: false
+      ports:
+        - id: capacity_port
+          type: capacity_port
+      port-field-definitions:
+        - port: capacity_port
+          field: capacity
+          definition: invested_capacity * availability_rate
+      objective-contributions:
+        - id: objective
+          expression: annual_investment_cost * invested_capacity
+
+    - id: discrete_investment_candidate
+      description: >-
+        Integer number of invested units of unit_size (MW), up to max_units.
+        annual_investment_cost is in currency per MW per year, not per unit.
+        availability_rate is the available fraction (between 0 and 1) of the
+        invested capacity, per hour and scenario.
+      parameters:
+        - id: unit_size
+          time-dependent: false
+          scenario-dependent: false
+        - id: max_units
+          time-dependent: false
+          scenario-dependent: false
+        - id: annual_investment_cost
+          time-dependent: false
+          scenario-dependent: false
+        - id: availability_rate
+          time-dependent: true
+          scenario-dependent: true
+      variables:
+        - id: invested_units
+          variable-type: integer
+          lower-bound: 0
+          upper-bound: max_units
+          time-dependent: false
+          scenario-dependent: false
+      ports:
+        - id: capacity_port
+          type: capacity_port
+      port-field-definitions:
+        - port: capacity_port
+          field: capacity
+          definition: invested_units * unit_size * availability_rate
+      objective-contributions:
+        - id: objective
+          expression: annual_investment_cost * unit_size * invested_units
