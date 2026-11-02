@@ -87,6 +87,9 @@ src/antares_gems_converter/
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
+docs/                            # User documentation, linked from README.md
+  template-parameters.md         # Template parameter lists and ad-hoc parameters (keep in sync with "Template loop")
+  scenario-groups.md             # How a component's scenario group is set (keep in sync with "Scenario groups")
 .github/workflows/ci.yml        # CI pipeline
 .github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
