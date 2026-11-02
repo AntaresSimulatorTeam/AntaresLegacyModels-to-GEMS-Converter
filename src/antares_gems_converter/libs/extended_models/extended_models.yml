@@ -51,8 +51,12 @@ library:
         - id: generation_cost
         - id: startup_cost
         - id: fixed_cost
-        - id: d_min_up
-        - id: d_min_down
+        - id: d_min_up # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: d_min_down # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
         - id: unit_count
         - id: spinning # in percentage
       variables:
@@ -119,8 +123,12 @@ library:
         - id: generation_cost
         - id: startup_cost
         - id: fixed_cost
-        - id: d_min_up
-        - id: d_min_down
+        - id: d_min_up # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: d_min_down # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
         - id: unit_count
         - id: spinning # in percentage
       variables:
@@ -412,17 +420,39 @@ library:
     # The models share their parameters, ports and port field definitions (YAML anchors).
     - id: bc_nuc_hourly_less
       parameters: &bc_nuc_parameters
-        - id: alpha_fr_nuclear_cp0_cp1_cp2
+        - id: alpha_fr_nuclear_cp0_cp1_cp2 # Constant coefficients: if time-dependent, a constraint with alpha outside a time sum or index gets one row per time step
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_epr
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_n4
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_p4
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_peak1
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_peak2
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_fr_nuclear_peak3
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_y_nuc_modulation_nuclear_epr
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_y_nuc_modulation_nuclear_n4
+          time-dependent: false
+          scenario-dependent: false
         - id: alpha_y_nuc_modulation_nuclear_p4
+          time-dependent: false
+          scenario-dependent: false
         - id: rhs
           time-dependent: true
           scenario-dependent: true

@@ -18,7 +18,7 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
   external `nb_units_on` bounds divided by `p_max_unit*(1-spinning/100)` without
   parentheses).
 - **Same interface**: the ids of the models, parameters (and their time and scenario
-  dependencies), variables, ports and extra outputs are those of the external library, so
+  dependencies, but for the constant parameters below), variables, ports and extra outputs are those of the external library, so
   that a system written for it only changes the library id of these models
   (`extended_models.<model>`). The models of the dropped list come from
   `antares_legacy_models.yml`, with its own ids.
@@ -44,3 +44,10 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
       `taux_ecretement_<i>` removed), exact for shares between 0 and 1.
 - The parameters `startup_cost`, `fixed_cost`, `d_min_up` and `d_min_down` of `thermal_fast`
   are kept for the interface, though unused.
+- `d_min_up`, `d_min_down` (`thermal_milp`, `thermal_fast`) and the `alpha_<cluster>` of the
+  `bc_nuc_*` models are declared `time-dependent: false` and `scenario-dependent: false`
+  (the external library left the defaults, time and scenario dependent). GemsPy rejects a
+  time-dependent bound of a time sum (`d_min_up`, `d_min_down`), and with a time-dependent
+  `alpha` it built each `bc_daily_<d>` once per time step (`alpha` is outside the time index
+  of `(sum_connections(...))[h]`). Systems give these parameters as constants, so they are
+  not affected.

@@ -606,15 +606,37 @@ def _declarations(model: dict, key: str) -> list[tuple]:
     ]
 
 
+# Parameters that the reference library leaves with the default dependencies (time
+# and scenario dependent), declared constant in extended_models.yml: GemsPy rejects
+# a time-dependent bound of a time sum (d_min_up, d_min_down), and gives one row per
+# time step to a constraint with a time-dependent alpha outside its time index.
+# Systems give them as constants, so they still work.
+CONSTANT_PARAMETERS = re.compile(r"d_min_up|d_min_down|alpha_.*")
+
+
 @pytest.mark.parametrize("model_id", sorted(_models(EXTENDED_LIBRARY)))
 def test_same_ids_as_the_reference_library(model_id: str) -> None:
     """A system written for the reference library can use extended_models.yml, but
-    for the library id: same models, parameters (and their dependencies), variables,
-    ports and extra outputs (this does not need the Antares binary)."""
+    for the library id: same models, parameters (and their dependencies, but for
+    CONSTANT_PARAMETERS), variables, ports and extra outputs (this does not need the
+    Antares binary)."""
     model = _models(EXTENDED_LIBRARY)[model_id]
     reference = _models(REFERENCE_LIBRARY)[model_id]
-    for key in ["parameters", "variables", "ports", "extra-outputs"]:
+    for key in ["variables", "ports", "extra-outputs"]:
         assert _declarations(model, key) == _declarations(reference, key), key
+    expected = [
+        (
+            (parameter_id, False, False)
+            if CONSTANT_PARAMETERS.fullmatch(parameter_id)
+            and time_dependent is None
+            and scenario_dependent is None
+            else (parameter_id, time_dependent, scenario_dependent)
+        )
+        for parameter_id, time_dependent, scenario_dependent in _declarations(
+            reference, "parameters"
+        )
+    ]
+    assert _declarations(model, "parameters") == expected
 
 
 # ---------------------------------------------------------------- daily windows
