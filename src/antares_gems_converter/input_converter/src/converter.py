@@ -210,20 +210,21 @@ class AntaresStudyConverter:
         """Add to `fragment` what `instance` converts to.
 
         Components of a matrix type whose time series are empty or all zeros
-        are skipped, with their connections.
+        are skipped, with their connections and scenario groups.
         """
         skipped_components: set[str] = set()
         for comp in instance.components:
-            scenario_group = (
-                self._scenario_group(instance.name, comp, legacy_sb, fragment)
-                if comp.scenario_group is not None
-                else None
-            )
             if instance.name in MATRIX_TYPES and not all(
                 mp.check_timeseries_validity(param.value) for param in comp.parameters
             ):
                 skipped_components.add(comp.id)
                 continue
+            # After the skip: a skipped component must not record its group
+            scenario_group = (
+                self._scenario_group(instance.name, comp, legacy_sb, fragment)
+                if comp.scenario_group is not None
+                else None
+            )
             fragment.components.append(
                 self._component_schema(
                     comp, instance.model, scenario_group, id_suffix, mp

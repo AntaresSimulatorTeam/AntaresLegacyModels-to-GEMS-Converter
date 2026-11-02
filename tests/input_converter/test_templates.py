@@ -16,6 +16,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+import pandas as pd
 import pytest
 from antares.craft.model.renewable import RenewableClusterProperties
 from antares.craft.model.st_storage import STStorageProperties
@@ -936,6 +937,34 @@ def test_group_with_different_legacy_sb_entries(study_w_clusters: Study):
     thermal = ConversionTemplate.model_validate(data)
     with pytest.raises(ValueError, match="'thermal_fr_group': its components"):
         converter.system_and_scenario_groups({"thermal": thermal})
+
+
+@pytest.mark.parametrize(
+    "group, expected",
+    [
+        # One group for all the areas: the skipped loads must not conflict
+        ("load_group", {"load_group": {0: 1}}),
+        # One group per area: no group for the skipped loads
+        ("load_${area}_group", {"load_fr_group": {0: 1}}),
+    ],
+)
+def test_skipped_component_has_no_group(
+    study_w_clusters: Study, group: str, expected: dict[str, dict[int, int]]
+):
+    # Only fr has a load: the loads of it and at are empty, so skipped
+    study_w_clusters.get_areas()["fr"].set_load(pd.DataFrame([[1.0, 2.0]] * 8760))
+    sb = study_w_clusters.get_scenario_builder()
+    for area, ts in [("fr", 1), ("it", 2), ("at", 3)]:
+        sb.load.get_area(area).set_new_scenario([ts])
+    study_w_clusters.set_scenario_builder(sb)
+    converter = _study_converter(study_w_clusters, "full")
+    data = load_conversion_template("load").model_dump()
+    data["components"][0]["scenario_group"] = group
+    system, scenario_groups = converter.system_and_scenario_groups(
+        {"load": ConversionTemplate.model_validate(data)}
+    )
+    assert [c.id for c in system.components] == ["fr_load"]
+    assert scenario_groups == expected
 
 
 def test_group_with_no_legacy_source(

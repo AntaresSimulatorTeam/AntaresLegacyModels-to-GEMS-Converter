@@ -367,7 +367,7 @@ Runs on every push to any branch:
 
 5. **Exclusions are local to their template** (see "Template loop"). Do not add study-specific exclusions to the reference templates.
 
-6. **Timeseries validity check.** `check_timeseries_validity()` rejects empty or all-zero dataframes. If a load/solar/wind area has no data, no component is generated for it. This is intentional — do not "fix" it by removing the check.
+6. **Timeseries validity check.** `check_timeseries_validity()` rejects empty or all-zero dataframes. If a load/solar/wind area has no data, no component is generated for it, and it records no scenario group (the check runs before `_scenario_group()`). This is intentional — do not "fix" it by removing the check.
 
 7. **Link ids in component ids.** The `" / "` of link ids (e.g. `at / fr`) is replaced with `_` in component ids (`_output_component_id`) and scenario groups, not in templates.
 

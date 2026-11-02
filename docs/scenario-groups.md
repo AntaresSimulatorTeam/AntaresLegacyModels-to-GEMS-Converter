@@ -30,6 +30,8 @@ Then, according to the number of legacy objects found:
 | **several** | ambiguous, so the conversion fails with a `ValueError` naming the template, the component and the objects. |
 | **none**, e.g. a new component with constant parameters | there is nothing to convert. The group is kept only if you give your own `modeler-scenariobuilder.dat` (`modeler_scenario_builder_file` of `AntaresStudyConverter`) and it defines the group; if the file doesn't define it, the conversion fails with a `ValueError`. Without such a file, the group is dropped with a warning. |
 
+A load, solar, wind, misc gen or run-of-river component whose time series are empty or all zeros is not generated, so it gets no group: its legacy scenario builder entries are not read, and it is not compared with the other components of its group (see below).
+
 The rule is the same whatever the template parameters: with or without ad-hoc parameters, and whether or not the template deletes legacy objects in hybrid mode.
 
 ### Shared groups
