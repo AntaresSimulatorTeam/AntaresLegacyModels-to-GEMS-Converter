@@ -52,6 +52,7 @@ dev = [
     "types-pyyaml>=6.0.12",
     "black>=23.7.0",
     "gems-views-builder==0.0.1",
+    "openpyxl>=3.1.5",
 ]
 
 
