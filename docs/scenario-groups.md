@@ -34,9 +34,21 @@ The rule is the same whatever the template parameters: with or without ad-hoc pa
 
 ### Shared groups
 
-Several components can declare the same group: they then share its columns. This is only allowed if they get the same entries from the legacy scenario builder. Otherwise the conversion fails with a `ValueError` naming the group and its components. For example, a template giving every thermal cluster of an area the group `thermal_${area}_group` fails as soon as two clusters of that area have different entries.
+Several components get the same group when their `scenario-group`, once the placeholders are replaced, gives the same name. This happens when the name does not use every placeholder of the loop. With `thermal_group`, every thermal component of the template shares one group. With `thermal_${area}_group`, the clusters of an area share one. It also happens across templates, e.g. a thermal and a renewable template both declaring `res_group`.
+
+The components of a group use the same column in every year, so they must get the same entries from the legacy scenario builder. Each component's entries are read from its own legacy object, then compared with those of the components already in the group:
+
+| Entries of the component's legacy object | Result |
+|---|---|
+| the same explicit years, with the same series, as the group | the component joins the group |
+| different explicit years or series | the conversion fails with a `ValueError` naming the group, its components so far and this component. It stops at the first such component, before `system.yml` is written. |
+| every year random | the component gets no group (as for a single object) and is not compared |
+
+Only the explicit years are compared. Two objects with the same explicit years that are both random in another year are accepted in one group, but they then use the same column in that year, where Antares draws each one separately. To keep Antares' behaviour, give such components their own group, i.e. use every placeholder of the loop in the name.
 
 ### Group names
+
+The name only labels the group: the entries always come from the legacy object the component reads, whatever the name. A thermal component named `foo_${area}_group` that reads `fr/gaz` gets the group `foo_fr_group`, with the entries of `fr/gaz`. The name only matters when it is the same for several components (see above) and when you give your own `modeler-scenariobuilder.dat` (see below).
 
 The `" / "` of link ids (`at / fr`) is replaced by `_` in group names, as in component ids: the group `${link}_ntc_group` of link `at / fr` is `at_fr_ntc_group`.
 
@@ -63,5 +75,14 @@ In hybrid mode, the legacy scenario builder entries of the load, solar and wind 
 The other reference templates (short-term storage, battery, misc gen, area) declare no group.
 
 **A cluster split by an ad-hoc parameter.** With an ad-hoc `unit: ["1", "2"]` added to the thermal template, the components `fr_thermal_gaz_1` and `fr_thermal_gaz_2` both read the series of `fr/gaz`. Both get the group `thermal_fr_gaz_group`, with the entries of `fr/gaz`. See [template-parameters.md](template-parameters.md) for what else a split implies in hybrid mode.
+
+**A group name that does not depend on the cluster.** With `scenario-group: thermal_${area}_group` in the thermal template, the clusters `gaz` and `coal` of `fr` are both in `thermal_fr_group`, and the result depends on their series in the legacy scenario builder, here for 3 Monte Carlo years:
+
+| `fr/gaz` | `fr/coal` | Result |
+|---|---|---|
+| 2, 1, random | 2, 1, random | both in `thermal_fr_group`, with series 2 and 1 in the first two years. The third year is random for both, and both use the same column in it. |
+| 2, 1, random | 3, 1, random | `ValueError`: the first year differs |
+| 2, 1, random | 2, 1, 4 | `ValueError`: the third year is explicit for `coal` only |
+| 2, 1, random | random, random, random | `fr_thermal_gaz` in `thermal_fr_group`, `fr_thermal_coal` with no group |
 
 **A new component.** The electrolyser of [example 4](template-parameters.md#4-ad-hoc-parameter-iterate-over-a-list-unrelated-to-the-study) only has constant parameters. If it declared a `scenario-group`, the group would be dropped with a warning, unless your own `modeler-scenariobuilder.dat` defines it.
