@@ -1,6 +1,6 @@
-# Antares Legacy Models Extensions Library — Changelog
+# Extended Models Library — Changelog
 
-All notable changes to `antares_legacy_models_extensions.yml` are documented here. Its
+All notable changes to `extended_models.yml` are documented here. Its
 versioning follows the rules of the Antares Legacy Models Library (see `COMPATIBILITY.md`).
 
 ---
@@ -14,7 +14,7 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
   `antares_legacy_models.yml` has them: `area`, `load`, `link`, `renewable` and
   `thermal_accurate` (`antares_legacy_models.thermal`; the external `nb_units_on` bounds
   divided by `p_max_unit*(1-spinning/100)` without parentheses).
-- **Library id**: `antares_legacy_models_extensions`, to be loaded next to
+- **Library id**: `extended_models`, to be loaded next to
   `antares_legacy_models` (its components connect to the `area` of that library).
 - **Port type** `flow`: the one of `antares_legacy_models.yml` (fields `price`,
   `spillage_bound`, `unsupplied_energy_bound` and their `area-connection`). Every model
@@ -24,7 +24,7 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
 - **Ids** renamed after `antares_legacy_models.yml` and the naming rules of `AGENTS.md`
   (table below).
 - **Compacted expressions**, with the same optimal solutions (checked by
-  `tests/antares_historic/test_legacy_models_extensions.py`):
+  `tests/antares_historic/test_extended_models.py`):
     - Daily sums written with time sums on a range, `sum(0 .. 23, x)`, instead of
       `x[0] + ... + x[23]` (cycle limits of the storage, daily binding constraint). With the
       merges below, the library goes from about 2,580 to 520 lines.
@@ -40,7 +40,7 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
 
 ### Renamed models and parameters
 
-| External library | `antares_legacy_models_extensions` |
+| External library | `extended_models` |
 |---|---|
 | `thermal_milp`, `thermal_fast` | `thermal_milp`, `thermal_fast` |
 | `minimum_generation_modulation`, `p_max_cluster` | `cluster_min_gen_modulation`, `cluster_max_generation` |

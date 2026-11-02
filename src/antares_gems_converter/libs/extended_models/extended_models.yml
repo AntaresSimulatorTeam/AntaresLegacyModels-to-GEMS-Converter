@@ -14,8 +14,8 @@
 # The area, load, link, renewable and thermal ("accurate") models are taken from
 # antares_legacy_models.yml: this library only holds variants and new constructs.
 library:
-  id: antares_legacy_models_extensions
-  description: Extensions of the Antares legacy model library (MILP and fast thermal clusters, storage with cycle limits, curtailable renewables, nuclear binding constraints)
+  id: extended_models
+  description: Models to use next to the Antares legacy model library (MILP and fast thermal clusters, storage with cycle limits, curtailable renewables, nuclear binding constraints)
   version: "1.0.0"
   taxonomy: antares_legacy_taxonomy
 

@@ -77,9 +77,10 @@ src/antares_gems_converter/
   libs/
     antares_historic/
       antares_legacy_models.yml   # GEMS model definitions for Antares legacy components
-      antares_legacy_models_extensions.yml  # Models absent from antares_legacy_models.yml, used next to it (not used by the templates)
     reference_models/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
+    extended_models/
+      extended_models.yml         # Models absent from antares_legacy_models.yml, used next to it (not used by the templates)
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
   views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns filled per study; metrics lists every metric of the template's catalog, as <catalog_id>.<metric_id>, to trim per study)
@@ -243,7 +244,7 @@ template:
 
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
-- **`antares_legacy_models_extensions.yml`** — Models that are not in `antares_legacy_models.yml`, to be loaded next to it: `thermal_milp` (integer unit commitment), `thermal_fast` (no unit commitment), `short_term_storage_extended` (hurdle cost, McCormick cut, daily cycle limits), `curtailable_renewable`, `multi_band_curtailable_renewable` and the `nuclear_<hourly|daily|weekly>_binding_constraint` models. No template uses them. Its `flow` port type is the one of `antares_legacy_models.yml`. Antares Modeler requires each field of a connection to be defined on exactly one side, so a model connected to the `balance_port` of a cluster defines `price` (the binding constraint models define it as `0`). `tests/antares_historic/test_legacy_models_extensions.py` checks that each model has the optimal objective of the model it comes from (kept in `tests/antares_historic/data/reference_libraries/`).
+- **`extended_models.yml`** (`libs/extended_models/`) — Models that are not in `antares_legacy_models.yml`, to be loaded next to it: `thermal_milp` (integer unit commitment), `thermal_fast` (no unit commitment), `short_term_storage_extended` (hurdle cost, McCormick cut, daily cycle limits), `curtailable_renewable`, `multi_band_curtailable_renewable` and the `nuclear_<hourly|daily|weekly>_binding_constraint` models. No template uses them. Its `flow` port type is the one of `antares_legacy_models.yml`. Antares Modeler requires each field of a connection to be defined on exactly one side, so a model connected to the `balance_port` of a cluster defines `price` (the binding constraint models define it as `0`). `tests/antares_historic/test_extended_models.py` checks that each model has the optimal objective of the model it comes from (kept in `tests/antares_historic/data/reference_libraries/`).
 
 Both use a `flow` port-type for power balance connections. In `antares_legacy_models.yml`, its `area-connection` (HYBRID mode) maps the `flow`, `spillage_bound` and `unsupplied_energy_bound` fields to the balance, the bound on spilled energy and the bound on unsupplied energy of the legacy area, after the legacy constraints. Antares fails when a model connected to an area does not define all three (define `0` when a model does not contribute).
 
@@ -291,7 +292,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
-| `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder; the models of `antares_legacy_models_extensions.yml` behave as their reference models (GEMS studies written by `gems_study.py`, solved with `antares-modeler`) | Antares Simulator binary, `gems-views-builder` |
+| `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder; the models of `extended_models.yml` behave as their reference models (GEMS studies written by `gems_study.py`, solved with `antares-modeler`) | Antares Simulator binary, `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 

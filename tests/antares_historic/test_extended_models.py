@@ -9,14 +9,14 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""The models of antares_legacy_models_extensions.yml behave as the models they come from.
+"""The models of extended_models.yml behave as the models they come from.
 
 Each model was written from a model of a former external library, kept as test data
 (REFERENCE_LIBRARY, whose id is also antares_legacy_models). For each model, the same
 study is built twice and solved with antares-modeler:
 - the reference study only uses REFERENCE_LIBRARY;
-- the extension study uses antares_legacy_models.yml (area, load) and
-  antares_legacy_models_extensions.yml, with the renamed parameters.
+- the extended study uses antares_legacy_models.yml (area, load) and
+  extended_models.yml, with the renamed parameters.
 Both must have the same optimal objective. Each test also checks that the modelled
 feature is active in its study, i.e. that removing it changes the objective.
 """
@@ -36,14 +36,14 @@ from tests.antares_historic.gems_study import (
     connection,
 )
 
-LIBS_DIR = Path("src/antares_gems_converter/libs/antares_historic")
-LEGACY_LIBRARY = LIBS_DIR / "antares_legacy_models.yml"
-EXTENSIONS_LIBRARY = LIBS_DIR / "antares_legacy_models_extensions.yml"
+LIBS_DIR = Path("src/antares_gems_converter/libs")
+LEGACY_LIBRARY = LIBS_DIR / "antares_historic" / "antares_legacy_models.yml"
+EXTENDED_LIBRARY = LIBS_DIR / "extended_models" / "extended_models.yml"
 REFERENCE_LIBRARY = Path(
     "tests/antares_historic/data/reference_libraries/antares_legacy_models_external.yml"
 )
 LEGACY = "antares_legacy_models"
-EXTENSIONS = "antares_legacy_models_extensions"
+EXTENDED = "extended_models"
 
 REL_TOL = 1e-6
 NUM_TIME_STEPS = 168
@@ -109,9 +109,7 @@ class Flavour:
     def __init__(self, is_reference: bool) -> None:
         self.is_reference = is_reference
         self.libraries = (
-            [REFERENCE_LIBRARY]
-            if is_reference
-            else [LEGACY_LIBRARY, EXTENSIONS_LIBRARY]
+            [REFERENCE_LIBRARY] if is_reference else [LEGACY_LIBRARY, EXTENDED_LIBRARY]
         )
 
     def study(
@@ -143,7 +141,7 @@ class Flavour:
         return (
             f"{LEGACY}.{reference_model}"
             if self.is_reference
-            else f"{EXTENSIONS}.{model}"
+            else f"{EXTENDED}.{model}"
         )
 
     def thermal(self, component_id: str, variant: str, **parameters: Value) -> dict:
@@ -200,7 +198,7 @@ class Flavour:
 
 
 REFERENCE = Flavour(is_reference=True)
-EXTENSION = Flavour(is_reference=False)
+EXTENDED_FLAVOUR = Flavour(is_reference=False)
 
 
 def solve(study: GemsStudy, tmp_path: Path, name: str, exec_folder: Path) -> GemsResult:
@@ -216,8 +214,8 @@ def solve_both(
     build: Callable[[Flavour], GemsStudy], tmp_path: Path, exec_folder: Path
 ) -> tuple[GemsResult, GemsResult]:
     reference = solve(build(REFERENCE), tmp_path, "reference", exec_folder)
-    extension = solve(build(EXTENSION), tmp_path, "extension", exec_folder)
-    return reference, extension
+    extended = solve(build(EXTENDED_FLAVOUR), tmp_path, "extended", exec_folder)
+    return reference, extended
 
 
 # ---------------------------------------------------------------- thermal
@@ -267,18 +265,18 @@ def thermal_milp_study(flavour: Flavour, base_min_down_duration: int = 8) -> Gem
 
 
 def test_thermal_milp(tmp_path: Path, antares_exec_folder: Path) -> None:
-    reference, extension = solve_both(thermal_milp_study, tmp_path, antares_exec_folder)
+    reference, extended = solve_both(thermal_milp_study, tmp_path, antares_exec_folder)
     shorter_min_down = solve(
-        thermal_milp_study(EXTENSION, base_min_down_duration=7),
+        thermal_milp_study(EXTENDED_FLAVOUR, base_min_down_duration=7),
         tmp_path,
         "shorter_min_down",
         antares_exec_folder,
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert shorter_min_down.objective < extension.objective * (1 - 100 * REL_TOL)
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert shorter_min_down.objective < extended.objective * (1 - 100 * REL_TOL)
     # The units are integer, and the units of the peak cluster start and stop
-    units_on = extension.series("peak", "num_units_on")
+    units_on = extended.series("peak", "num_units_on")
     assert units_on == pytest.approx(np.round(units_on), abs=1e-6)
     assert len(set(np.round(units_on))) > 2
 
@@ -318,19 +316,19 @@ def thermal_fast_study(flavour: Flavour, spinning: float = 10) -> GemsStudy:
 
 
 def test_thermal_fast(tmp_path: Path, antares_exec_folder: Path) -> None:
-    reference, extension = solve_both(thermal_fast_study, tmp_path, antares_exec_folder)
+    reference, extended = solve_both(thermal_fast_study, tmp_path, antares_exec_folder)
     without_spinning = solve(
-        thermal_fast_study(EXTENSION, spinning=0),
+        thermal_fast_study(EXTENDED_FLAVOUR, spinning=0),
         tmp_path,
         "without_spinning",
         antares_exec_folder,
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert extension.series("cheap", "generation_power") == pytest.approx(
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert extended.series("cheap", "generation_power") == pytest.approx(
         reference.series("cheap", "generation"), abs=1e-6
     )
-    assert without_spinning.objective < extension.objective * (1 - 100 * REL_TOL)
+    assert without_spinning.objective < extended.objective * (1 - 100 * REL_TOL)
 
 
 # ---------------------------------------------------------------- storage
@@ -423,31 +421,34 @@ def test_short_term_storage_extended(
     shift: int,
 ) -> None:
     flags = (is_mccormick_enabled, is_grand_maison_mccormick_enabled, is_cycle_limited)
-    reference, extension = solve_both(
+    reference, extended = solve_both(
         lambda flavour: storage_study(flavour, *flags, shift=shift),
         tmp_path,
         antares_exec_folder,
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
     if any(flags):
         no_cut = solve(
-            storage_study(EXTENSION, 0, 0, 0, shift=shift),
+            storage_study(EXTENDED_FLAVOUR, 0, 0, 0, shift=shift),
             tmp_path,
             "no_cut",
             antares_exec_folder,
         )
-        assert no_cut.objective < extension.objective * (1 - 100 * REL_TOL)
+        assert no_cut.objective < extended.objective * (1 - 100 * REL_TOL)
 
 
 def test_grand_maison_mccormick_is_looser(
     tmp_path: Path, antares_exec_folder: Path
 ) -> None:
     usual = solve(
-        storage_study(EXTENSION, 1, 0, 0), tmp_path, "usual", antares_exec_folder
+        storage_study(EXTENDED_FLAVOUR, 1, 0, 0), tmp_path, "usual", antares_exec_folder
     )
     grand_maison = solve(
-        storage_study(EXTENSION, 0, 1, 0), tmp_path, "grand_maison", antares_exec_folder
+        storage_study(EXTENDED_FLAVOUR, 0, 1, 0),
+        tmp_path,
+        "grand_maison",
+        antares_exec_folder,
     )
     assert grand_maison.objective < usual.objective * (1 - 100 * REL_TOL)
 
@@ -490,20 +491,20 @@ def curtailment_study(flavour: Flavour, non_curtailable_share: Value) -> GemsStu
 
 
 def test_curtailable_renewable(tmp_path: Path, antares_exec_folder: Path) -> None:
-    reference, extension = solve_both(
+    reference, extended = solve_both(
         lambda flavour: curtailment_study(flavour, "non_curtailable_share"),
         tmp_path,
         antares_exec_folder,
     )
     fully_curtailable = solve(
-        curtailment_study(EXTENSION, 0), tmp_path, "fully", antares_exec_folder
+        curtailment_study(EXTENDED_FLAVOUR, 0), tmp_path, "fully", antares_exec_folder
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert extension.series("curtailment", "curtailed_power") == pytest.approx(
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert extended.series("curtailment", "curtailed_power") == pytest.approx(
         reference.series("curtailment", "enr_ecrete"), abs=1e-6
     )
-    assert fully_curtailable.objective < extension.objective * (1 - 100 * REL_TOL)
+    assert fully_curtailable.objective < extended.objective * (1 - 100 * REL_TOL)
 
 
 BAND_COSTS = [-5, -10, -20, -40, -250]
@@ -534,11 +535,11 @@ def multi_band_curtailment_study(flavour: Flavour) -> GemsStudy:
 def test_multi_band_curtailable_renewable(
     tmp_path: Path, antares_exec_folder: Path
 ) -> None:
-    reference, extension = solve_both(
+    reference, extended = solve_both(
         multi_band_curtailment_study, tmp_path, antares_exec_folder
     )
     # The bands are independent: 5 single band curtailments are equivalent.
-    single_bands = curtailment_study(EXTENSION, 0)
+    single_bands = curtailment_study(EXTENDED_FLAVOUR, 0)
     single_bands.components.pop()
     single_bands.connections.pop()
     for i, (cost, share) in enumerate(zip(BAND_COSTS, BAND_SHARES)):
@@ -549,7 +550,7 @@ def test_multi_band_curtailable_renewable(
         )
         connect_to_area(
             single_bands,
-            EXTENSION.curtailable_renewable(
+            EXTENDED_FLAVOUR.curtailable_renewable(
                 f"band_{i + 1}",
                 generation_cost=cost,
                 load_factor="solar_load_factor",
@@ -560,22 +561,20 @@ def test_multi_band_curtailable_renewable(
     single_bands_result = solve(
         single_bands, tmp_path, "single_bands", antares_exec_folder
     )
-    no_curtailment = curtailment_study(EXTENSION, 1)
+    no_curtailment = curtailment_study(EXTENDED_FLAVOUR, 1)
     no_curtailment_result = solve(
         no_curtailment, tmp_path, "no_curtailment", antares_exec_folder
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
     assert single_bands_result.objective == pytest.approx(
-        extension.objective, rel=REL_TOL
+        extended.objective, rel=REL_TOL
     )
     # Bands 1 to 4 are cheaper than spillage, band 5 is not
     for band in range(1, 5):
-        assert extension.series("curtailment", f"curtailed_power_{band}").max() > 0
-    assert extension.series("curtailment", "curtailed_power_5").max() == pytest.approx(
-        0
-    )
-    assert extension.objective < no_curtailment_result.objective * (1 - 100 * REL_TOL)
+        assert extended.series("curtailment", f"curtailed_power_{band}").max() > 0
+    assert extended.series("curtailment", "curtailed_power_5").max() == pytest.approx(0)
+    assert extended.objective < no_curtailment_result.objective * (1 - 100 * REL_TOL)
 
 
 # ---------------------------------------------------------------- binding constraints
@@ -697,17 +696,20 @@ def test_nuclear_binding_constraint(
     rhs: str,
 ) -> None:
     binding_constraint = (reference_model, model, direction, rhs)
-    reference, extension = solve_both(
+    reference, extended = solve_both(
         lambda flavour: nuclear_study(flavour, binding_constraint),
         tmp_path,
         antares_exec_folder,
     )
     unconstrained = solve(
-        nuclear_study(EXTENSION, None), tmp_path, "unconstrained", antares_exec_folder
+        nuclear_study(EXTENDED_FLAVOUR, None),
+        tmp_path,
+        "unconstrained",
+        antares_exec_folder,
     )
 
-    assert extension.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert unconstrained.objective < extension.objective * (1 - 100 * REL_TOL)
+    assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
+    assert unconstrained.objective < extended.objective * (1 - 100 * REL_TOL)
 
 
 def test_daily_binding_constraint_is_tighter_than_weekly(
@@ -716,7 +718,7 @@ def test_daily_binding_constraint_is_tighter_than_weekly(
     """The daily constraint is not the weekly one: the days are constrained one by one."""
     daily = solve(
         nuclear_study(
-            EXTENSION,
+            EXTENDED_FLAVOUR,
             ("bc_nuc_daily_less", "nuclear_daily_binding_constraint", 1, "daily_less"),
         ),
         tmp_path,
@@ -725,7 +727,7 @@ def test_daily_binding_constraint_is_tighter_than_weekly(
     )
     weekly = solve(
         nuclear_study(
-            EXTENSION,
+            EXTENDED_FLAVOUR,
             (
                 "bc_nuc_weekly_less",
                 "nuclear_weekly_binding_constraint",
@@ -825,7 +827,7 @@ def test_daily_windows_are_the_reference_ones(
     reference = _expressions(
         _models(REFERENCE_LIBRARY)[reference_model], reference_prefix
     )
-    expressions = _expressions(_models(EXTENSIONS_LIBRARY)[model], prefix)
+    expressions = _expressions(_models(EXTENDED_LIBRARY)[model], prefix)
 
     assert len(expressions) == len(reference) == 7
     for day, (reference_expression, expression) in enumerate(
