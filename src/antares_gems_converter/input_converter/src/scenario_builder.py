@@ -9,22 +9,22 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""Read the legacy scenario builder (SB) of each study object, clear the
-entries of deleted objects, and write modeler-scenariobuilder.dat."""
+"""Read the legacy scenario builder (SB) entry of the legacy object a
+component reads, clear the entries of deleted objects, and read, copy or write
+modeler-scenariobuilder.dat."""
 import logging
 import shutil
 from pathlib import Path
+from typing import Optional
 
 from antares.craft.model.scenario_builder import ScenarioBuilder
 from antares.craft.model.study import Study
 
-from antares_gems_converter.input_converter.src.config import (
-    CLUSTER_TYPE_TO_SB_ATTR,
-    LINK_TYPE_TO_SCENARIO_BUILDER_ATTR,
-    MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
+from antares_gems_converter.input_converter.src.config import LEGACY_TYPE_TO_SB_ATTR
+from antares_gems_converter.input_converter.src.parsing import (
+    ComponentConversionConfig,
+    ObjectProperties,
 )
-from antares_gems_converter.input_converter.src.parsing import ObjectKind
-from antares_gems_converter.input_converter.src.templates import StudyObject
 
 MODELER_SCENARIO_BUILDER_FILE = "modeler-scenariobuilder.dat"
 
@@ -39,37 +39,65 @@ def get_legacy_sb(study: Study, logger: logging.Logger) -> ScenarioBuilder | Non
         return None
 
 
+def legacy_sb_source(
+    template_name: str, component: ComponentConversionConfig
+) -> Optional[ObjectProperties]:
+    """Return the legacy object whose legacy SB entry gives the scenario group
+    of `component`, an instantiated component of the template named
+    `template_name`: the one object with a legacy SB entry that its
+    scenario-dependent parameters read, or None if they read none.
+
+    Parameters reading several such objects raise a ValueError.
+    """
+    sources: dict[tuple, ObjectProperties] = {}
+    for parameter in component.parameters:
+        source = parameter.value.object_properties
+        if (
+            parameter.scenario_dependent
+            and source is not None
+            and source.type in LEGACY_TYPE_TO_SB_ATTR
+        ):
+            # Several fields of one object have the same entry
+            key = (source.type, source.area, source.cluster, source.link)
+            sources.setdefault(key, source)
+    if len(sources) > 1:
+        raise ValueError(
+            f"Template '{template_name}', component '{component.id}': its "
+            f"scenario-dependent parameters read several legacy objects with a "
+            f"legacy scenario builder entry {sorted(sources)}, so its scenario "
+            f"group is ambiguous"
+        )
+    return next(iter(sources.values()), None)
+
+
 def read_year_ts(
-    legacy_sb: ScenarioBuilder | None,
-    template_name: str,
-    study_object: StudyObject,
+    legacy_sb: ScenarioBuilder | None, source: ObjectProperties
 ) -> dict[int, int]:
     """Return {year_index: ts_index} for all years that have an explicit SB
-    entry (non-None) for `study_object`, an object that the template named
-    `template_name` is instantiated for."""
+    entry (non-None) for `source`, a legacy object of a type with a legacy SB
+    entry."""
     if legacy_sb is None:
         return {}
-    # Links, cluster types (thermal/renewable) and area matrix types
-    # (wind/solar/load/hydro/ror) have their own SB attribute
-    if study_object.kind == ObjectKind.LINK:
-        attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(template_name)
-    elif study_object.kind == ObjectKind.AREA:
-        attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(template_name)
-    else:
-        attr = CLUSTER_TYPE_TO_SB_ATTR.get(study_object.kind)
-    if attr is None:
-        return {}
-
-    sb_matrices = getattr(legacy_sb, attr)
-    if study_object.kind == ObjectKind.LINK:
+    sb_matrices = getattr(legacy_sb, LEGACY_TYPE_TO_SB_ATTR[source.type])
+    if source.type == "link":
         # SB link ids are sorted alphabetically
-        sb_matrix = sb_matrices.get_link(study_object.link)
-    elif study_object.kind == ObjectKind.AREA:
-        sb_matrix = sb_matrices.get_area(study_object.area)
+        sb_matrix = sb_matrices.get_link(source.link)
+    elif source.type in ("thermal", "renewable"):
+        sb_matrix = sb_matrices.get_cluster(source.area, source.cluster)
     else:
-        sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
+        sb_matrix = sb_matrices.get_area(source.area)
     return {
         year: ts for year, ts in enumerate(sb_matrix.get_scenario()) if ts is not None
+    }
+
+
+def read_scenario_groups(sb_file: Path) -> set[str]:
+    """Return the scenario groups that `sb_file`, a modeler-scenariobuilder.dat,
+    defines: its lines are `<group>, <year> = <ts>`, blank or `#` comments."""
+    return {
+        line.split(",", 1)[0].strip()
+        for line in sb_file.read_text().splitlines()
+        if line.strip() and not line.strip().startswith("#")
     }
 
 

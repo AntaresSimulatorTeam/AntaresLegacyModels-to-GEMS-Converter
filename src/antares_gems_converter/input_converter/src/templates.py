@@ -9,12 +9,13 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-"""Load the conversion templates and list the study objects they are
-instantiated for."""
+"""Load the conversion templates and list what they are instantiated for: the
+arguments of their parameters (`template_arguments`), study objects or ad-hoc
+values."""
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Mapping, Optional, Sequence
+from typing import Iterable, Iterator, Mapping, Optional, Sequence
 
 from antares.craft.model.area import Area
 from antares.craft.model.study import Study
@@ -28,6 +29,7 @@ from antares_gems_converter.input_converter.src.parsing import (
     ConversionTemplate,
     ObjectKind,
     ObjectProperties,
+    TemplateParameter,
     parse_conversion_template,
 )
 
@@ -106,39 +108,85 @@ def is_excluded(obj: StudyObject, exclusions: Sequence[ObjectProperties]) -> boo
     return False
 
 
+def _check_listed(
+    template_name: str,
+    parameter: TemplateParameter,
+    listed: Iterable[str],
+    found: Iterable[str],
+    what: str,
+    where: str = "in the study",
+) -> None:
+    if missing := sorted(set(listed) - set(found)):
+        raise ValueError(
+            f"Template '{template_name}', parameter '{parameter.name}': "
+            f"{what} {missing} not found {where}"
+        )
+
+
 def study_objects(
-    conversion_template: ConversionTemplate,
+    template_name: str,
+    parameter: TemplateParameter,
     study: Study,
     areas: Mapping[str, Area],
     logger: logging.Logger,
-) -> Iterator[StudyObject]:
-    """Yield, in study order, the links, areas or clusters that
-    `conversion_template` is instantiated for, except those it excludes and the
-    disabled clusters."""
-    kind = conversion_template.for_each
-    exclusions = conversion_template.excluded_objects
+) -> list[StudyObject]:
+    """Return, in study order, the links, areas or clusters that `parameter`,
+    a parameter of the template named `template_name` with no ad-hoc flag,
+    yields: those listed in its values and cluster-values, if any, except those
+    it excludes and the disabled clusters.
+
+    A listed link or area that is not in the study, or a listed cluster that is
+    in none of the listed areas, raises a ValueError.
+    """
+    kind = parameter.kind
+    assert kind is not None
+    exclusions = parameter.excluded_objects
+    objects = []
     if kind == ObjectKind.LINK:
-        for link in study.get_links().values():
+        links = study.get_links()
+        if parameter.values is not None:
+            _check_listed(template_name, parameter, parameter.values, links, "links")
+        for link in links.values():
             link_object = StudyObject(
                 kind,
                 link=link.id,
                 area_from=link.area_from_id,
                 area_to=link.area_to_id,
             )
+            if parameter.values is not None and link.id not in parameter.values:
+                continue
             if not is_excluded(link_object, exclusions):
-                yield link_object
-        return
+                objects.append(link_object)
+        return objects
 
+    if parameter.values is not None:
+        _check_listed(template_name, parameter, parameter.values, areas, "areas")
+    # The cluster-values entries found in at least one area
+    found_clusters: set[str] = set()
     for area in areas.values():
-        area_object = StudyObject(ObjectKind.AREA, area=area.id)
-        # Its clusters are excluded too (see is_excluded): skip without listing them
-        if is_excluded(area_object, exclusions):
+        if parameter.values is not None and area.id not in parameter.values:
             continue
+        area_object = StudyObject(ObjectKind.AREA, area=area.id)
+        # Its clusters are excluded too (see is_excluded): skip them, unless
+        # they must be listed to check the cluster-values
+        excluded = is_excluded(area_object, exclusions)
         if kind == ObjectKind.AREA:
-            yield area_object
+            if not excluded:
+                objects.append(area_object)
+            continue
+        if excluded and parameter.cluster_values is None:
             continue
 
         clusters = getattr(area, TEMPLATE_CLUSTER_TYPE_TO_GET_METHOD[kind])()
+        if parameter.cluster_values is not None:
+            # In the entries, ${area} stands for the area of the cluster
+            listed: dict[str, list[str]] = {}
+            for entry in parameter.cluster_values:
+                listed.setdefault(entry.replace("${area}", area.id), []).append(entry)
+            found_clusters.update(e for c in clusters for e in listed.get(c, []))
+            clusters = {c: clusters[c] for c in clusters if c in listed}
+        if excluded:
+            continue
         for cluster_id, cluster in clusters.items():
             cluster_object = StudyObject(kind, area=area.id, cluster=cluster_id)
             if is_excluded(cluster_object, exclusions):
@@ -151,4 +199,47 @@ def study_objects(
                     f"'{area.id}' is disabled; skipping conversion."
                 )
                 continue
-            yield cluster_object
+            objects.append(cluster_object)
+    if parameter.cluster_values is not None:
+        _check_listed(
+            template_name,
+            parameter,
+            parameter.cluster_values,
+            found_clusters,
+            f"{kind} clusters",
+            f"in the areas {parameter.values or sorted(areas)}",
+        )
+    return objects
+
+
+def template_arguments(
+    conversion_template: ConversionTemplate,
+    study: Study,
+    areas: Mapping[str, Area],
+    logger: logging.Logger,
+) -> list[dict[str, str]]:
+    """Return the arguments `conversion_template` is instantiated for, as the
+    placeholder substitutions of each instance: every combination of the
+    values of its parameters, nested in declaration order (outer first), each
+    parameter's lists resolved with the values of the outer parameters."""
+
+    def walk(
+        parameters: Sequence[TemplateParameter], substitutions: dict[str, str]
+    ) -> Iterator[dict[str, str]]:
+        if not parameters:
+            yield substitutions
+            return
+        parameter = parameters[0].resolve(substitutions)
+        if parameter.ad_hoc:
+            assert parameter.values
+            for value in parameter.values:
+                yield from walk(
+                    parameters[1:], {**substitutions, f"${{{parameter.name}}}": value}
+                )
+            return
+        for obj in study_objects(
+            conversion_template.name, parameter, study, areas, logger
+        ):
+            yield from walk(parameters[1:], {**substitutions, **obj.substitutions()})
+
+    return list(walk(conversion_template.template_parameters, {}))

@@ -37,6 +37,9 @@ CLUSTER_KINDS = (ObjectKind.THERMAL, ObjectKind.RENEWABLE, ObjectKind.ST_STORAGE
 LINK_ATTRIBUTES = ("area_from_id", "area_to_id")
 LINK_ATTRIBUTE_PATTERN = re.compile(r"\$\{link\}\.(\w*)")
 PLACEHOLDER_PATTERN = re.compile(r"\$\{[^}]*\}")
+# ASCII only: the placeholders are matched in JSON text, where json.dumps
+# escapes any other character (${région} would never be substituted)
+AD_HOC_NAME_PATTERN = re.compile(r"\w+", re.ASCII)
 # Fields an exclusion must set, by type (area and cluster for a cluster type)
 EXCLUSION_FIELDS: dict[str, tuple[str, ...]] = {
     ObjectKind.AREA: ("area",),
@@ -46,6 +49,21 @@ EXCLUSION_FIELDS: dict[str, tuple[str, ...]] = {
 
 def _to_kebab(snake: str) -> str:
     return snake.replace("_", "-")
+
+
+def _substitute(text: str, substitutions: Mapping[str, str]) -> str:
+    """Replace in `text`, the JSON text of a model, each placeholder of
+    `substitutions` by its value, escaped as JSON, in one pass: the longest
+    placeholder matches first ("${link}.area_from_id." before "${link}"), and
+    no substituted value is substituted again."""
+    if not substitutions:
+        return text
+    pattern = re.compile(
+        "|".join(map(re.escape, sorted(substitutions, key=len, reverse=True)))
+    )
+    return pattern.sub(
+        lambda match: json.dumps(substitutions[match.group()])[1:-1], text
+    )
 
 
 class ModifiedBaseModel(BaseModel):
@@ -167,10 +185,47 @@ class PortConnectionConversionConfig(ModifiedBaseModel):
 
 
 class TemplateParameter(ModifiedBaseModel):
+    """A parameter of a template, which yields the values the template is
+    instantiated for: the study objects (areas, links or clusters), restricted
+    to `values` / `cluster-values` when given, or, for an ad-hoc parameter,
+    its `values`."""
+
     name: str
     description: Optional[str] = None
+    ad_hoc: bool = False
+    values: Optional[list[str]] = None
     cluster_type: Optional[str] = None
+    cluster_values: Optional[list[str]] = None
     exclude: Optional[list[ReferencedLegacyObjects]] = None
+
+    @property
+    def kind(self) -> Optional[ObjectKind]:
+        """The type of the study objects this parameter yields, None for an
+        ad-hoc parameter."""
+        if self.ad_hoc:
+            return None
+        return ObjectKind(self.cluster_type or self.name)
+
+    @property
+    def placeholders(self) -> tuple[str, ...]:
+        """The placeholders this parameter gives a value to."""
+        if self.cluster_type is not None:
+            return (f"${{{self.name}}}", f"${{{self.cluster_type}}}")
+        return (f"${{{self.name}}}",)
+
+    @property
+    def excluded_objects(self) -> list[ObjectProperties]:
+        """The objects this parameter does not yield (see
+        `templates.is_excluded`)."""
+        return [excluded.object_properties for excluded in self.exclude or []]
+
+    def resolve(self, substitutions: Mapping[str, str]) -> "TemplateParameter":
+        """Return the parameter with the placeholders of `substitutions`, those
+        of the outer parameters, replaced in its lists and exclusions."""
+        if not substitutions:
+            return self
+        text = _substitute(json.dumps(self.model_dump()), substitutions)
+        return TemplateParameter.model_validate_json(text)
 
 
 class TemplateBody(ModifiedBaseModel):
@@ -202,40 +257,51 @@ class TemplateInstance(TemplateBody):
 
 class ConversionTemplate(TemplateBody):
     """A conversion template as read from YAML: the body, with placeholders
-    such as ${area}, and the template parameter, which says what the template
-    is instantiated for (`for_each`) and which objects it skips
-    (`excluded_objects`). Instantiated once per study object."""
+    such as ${area}, and the template parameters, whose values the template is
+    instantiated for, nested in declaration order (outer first). At most one
+    parameter yields study objects (`for_each`), and it skips the objects it
+    excludes (`excluded_objects`); the others are ad-hoc."""
 
     generator_version_compatibility: Optional[str] = None
     template_parameters: list[TemplateParameter] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _check_template(self) -> "ConversionTemplate":
-        # A template is instantiated for each link, area or cluster of a given
-        # type, which its single parameter defines (see `for_each`)
-        if len(self.template_parameters) != 1:
+        if not self.template_parameters:
             raise ValueError(
-                f"Template '{self.name}' must have exactly one template "
-                f"parameter, got {len(self.template_parameters)}"
+                f"Template '{self.name}' must have at least one template parameter"
             )
-        parameter = self.template_parameters[0]
-        if parameter.name not in (ObjectKind.AREA, ObjectKind.LINK):
+        names = [parameter.name for parameter in self.template_parameters]
+        if len(set(names)) != len(names):
             raise ValueError(
-                f"Template '{self.name}': the template parameter must be named "
-                f"'area' or 'link', got '{parameter.name}'"
+                f"Template '{self.name}': template parameter names must be "
+                f"unique, got {names}"
             )
-        if parameter.cluster_type is not None and (
-            parameter.name != ObjectKind.AREA
-            or parameter.cluster_type not in CLUSTER_KINDS
-        ):
+        # An instance has at most one study object, hence one legacy SB entry
+        legacy_names = [p.name for p in self.template_parameters if not p.ad_hoc]
+        if len(legacy_names) > 1:
             raise ValueError(
-                f"Template '{self.name}': cluster-type must be one of "
-                f"{', '.join(CLUSTER_KINDS)} on an 'area' parameter, "
-                f"got '{parameter.cluster_type}'"
+                f"Template '{self.name}': at most one template parameter can "
+                f"yield study objects, got {legacy_names}; mark the others ad-hoc"
             )
+        # Ad-hoc components do not replace a legacy object
+        if self.ad_hoc_parameters and self.legacy_objects_to_delete:
+            raise ValueError(
+                f"Template '{self.name}': legacy-objects-to-delete is not allowed "
+                f"with an ad-hoc template parameter"
+            )
+        outer_placeholders: set[str] = set()
+        # Those of the parameters declared before the one that yields study objects
+        exclusion_placeholders: set[str] = set()
+        for parameter in self.template_parameters:
+            self._check_parameter(parameter, outer_placeholders)
+            if not parameter.ad_hoc:
+                exclusion_placeholders = set(outer_placeholders)
+            outer_placeholders.update(parameter.placeholders)
         # A typo such as ${link}.area_frm_id would be substituted as ${link}
-        # and leave no placeholder for `instantiate` to report
-        for match in LINK_ATTRIBUTE_PATTERN.finditer(self._body_json()):
+        # and leave no placeholder for `instantiate` to report (in the body
+        # and in the lists of the parameters)
+        for match in LINK_ATTRIBUTE_PATTERN.finditer(json.dumps(self.model_dump())):
             if match.group(1) not in LINK_ATTRIBUTES:
                 raise ValueError(
                     f"Template '{self.name}': unknown link attribute "
@@ -253,7 +319,9 @@ class ConversionTemplate(TemplateBody):
                     f"only {', '.join(fields)}"
                 )
             # Only an area exclusion or one of the kind the template is
-            # instantiated for can match (see `templates.is_excluded`)
+            # instantiated for can match (see `templates.is_excluded`); an
+            # ad-hoc parameter has no exclusions, so for_each is not None
+            assert self.for_each is not None
             allowed = dict.fromkeys((ObjectKind.AREA, self.for_each))
             if excluded.type not in allowed:
                 raise ValueError(
@@ -261,44 +329,162 @@ class ConversionTemplate(TemplateBody):
                     f"matches, the template is instantiated for each "
                     f"{self.for_each}: only {' and '.join(allowed)} exclusions apply"
                 )
-            # ${area} is the only placeholder, substituted in a cluster
-            # exclusion only: {type: area, area: ${area}} matches no area
-            values = " ".join(
-                v for v in (excluded.area, excluded.link, excluded.cluster) if v
+            # The placeholders substituted in an exclusion are those of the
+            # outer parameters and, in a cluster exclusion only, ${area}:
+            # {type: area, area: ${area}} matches no area
+            substituted = exclusion_placeholders | (
+                {"${area}"} if excluded.type in CLUSTER_KINDS else set()
             )
-            if excluded.type in CLUSTER_KINDS:
-                values = values.replace("${area}", "")
-            if leftover := PLACEHOLDER_PATTERN.search(values):
+            for value in (excluded.area, excluded.link, excluded.cluster):
+                for match in PLACEHOLDER_PATTERN.finditer(value or ""):
+                    if match.group() not in substituted:
+                        raise ValueError(
+                            f"Template '{self.name}': exclusion {excluded!r} "
+                            f"never matches, '{match.group()}' is not substituted "
+                            f"in an exclusion of type {excluded.type}"
+                        )
+        # A typo such as ${stie} would only fail at `instantiate`, during the
+        # conversion, after the templates before this one are converted
+        body = self._body_json()
+        for match in PLACEHOLDER_PATTERN.finditer(body):
+            if match.group() not in outer_placeholders:
                 raise ValueError(
-                    f"Template '{self.name}': exclusion {excluded!r} never "
-                    f"matches, '{leftover.group()}' is not substituted in an "
-                    f"exclusion of type {excluded.type}"
+                    f"Template '{self.name}': unknown placeholder "
+                    f"'{match.group()}', expected one of the template parameters' "
+                    f"{sorted(outer_placeholders)}"
+                )
+        # An ad-hoc value used nowhere would give the same components once per
+        # value, hence duplicate component ids
+        for i, parameter in enumerate(self.template_parameters):
+            # Only the lists of the parameters after it select study objects
+            inner = json.dumps(
+                [
+                    p.model_dump(
+                        include={
+                            "values": True,
+                            "cluster_values": True,
+                            "exclude": {"__all__": {"object_properties"}},
+                        }
+                    )
+                    for p in self.template_parameters[i + 1 :]
+                ]
+            )
+            if parameter.ad_hoc and not any(
+                placeholder in text
+                for placeholder in parameter.placeholders
+                for text in (body, inner)
+            ):
+                raise ValueError(
+                    f"Template '{self.name}', parameter '{parameter.name}': "
+                    f"'${{{parameter.name}}}' is used neither in the template nor "
+                    f"in the lists of the parameters after it, so each value would "
+                    f"give the same components"
                 )
         return self
+
+    def _check_parameter(
+        self, parameter: TemplateParameter, outer_placeholders: set[str]
+    ) -> None:
+        """Check one template parameter; `outer_placeholders` are those of the
+        parameters declared before it."""
+        prefix = f"Template '{self.name}', parameter '{parameter.name}'"
+        if parameter.ad_hoc:
+            if not parameter.values:
+                raise ValueError(f"{prefix}: an ad-hoc parameter requires values")
+            if any(
+                key is not None
+                for key in (
+                    parameter.cluster_type,
+                    parameter.cluster_values,
+                    parameter.exclude,
+                )
+            ):
+                raise ValueError(
+                    f"{prefix}: cluster-type, cluster-values and exclude are not "
+                    f"allowed on an ad-hoc parameter"
+                )
+            # Its placeholder must not be mistaken for that of a study object
+            if not AD_HOC_NAME_PATTERN.fullmatch(parameter.name) or (
+                parameter.name in list(ObjectKind)
+            ):
+                raise ValueError(
+                    f"{prefix}: the name of an ad-hoc parameter must be made of "
+                    f"ASCII letters, digits and underscores, and not be one of "
+                    f"{', '.join(ObjectKind)}"
+                )
+        elif parameter.name not in (ObjectKind.AREA, ObjectKind.LINK):
+            raise ValueError(
+                f"{prefix}: a template parameter must be named 'area' or 'link', "
+                f"unless it is ad-hoc"
+            )
+        if parameter.cluster_type is not None and (
+            parameter.name != ObjectKind.AREA
+            or parameter.cluster_type not in CLUSTER_KINDS
+        ):
+            raise ValueError(
+                f"Template '{self.name}': cluster-type must be one of "
+                f"{', '.join(CLUSTER_KINDS)} on an 'area' parameter, "
+                f"got '{parameter.cluster_type}'"
+            )
+        if parameter.cluster_values is not None and parameter.cluster_type is None:
+            raise ValueError(f"{prefix}: cluster-values requires a cluster-type")
+        for key, entries in (
+            ("values", parameter.values),
+            ("cluster-values", parameter.cluster_values),
+        ):
+            if entries is not None and (
+                not entries or len(set(entries)) != len(entries)
+            ):
+                raise ValueError(
+                    f"{prefix}: {key} must be a non-empty list without duplicates, "
+                    f"got {entries}"
+                )
+        # The entries of the lists may use the placeholders of the outer
+        # parameters, those of cluster-values the area of the cluster (the
+        # exclusions are checked with the template's)
+        lists = {
+            "values": (parameter.values or [], outer_placeholders),
+            "cluster-values": (
+                parameter.cluster_values or [],
+                outer_placeholders | {"${area}"},
+            ),
+        }
+        for key, (entries, allowed) in lists.items():
+            for entry in entries:
+                for match in PLACEHOLDER_PATTERN.finditer(entry):
+                    if match.group() not in allowed:
+                        raise ValueError(
+                            f"{prefix}: unknown placeholder '{match.group()}' in "
+                            f"{key}, expected one of the outer parameters' "
+                            f"{sorted(allowed)}"
+                        )
 
     def _body_json(self) -> str:
         # json.dumps, unlike model_dump_json, keeps inf and nan constants
         return json.dumps(self.model_dump(include=set(TemplateBody.model_fields)))
 
     @property
-    def for_each(self) -> ObjectKind:
-        """The type of the study objects this template is instantiated for."""
-        parameter = self.template_parameters[0]
-        return ObjectKind(parameter.cluster_type or parameter.name)
+    def legacy_parameter(self) -> Optional[TemplateParameter]:
+        """The parameter that yields study objects, if any."""
+        return next((p for p in self.template_parameters if not p.ad_hoc), None)
+
+    @property
+    def ad_hoc_parameters(self) -> list[TemplateParameter]:
+        return [p for p in self.template_parameters if p.ad_hoc]
+
+    @property
+    def for_each(self) -> Optional[ObjectKind]:
+        """The type of the study objects this template is instantiated for,
+        None when all its parameters are ad-hoc."""
+        parameter = self.legacy_parameter
+        return parameter.kind if parameter else None
 
     def instantiate(self, substitutions: Mapping[str, str]) -> TemplateInstance:
-        """Return the template for one study object: each placeholder of
-        `substitutions` replaced by its value in every string."""
-        # Replaced in the JSON text of the template, the values escaped as JSON,
-        # in one pass: the longest placeholder matches first ("${link}.area_from_id."
-        # before "${link}"), and no substituted value is substituted again
-        pattern = re.compile(
-            "|".join(map(re.escape, sorted(substitutions, key=len, reverse=True)))
-        )
-        text = pattern.sub(
-            lambda match: json.dumps(substitutions[match.group()])[1:-1],
-            self._body_json(),
-        )
+        """Return the template for one combination of the values of its
+        parameters: each placeholder of `substitutions` replaced by its value
+        in every string."""
+        # Replaced in the JSON text of the template (see `_substitute`)
+        text = _substitute(self._body_json(), substitutions)
         if leftover := PLACEHOLDER_PATTERN.search(text):
             raise ValueError(
                 f"Template '{self.name}': unresolved placeholder '{leftover.group()}'"
@@ -309,8 +495,8 @@ class ConversionTemplate(TemplateBody):
     def excluded_objects(self) -> list[ObjectProperties]:
         """The objects this template is not instantiated for (see
         `templates.is_excluded`)."""
-        exclude = self.template_parameters[0].exclude or []
-        return [excluded.object_properties for excluded in exclude]
+        parameter = self.legacy_parameter
+        return parameter.excluded_objects if parameter else []
 
 
 def parse_conversion_template(input_template: TextIO) -> ConversionTemplate:
