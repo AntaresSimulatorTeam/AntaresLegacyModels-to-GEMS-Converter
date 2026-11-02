@@ -12,13 +12,15 @@
 """The models of extended_models.yml behave as the models they come from.
 
 Each model was written from a model of a former external library, kept as test data
-(REFERENCE_LIBRARY, whose id is also antares_legacy_models). For each model, the same
-study is built twice and solved with antares-modeler:
+(REFERENCE_LIBRARY, whose id is antares_legacy_models), with the same ids of models,
+parameters, variables and ports. For each model, the same study is built twice and
+solved with antares-modeler:
 - the reference study only uses REFERENCE_LIBRARY;
-- the extended study uses antares_legacy_models.yml (area, load) and
-  extended_models.yml, with the renamed parameters.
-Both must have the same optimal objective. Each test also checks that the modelled
-feature is active in its study, i.e. that removing it changes the objective.
+- the extended study uses antares_legacy_models.yml (area, load) and extended_models.yml.
+The components of the tested models are the same in both studies, but for the
+library id of their model. Both studies must have the same optimal objective. Each
+test also checks that the modelled feature is active in its study, i.e. that removing
+it changes the objective.
 """
 import re
 from pathlib import Path
@@ -51,56 +53,10 @@ HOURS = np.arange(NUM_TIME_STEPS)
 DAILY_SHAPE = np.sin(2 * np.pi * (HOURS - 6) / 24)
 SOLAR_SHAPE = np.maximum(0, DAILY_SHAPE)
 LOAD = 900 + 400 * DAILY_SHAPE + 100 * np.sin(2 * np.pi * HOURS / NUM_TIME_STEPS)
-
-# New parameter id -> parameter id in REFERENCE_LIBRARY
-THERMAL_RENAMES = {
-    "cluster_min_gen_modulation": "minimum_generation_modulation",
-    "cluster_max_generation": "p_max_cluster",
-    "min_power_per_unit": "p_min_unit",
-    "max_power_per_unit": "p_max_unit",
-    "generation_cost": "generation_cost",
-    "startup_cost": "startup_cost",
-    "fixed_cost": "fixed_cost",
-    "min_up_duration": "d_min_up",
-    "min_down_duration": "d_min_down",
-    "num_units": "unit_count",
-    "spinning": "spinning",
-}
-STS_RENAMES = {
-    "reservoir_capacity": "reservoir_capacity",
-    "nominal_injection_capacity": "injection_nominal_capacity",
-    "nominal_withdrawal_capacity": "withdrawal_nominal_capacity",
-    "injection_efficiency": "efficiency_injection",
-    "withdrawal_efficiency": "efficiency_withdrawal",
-    "lower_rule_curve": "lower_rule_curve",
-    "upper_rule_curve": "upper_rule_curve",
-    "max_injection_modulation": "p_max_injection_modulation",
-    "max_withdrawal_modulation": "p_max_withdrawal_modulation",
-    "inflows": "inflows",
-    "initial_level": "initial_level",
-    "injection_cost": "cost_injection",
-    "withdrawal_cost": "cost_withdrawal",
-    "level_cost": "cost_level",
-    "hurdle_cost": "p_t_cost",
-    "max_daily_cycles": "nb_cycles_max",
-    "is_cycle_limited": "cycle_constraint",
-}
-CURTAILMENT_RENAMES = {
-    "generation_cost": "generation_cost",
-    "load_factor": "enr_total",
-    "installed_capacity": "enr_capacity",
-    "non_curtailable_share": "taux_non_ecretable",
-}
-MULTI_BAND_CURTAILMENT_RENAMES = {
-    "load_factor": "enr_fc_total",
-    "installed_capacity": "enr_capacity",
-    **{f"generation_cost_{i}": f"generation_cost_{i}" for i in range(1, 6)},
-    **{f"curtailable_share_{i}": f"taux_ecretable_{i}" for i in range(1, 6)},
-}
-
-
-def renamed(parameters: dict[str, Value], renames: dict[str, str]) -> dict[str, Value]:
-    return {renames[key]: value for key, value in parameters.items()}
+# Unused by thermal_fast, but parameters of the model
+UNUSED_THERMAL_FAST_PARAMETERS: dict[str, Value] = dict(
+    startup_cost=0, fixed_cost=0, d_min_up=1, d_min_down=1
+)
 
 
 class Flavour:
@@ -118,7 +74,7 @@ class Flavour:
         spillage_cost: float = 100,
         unsupplied_energy_cost: float = 3000,
     ) -> GemsStudy:
-        """A study with one area and its load."""
+        """A study with one area and its load, which are not the tested models."""
         area_parameters: dict[str, Value] = {"spillage_cost": spillage_cost}
         if self.is_reference:
             area_parameters["ens_cost"] = unsupplied_energy_cost
@@ -137,64 +93,10 @@ class Flavour:
         )
         return study
 
-    def model(self, reference_model: str, model: str) -> str:
-        return (
-            f"{LEGACY}.{reference_model}"
-            if self.is_reference
-            else f"{EXTENDED}.{model}"
-        )
-
-    def thermal(self, component_id: str, variant: str, **parameters: Value) -> dict:
-        """variant: milp or fast; parameters with their new ids."""
-        if self.is_reference:
-            parameters = renamed(parameters, THERMAL_RENAMES)
-            if variant == "fast":  # Unused parameters, removed from thermal_fast
-                parameters.update(
-                    startup_cost=0, fixed_cost=0, d_min_up=1, d_min_down=1
-                )
-        model = self.model(f"thermal_{variant}", f"thermal_{variant}")
-        return component(component_id, model, **parameters)
-
-    def short_term_storage(
-        self,
-        component_id: str,
-        is_mccormick_enabled: int,
-        is_grand_maison_mccormick_enabled: int,
-        withdrawal_power_at_max_injection: float,
-        **parameters: Value,
-    ) -> dict:
-        """The McCormick cuts take the arguments of the reference model."""
-        if self.is_reference:
-            parameters = renamed(parameters, STS_RENAMES)
-            parameters.update(
-                mccormick=is_mccormick_enabled,
-                mccormick_grand_maison=is_grand_maison_mccormick_enabled,
-                p_withdrawal_when_injection_max=withdrawal_power_at_max_injection,
-            )
-        else:
-            # Both reference cuts in one: the usual cut (0) is the tighter one.
-            parameters["is_mccormick_enabled"] = max(
-                is_mccormick_enabled, is_grand_maison_mccormick_enabled
-            )
-            parameters["withdrawal_power_at_max_injection"] = (
-                0 if is_mccormick_enabled else withdrawal_power_at_max_injection
-            )
-        model = self.model("short-term-storage", "short_term_storage_extended")
-        return component(component_id, model, **parameters)
-
-    def curtailable_renewable(self, component_id: str, **parameters: Value) -> dict:
-        if self.is_reference:
-            parameters = renamed(parameters, CURTAILMENT_RENAMES)
-        model = self.model("enr", "curtailable_renewable")
-        return component(component_id, model, **parameters)
-
-    def multi_band_curtailable_renewable(
-        self, component_id: str, **parameters: Value
-    ) -> dict:
-        if self.is_reference:
-            parameters = renamed(parameters, MULTI_BAND_CURTAILMENT_RENAMES)
-        model = self.model("enr_multi_bandes", "multi_band_curtailable_renewable")
-        return component(component_id, model, **parameters)
+    def component(self, component_id: str, model: str, **parameters: Value) -> dict:
+        """A component of a tested model, the same with both libraries."""
+        library = LEGACY if self.is_reference else EXTENDED
+        return component(component_id, f"{library}.{model}", **parameters)
 
 
 REFERENCE = Flavour(is_reference=True)
@@ -218,46 +120,61 @@ def solve_both(
     return reference, extended
 
 
+def gas(flavour: Flavour, capacity: float = 1000, cost: float = 80) -> dict:
+    return flavour.component(
+        "gas",
+        "thermal_fast",
+        minimum_generation_modulation=0,
+        p_max_cluster=capacity,
+        p_min_unit=0,
+        p_max_unit=100,
+        generation_cost=cost,
+        unit_count=capacity / 100,
+        spinning=0,
+        **UNUSED_THERMAL_FAST_PARAMETERS,
+    )
+
+
 # ---------------------------------------------------------------- thermal
 
 
-def thermal_milp_study(flavour: Flavour, base_min_down_duration: int = 8) -> GemsStudy:
+def thermal_milp_study(flavour: Flavour, base_d_min_down: int = 8) -> GemsStudy:
     study = flavour.study()
     base_availability = np.where((HOURS >= 60) & (HOURS < 90), 600.0, 800.0)
     study.data_series["base_availability"] = base_availability
     connect_to_area(
         study,
-        flavour.thermal(
+        flavour.component(
             "base",
-            "milp",
-            cluster_min_gen_modulation=0.2,
-            cluster_max_generation="base_availability",
-            min_power_per_unit=60,
-            max_power_per_unit=100,
+            "thermal_milp",
+            minimum_generation_modulation=0.2,
+            p_max_cluster="base_availability",
+            p_min_unit=60,
+            p_max_unit=100,
             generation_cost=20,
             startup_cost=100,
             fixed_cost=200,
-            min_up_duration=6,
-            min_down_duration=base_min_down_duration,
-            num_units=8,
+            d_min_up=6,
+            d_min_down=base_d_min_down,
+            unit_count=8,
             spinning=0,
         ),
     )
     connect_to_area(
         study,
-        flavour.thermal(
+        flavour.component(
             "peak",
-            "milp",
-            cluster_min_gen_modulation=0,
-            cluster_max_generation=600,
-            min_power_per_unit=40,
-            max_power_per_unit=100,
+            "thermal_milp",
+            minimum_generation_modulation=0,
+            p_max_cluster=600,
+            p_min_unit=40,
+            p_max_unit=100,
             generation_cost=60,
             startup_cost=50,
             fixed_cost=100,
-            min_up_duration=3,
-            min_down_duration=2,
-            num_units=6,
+            d_min_up=3,
+            d_min_down=2,
+            unit_count=6,
             spinning=5,
         ),
     )
@@ -267,7 +184,7 @@ def thermal_milp_study(flavour: Flavour, base_min_down_duration: int = 8) -> Gem
 def test_thermal_milp(tmp_path: Path, antares_exec_folder: Path) -> None:
     reference, extended = solve_both(thermal_milp_study, tmp_path, antares_exec_folder)
     shorter_min_down = solve(
-        thermal_milp_study(EXTENDED_FLAVOUR, base_min_down_duration=7),
+        thermal_milp_study(EXTENDED_FLAVOUR, base_d_min_down=7),
         tmp_path,
         "shorter_min_down",
         antares_exec_folder,
@@ -276,7 +193,7 @@ def test_thermal_milp(tmp_path: Path, antares_exec_folder: Path) -> None:
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
     assert shorter_min_down.objective < extended.objective * (1 - 100 * REL_TOL)
     # The units are integer, and the units of the peak cluster start and stop
-    units_on = extended.series("peak", "num_units_on")
+    units_on = extended.series("peak", "nb_units_on")
     assert units_on == pytest.approx(np.round(units_on), abs=1e-6)
     assert len(set(np.round(units_on))) > 2
 
@@ -286,30 +203,32 @@ def thermal_fast_study(flavour: Flavour, spinning: float = 10) -> GemsStudy:
     study.data_series["must_run_modulation"] = np.where(HOURS % 24 < 8, 0.5, 0.1)
     connect_to_area(
         study,
-        flavour.thermal(
+        flavour.component(
             "cheap",
-            "fast",
-            cluster_min_gen_modulation=0,
-            cluster_max_generation=700,
-            min_power_per_unit=0,
-            max_power_per_unit=100,
+            "thermal_fast",
+            minimum_generation_modulation=0,
+            p_max_cluster=700,
+            p_min_unit=0,
+            p_max_unit=100,
             generation_cost=20,
-            num_units=7,
+            unit_count=7,
             spinning=spinning,
+            **UNUSED_THERMAL_FAST_PARAMETERS,
         ),
     )
     connect_to_area(
         study,
-        flavour.thermal(
+        flavour.component(
             "must_run",
-            "fast",
-            cluster_min_gen_modulation="must_run_modulation",
-            cluster_max_generation=900,
-            min_power_per_unit=50,
-            max_power_per_unit=100,
+            "thermal_fast",
+            minimum_generation_modulation="must_run_modulation",
+            p_max_cluster=900,
+            p_min_unit=50,
+            p_max_unit=100,
             generation_cost=60,
-            num_units=9,
+            unit_count=9,
             spinning=0,
+            **UNUSED_THERMAL_FAST_PARAMETERS,
         ),
     )
     return study
@@ -325,7 +244,7 @@ def test_thermal_fast(tmp_path: Path, antares_exec_folder: Path) -> None:
     )
 
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert extended.series("cheap", "generation_power") == pytest.approx(
+    assert extended.series("cheap", "generation") == pytest.approx(
         reference.series("cheap", "generation"), abs=1e-6
     )
     assert without_spinning.objective < extended.objective * (1 - 100 * REL_TOL)
@@ -339,63 +258,51 @@ STORAGE_LOAD = 400 + 100 * DAILY_SHAPE - SOLAR
 
 def storage_study(
     flavour: Flavour,
-    is_mccormick_enabled: int,
-    is_grand_maison_mccormick_enabled: int,
-    is_cycle_limited: int,
+    mccormick: int,
+    mccormick_grand_maison: int,
+    cycle_constraint: int,
     shift: int = 0,
 ) -> GemsStudy:
     """shift: in hours, of the load. The storage injects around noon and withdraws
     around midnight, the boundaries of the days of the daily cycle limits, when
     shift is 0, and conversely when shift is 12."""
     study = flavour.study(load=np.roll(STORAGE_LOAD, shift), spillage_cost=50)
-    connect_to_area(
-        study,
-        flavour.thermal(
-            "gas",
-            "fast",
-            cluster_min_gen_modulation=0,
-            cluster_max_generation=1000,
-            min_power_per_unit=0,
-            max_power_per_unit=100,
-            generation_cost=80,
-            num_units=10,
-            spinning=0,
-        ),
-    )
+    connect_to_area(study, gas(flavour))
     study.data_series["injection_modulation"] = np.roll(
         np.where(HOURS % 24 < 18, 1.0, 0.8), shift
     )
     connect_to_area(
         study,
-        flavour.short_term_storage(
+        flavour.component(
             "storage",
-            is_mccormick_enabled=is_mccormick_enabled,
-            is_grand_maison_mccormick_enabled=is_grand_maison_mccormick_enabled,
-            withdrawal_power_at_max_injection=100,
+            "short-term-storage",
             reservoir_capacity=1000,
-            nominal_injection_capacity=300,
-            nominal_withdrawal_capacity=300,
-            injection_efficiency=0.8,
-            withdrawal_efficiency=1,
+            injection_nominal_capacity=300,
+            withdrawal_nominal_capacity=300,
+            efficiency_injection=0.8,
+            efficiency_withdrawal=1,
             lower_rule_curve=0.1,
             upper_rule_curve=0.9,
-            max_injection_modulation="injection_modulation",
-            max_withdrawal_modulation=1,
+            p_max_injection_modulation="injection_modulation",
+            p_max_withdrawal_modulation=1,
             inflows=0,
             initial_level=0.5,
-            injection_cost=0,
-            withdrawal_cost=0,
-            level_cost=0.01,
-            hurdle_cost=0.5,
-            max_daily_cycles=0.5,
-            is_cycle_limited=is_cycle_limited,
+            cost_injection=0,
+            cost_withdrawal=0,
+            cost_level=0.01,
+            p_t_cost=0.5,
+            nb_cycles_max=0.5,
+            mccormick=mccormick,
+            mccormick_grand_maison=mccormick_grand_maison,
+            p_withdrawal_when_injection_max=100,
+            cycle_constraint=cycle_constraint,
         ),
-        port="injection_port" if flavour.is_reference else "balance_port",
+        port="injection_port",
     )
     return study
 
 
-# (McCormick cut, Grand'Maison McCormick cut, daily cycle limits, shift)
+# (mccormick, mccormick_grand_maison, cycle_constraint, shift)
 STORAGE_CASES = {
     "no_cut": (0, 0, 0, 0),
     "mccormick": (1, 0, 0, 0),
@@ -408,19 +315,19 @@ STORAGE_CASES = {
 
 
 @pytest.mark.parametrize(
-    "is_mccormick_enabled, is_grand_maison_mccormick_enabled, is_cycle_limited, shift",
+    "mccormick, mccormick_grand_maison, cycle_constraint, shift",
     STORAGE_CASES.values(),
     ids=STORAGE_CASES.keys(),
 )
-def test_short_term_storage_extended(
+def test_short_term_storage(
     tmp_path: Path,
     antares_exec_folder: Path,
-    is_mccormick_enabled: int,
-    is_grand_maison_mccormick_enabled: int,
-    is_cycle_limited: int,
+    mccormick: int,
+    mccormick_grand_maison: int,
+    cycle_constraint: int,
     shift: int,
 ) -> None:
-    flags = (is_mccormick_enabled, is_grand_maison_mccormick_enabled, is_cycle_limited)
+    flags = (mccormick, mccormick_grand_maison, cycle_constraint)
     reference, extended = solve_both(
         lambda flavour: storage_study(flavour, *flags, shift=shift),
         tmp_path,
@@ -459,38 +366,28 @@ CURTAILMENT_LOAD = 400 + 100 * DAILY_SHAPE - SOLAR
 NON_CURTAILABLE_SHARE = 0.2 + 0.4 * (HOURS % 24 >= 12)
 
 
-def curtailment_study(flavour: Flavour, non_curtailable_share: Value) -> GemsStudy:
+def curtailment_study(flavour: Flavour, taux_non_ecretable: Value | None) -> GemsStudy:
+    """taux_non_ecretable: None for no enr component."""
     study = flavour.study(load=CURTAILMENT_LOAD, spillage_cost=200)
     study.data_series["solar_load_factor"] = SOLAR_SHAPE
     study.data_series["non_curtailable_share"] = NON_CURTAILABLE_SHARE
-    connect_to_area(
-        study,
-        flavour.thermal(
-            "gas",
-            "fast",
-            cluster_min_gen_modulation=0,
-            cluster_max_generation=1000,
-            min_power_per_unit=0,
-            max_power_per_unit=100,
-            generation_cost=80,
-            num_units=10,
-            spinning=0,
-        ),
-    )
-    connect_to_area(
-        study,
-        flavour.curtailable_renewable(
-            "curtailment",
-            generation_cost=-30,
-            load_factor="solar_load_factor",
-            installed_capacity=1100,
-            non_curtailable_share=non_curtailable_share,
-        ),
-    )
+    connect_to_area(study, gas(flavour))
+    if taux_non_ecretable is not None:
+        connect_to_area(
+            study,
+            flavour.component(
+                "curtailment",
+                "enr",
+                generation_cost=-30,
+                enr_total="solar_load_factor",
+                enr_capacity=1100,
+                taux_non_ecretable=taux_non_ecretable,
+            ),
+        )
     return study
 
 
-def test_curtailable_renewable(tmp_path: Path, antares_exec_folder: Path) -> None:
+def test_enr(tmp_path: Path, antares_exec_folder: Path) -> None:
     reference, extended = solve_both(
         lambda flavour: curtailment_study(flavour, "non_curtailable_share"),
         tmp_path,
@@ -501,7 +398,7 @@ def test_curtailable_renewable(tmp_path: Path, antares_exec_folder: Path) -> Non
     )
 
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert extended.series("curtailment", "curtailed_power") == pytest.approx(
+    assert extended.series("curtailment", "enr_ecrete") == pytest.approx(
         reference.series("curtailment", "enr_ecrete"), abs=1e-6
     )
     assert fully_curtailable.objective < extended.objective * (1 - 100 * REL_TOL)
@@ -509,22 +406,22 @@ def test_curtailable_renewable(tmp_path: Path, antares_exec_folder: Path) -> Non
 
 BAND_COSTS = [-5, -10, -20, -40, -250]
 BAND_SHARES = [0.1, 0.1, 0.15, 0.15, 0.3]
+BAND_3_SHARE = BAND_SHARES[2] * (1 + DAILY_SHAPE) / 2
 
 
 def multi_band_curtailment_study(flavour: Flavour) -> GemsStudy:
-    study = curtailment_study(flavour, 0)
-    study.components.pop()  # The single band curtailment
-    study.connections.pop()
-    study.data_series["band_share_3"] = BAND_SHARES[2] * (1 + DAILY_SHAPE) / 2
+    study = curtailment_study(flavour, None)
+    study.data_series["band_share_3"] = BAND_3_SHARE
     connect_to_area(
         study,
-        flavour.multi_band_curtailable_renewable(
+        flavour.component(
             "curtailment",
-            load_factor="solar_load_factor",
-            installed_capacity=1100,
+            "enr_multi_bandes",
+            enr_fc_total="solar_load_factor",
+            enr_capacity=1100,
             **{f"generation_cost_{i + 1}": cost for i, cost in enumerate(BAND_COSTS)},
             **{
-                f"curtailable_share_{i + 1}": "band_share_3" if i == 2 else share
+                f"taux_ecretable_{i + 1}": "band_share_3" if i == 2 else share
                 for i, share in enumerate(BAND_SHARES)
             },
         ),
@@ -532,38 +429,35 @@ def multi_band_curtailment_study(flavour: Flavour) -> GemsStudy:
     return study
 
 
-def test_multi_band_curtailable_renewable(
-    tmp_path: Path, antares_exec_folder: Path
-) -> None:
+def test_enr_multi_bandes(tmp_path: Path, antares_exec_folder: Path) -> None:
     reference, extended = solve_both(
         multi_band_curtailment_study, tmp_path, antares_exec_folder
     )
-    # The bands are independent: 5 single band curtailments are equivalent.
-    single_bands = curtailment_study(EXTENDED_FLAVOUR, 0)
-    single_bands.components.pop()
-    single_bands.connections.pop()
+    # The bands are independent: 5 enr components are equivalent.
+    single_bands = curtailment_study(EXTENDED_FLAVOUR, None)
     for i, (cost, share) in enumerate(zip(BAND_COSTS, BAND_SHARES)):
-        share_series = f"non_curtailable_share_{i + 1}"
-        share_values = BAND_SHARES[2] * (1 + DAILY_SHAPE) / 2 if i == 2 else share
-        single_bands.data_series[share_series] = 1 - share_values * np.ones(
-            NUM_TIME_STEPS
-        )
+        share_series = f"taux_non_ecretable_{i + 1}"
+        band_share = BAND_3_SHARE if i == 2 else share * np.ones(NUM_TIME_STEPS)
+        single_bands.data_series[share_series] = 1 - band_share
         connect_to_area(
             single_bands,
-            EXTENDED_FLAVOUR.curtailable_renewable(
+            EXTENDED_FLAVOUR.component(
                 f"band_{i + 1}",
+                "enr",
                 generation_cost=cost,
-                load_factor="solar_load_factor",
-                installed_capacity=1100,
-                non_curtailable_share=share_series,
+                enr_total="solar_load_factor",
+                enr_capacity=1100,
+                taux_non_ecretable=share_series,
             ),
         )
     single_bands_result = solve(
         single_bands, tmp_path, "single_bands", antares_exec_folder
     )
-    no_curtailment = curtailment_study(EXTENDED_FLAVOUR, 1)
-    no_curtailment_result = solve(
-        no_curtailment, tmp_path, "no_curtailment", antares_exec_folder
+    no_curtailment = solve(
+        curtailment_study(EXTENDED_FLAVOUR, None),
+        tmp_path,
+        "no_curtailment",
+        antares_exec_folder,
     )
 
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
@@ -572,9 +466,9 @@ def test_multi_band_curtailable_renewable(
     )
     # Bands 1 to 4 are cheaper than spillage, band 5 is not
     for band in range(1, 5):
-        assert extended.series("curtailment", f"curtailed_power_{band}").max() > 0
-    assert extended.series("curtailment", "curtailed_power_5").max() == pytest.approx(0)
-    assert extended.objective < no_curtailment_result.objective * (1 - 100 * REL_TOL)
+        assert extended.series("curtailment", f"enr_ecrete_{band}").max() > 0
+    assert extended.series("curtailment", "enr_ecrete_5").max() == pytest.approx(0)
+    assert extended.objective < no_curtailment.objective * (1 - 100 * REL_TOL)
 
 
 # ---------------------------------------------------------------- binding constraints
@@ -607,74 +501,48 @@ RIGHT_HAND_SIDES = {
     "weekly_less": 700 + 0 * HOURS,
     "weekly_greater": 1100 + 0 * HOURS,
 }
-# Reference model -> (model, direction, right hand side)
+# Model -> right hand side
 BINDING_CONSTRAINT_CASES = {
-    "bc_nuc_hourly_less": ("nuclear_hourly_binding_constraint", 1, "hourly_less"),
-    "bc_nuc_hourly_greater": (
-        "nuclear_hourly_binding_constraint",
-        -1,
-        "hourly_greater",
-    ),
-    "bc_nuc_daily_less": ("nuclear_daily_binding_constraint", 1, "daily_less"),
-    "bc_nuc_weekly_less": ("nuclear_weekly_binding_constraint", 1, "weekly_less"),
-    "bc_nuc_weekly_greater": (
-        "nuclear_weekly_binding_constraint",
-        -1,
-        "weekly_greater",
-    ),
+    "bc_nuc_hourly_less": "hourly_less",
+    "bc_nuc_hourly_greater": "hourly_greater",
+    "bc_nuc_daily_less": "daily_less",
+    "bc_nuc_weekly_less": "weekly_less",
+    "bc_nuc_weekly_greater": "weekly_greater",
 }
 
 
 def nuclear_study(
-    flavour: Flavour,
-    binding_constraint: tuple[str, str, int, str] | None,
+    flavour: Flavour, model: str | None = None, rhs: str | None = None
 ) -> GemsStudy:
-    """binding_constraint: (reference model, model, direction, right hand side)."""
+    """model: None for no binding constraint."""
     study = flavour.study(spillage_cost=10)
-    for port, (component_id, cost, capacity, _) in NUCLEAR_CLUSTERS.items():
+    for component_id, cost, capacity, _ in NUCLEAR_CLUSTERS.values():
         connect_to_area(
             study,
-            flavour.thermal(
+            flavour.component(
                 component_id,
-                "fast",
-                cluster_min_gen_modulation=0,
-                cluster_max_generation=capacity,
-                min_power_per_unit=0,
-                max_power_per_unit=100,
+                "thermal_fast",
+                minimum_generation_modulation=0,
+                p_max_cluster=capacity,
+                p_min_unit=0,
+                p_max_unit=100,
                 generation_cost=cost,
-                num_units=capacity / 100,
+                unit_count=capacity / 100,
                 spinning=0,
+                **UNUSED_THERMAL_FAST_PARAMETERS,
             ),
         )
-    connect_to_area(
-        study,
-        flavour.thermal(
-            "gas",
-            "fast",
-            cluster_min_gen_modulation=0,
-            cluster_max_generation=2000,
-            min_power_per_unit=0,
-            max_power_per_unit=100,
-            generation_cost=70,
-            num_units=20,
-            spinning=0,
-        ),
-    )
-    if binding_constraint is None:
+    connect_to_area(study, gas(flavour, capacity=2000, cost=70))
+    if model is None or rhs is None:
         return study
-    reference_model, model, direction, rhs = binding_constraint
     alphas = {
         port.replace("flow_", "alpha_"): alpha
         for port, (*_, alpha) in NUCLEAR_CLUSTERS.items()
     }
     parameters: dict[str, Value] = {alpha: alphas.get(alpha, 1) for alpha in ALPHAS}
     parameters["rhs"] = rhs
-    if not flavour.is_reference:
-        parameters["direction"] = direction
     study.data_series[rhs] = RIGHT_HAND_SIDES[rhs]
-    study.components.append(
-        component("constraint", flavour.model(reference_model, model), **parameters)
-    )
+    study.components.append(flavour.component("constraint", model, **parameters))
     for port, (component_id, *_) in NUCLEAR_CLUSTERS.items():
         study.connections.append(
             connection(component_id, "balance_port", "constraint", port)
@@ -683,29 +551,20 @@ def nuclear_study(
 
 
 @pytest.mark.parametrize(
-    "reference_model, model, direction, rhs",
-    [(key, *value) for key, value in BINDING_CONSTRAINT_CASES.items()],
+    "model, rhs",
+    BINDING_CONSTRAINT_CASES.items(),
     ids=BINDING_CONSTRAINT_CASES.keys(),
 )
-def test_nuclear_binding_constraint(
-    tmp_path: Path,
-    antares_exec_folder: Path,
-    reference_model: str,
-    model: str,
-    direction: int,
-    rhs: str,
+def test_bc_nuc(
+    tmp_path: Path, antares_exec_folder: Path, model: str, rhs: str
 ) -> None:
-    binding_constraint = (reference_model, model, direction, rhs)
     reference, extended = solve_both(
-        lambda flavour: nuclear_study(flavour, binding_constraint),
+        lambda flavour: nuclear_study(flavour, model, rhs),
         tmp_path,
         antares_exec_folder,
     )
     unconstrained = solve(
-        nuclear_study(EXTENDED_FLAVOUR, None),
-        tmp_path,
-        "unconstrained",
-        antares_exec_folder,
+        nuclear_study(EXTENDED_FLAVOUR), tmp_path, "unconstrained", antares_exec_folder
     )
 
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
@@ -717,24 +576,13 @@ def test_daily_binding_constraint_is_tighter_than_weekly(
 ) -> None:
     """The daily constraint is not the weekly one: the days are constrained one by one."""
     daily = solve(
-        nuclear_study(
-            EXTENDED_FLAVOUR,
-            ("bc_nuc_daily_less", "nuclear_daily_binding_constraint", 1, "daily_less"),
-        ),
+        nuclear_study(EXTENDED_FLAVOUR, "bc_nuc_daily_less", "daily_less"),
         tmp_path,
         "daily",
         antares_exec_folder,
     )
     weekly = solve(
-        nuclear_study(
-            EXTENDED_FLAVOUR,
-            (
-                "bc_nuc_weekly_less",
-                "nuclear_weekly_binding_constraint",
-                1,
-                "daily_less",
-            ),
-        ),
+        nuclear_study(EXTENDED_FLAVOUR, "bc_nuc_weekly_less", "daily_less"),
         tmp_path,
         "weekly",
         antares_exec_folder,
@@ -742,13 +590,34 @@ def test_daily_binding_constraint_is_tighter_than_weekly(
     assert weekly.objective < daily.objective * (1 - 100 * REL_TOL)
 
 
-# ---------------------------------------------------------------- daily windows
+# ---------------------------------------------------------------- same interface
 
 
 def _models(library: Path) -> dict[str, dict]:
     with open(library, encoding="utf-8") as f:
         content = yaml.safe_load(f)
     return {model["id"]: model for model in content["library"]["models"]}
+
+
+def _declarations(model: dict, key: str) -> list[tuple]:
+    return [
+        (item["id"], item.get("time-dependent"), item.get("scenario-dependent"))
+        for item in model.get(key, [])
+    ]
+
+
+@pytest.mark.parametrize("model_id", sorted(_models(EXTENDED_LIBRARY)))
+def test_same_ids_as_the_reference_library(model_id: str) -> None:
+    """A system written for the reference library can use extended_models.yml, but
+    for the library id: same models, parameters (and their dependencies), variables,
+    ports and extra outputs (this does not need the Antares binary)."""
+    model = _models(EXTENDED_LIBRARY)[model_id]
+    reference = _models(REFERENCE_LIBRARY)[model_id]
+    for key in ["parameters", "variables", "ports", "extra-outputs"]:
+        assert _declarations(model, key) == _declarations(reference, key), key
+
+
+# ---------------------------------------------------------------- daily windows
 
 
 def _expressions(model: dict, prefix: str) -> list[str]:
@@ -778,55 +647,25 @@ def _window(expression: str, term: str) -> list[int]:
 
 
 @pytest.mark.parametrize(
-    "reference_model, reference_prefix, reference_term, model, prefix, term",
+    "model, prefix, reference_term, term",
     [
-        (
-            "short-term-storage",
-            "daily_pump_max",
-            "p_injection",
-            "short_term_storage_extended",
-            "max_daily_injection",
-            "injection_power",
-        ),
-        (
-            "short-term-storage",
-            "daily_turb_max",
-            "p_withdrawal",
-            "short_term_storage_extended",
-            "max_daily_withdrawal",
-            "withdrawal_power",
-        ),
-        (
-            "bc_nuc_daily_less",
-            "bc_daily",
-            "rhs",
-            "nuclear_daily_binding_constraint",
-            "daily",
-            "rhs",
-        ),
+        ("short-term-storage", "daily_pump_max", "p_injection", "p_injection"),
+        ("short-term-storage", "daily_turb_max", "p_withdrawal", "p_withdrawal"),
+        ("bc_nuc_daily_less", "bc_daily", "rhs", "rhs"),
         (
             "bc_nuc_daily_less",
             "bc_daily",
             "(sum_connections(flow_fr_nuclear_epr.flow))",
-            "nuclear_daily_binding_constraint",
-            "daily",
             "sum_connections(flow_fr_nuclear_epr.flow)",
         ),
     ],
 )
 def test_daily_windows_are_the_reference_ones(
-    reference_model: str,
-    reference_prefix: str,
-    reference_term: str,
-    model: str,
-    prefix: str,
-    term: str,
+    model: str, prefix: str, reference_term: str, term: str
 ) -> None:
     """The time sums cover the time steps of the explicit sums of the reference
     library, day by day (this does not need the Antares binary)."""
-    reference = _expressions(
-        _models(REFERENCE_LIBRARY)[reference_model], reference_prefix
-    )
+    reference = _expressions(_models(REFERENCE_LIBRARY)[model], prefix)
     expressions = _expressions(_models(EXTENDED_LIBRARY)[model], prefix)
 
     assert len(expressions) == len(reference) == 7
