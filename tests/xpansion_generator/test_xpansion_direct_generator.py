@@ -16,6 +16,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import yaml
+from antares.craft import AdvancedParametersUpdate, StudySettingsUpdate
+from antares.craft.model.settings.advanced_parameters import UnitCommitmentMode
 from gems_craft_hybrid.study.parsing import parse_yaml_hybrid_system
 
 from antares_gems_converter.xpansion_generator.xpansion_direct_generator import (
@@ -187,6 +189,45 @@ def test_scenario_builder_follows_legacy_thermal_scenario_builder(
         header=None,
     )
     assert coef.iloc[0].tolist() == pytest.approx([0.9, 0.8])
+
+
+@pytest.mark.parametrize("mode", [UnitCommitmentMode.FAST, UnitCommitmentMode.ACCURATE])
+def test_accurate_unit_commitment_warns_on_nominal_capacity(
+    tmp_path: Path, mode: UnitCommitmentMode
+) -> None:
+    write_excel_inputs(tmp_path / "xlsx", ["fr", "de"])
+    study = create_base_study(tmp_path)
+    study.update_settings(
+        StudySettingsUpdate(
+            advanced_parameters=AdvancedParametersUpdate(unit_commitment_mode=mode)
+        )
+    )
+    output_dir = tmp_path / "generated"
+    generate(tmp_path / "xlsx", tmp_path / "base", output_dir)
+
+    # the candidates are created in both modes
+    system = yaml.safe_load((output_dir / "system.yml").read_text())["system"]
+    assert [c["id"] for c in system["components"]] == [
+        PEAK_FR,
+        SEMIBASE_FR,
+        SEMIBASE_DE,
+    ]
+    log = (output_dir / "log_composants_system_2031.txt").read_text()
+    warned = {
+        component: line
+        for component in [PEAK_FR, SEMIBASE_FR, SEMIBASE_DE]
+        for line in log.splitlines()
+        if f"+ {component} " in line and "⚠" in line
+    }
+    if mode == UnitCommitmentMode.FAST:
+        assert warned == {}
+        return
+    # fr OCGT: 50 MW installed (existing_capacity) + 10 units of 50 MW
+    assert "(50 MW)" in warned[PEAK_FR] and "(550 MW)" in warned[PEAK_FR]
+    # CCGT: 100 MW installed + 3 units of 100 MW
+    for component in [SEMIBASE_FR, SEMIBASE_DE]:
+        assert "(100 MW)" in warned[component] and "(400 MW)" in warned[component]
+    assert "unit commitment accurate" in warned[PEAK_FR]
 
 
 def test_skipped_candidates_are_logged(tmp_path: Path) -> None:

@@ -40,6 +40,22 @@ system.yml, optim-config.yml, model-libraries et data-series vont dans le
 dossier input/ de l'étude hybride, résolue avec Antares Xpansion
 (antares-xpansion-launcher --step gems ; user/expansion/settings.ini requis).
 
+Contraintes d'usage de la librairie (voir sa description et son changelog) :
+- les variables d'investissement ne dépendent pas du scénario : l'étude exige
+  resolution-mode benders-decomposition dans l'optim-config.yml, même lancée
+  avec antares-solver seul ;
+- le modèle discret exige un solveur supportant les variables entières
+  (antares-solver --linear-solver highs ; sirius échoue) ;
+- la capacité du port remplace la disponibilité du cluster connecté, d'où
+  existing_capacity = capacité installée du cluster ;
+- en unit commitment accurate ou MILP, la capacité nominale du cluster
+  (nominal_capacity x unit_count) borne encore sa production : elle doit
+  couvrir existing_capacity + max_investment. Le générateur ne modifie pas
+  l'étude Antares ; il journalise un avertissement pour chaque candidat
+  concerné ;
+- dans le modèle discret, unit_size (Pmax) doit être positif ; avec
+  min_investment = 0, un multiple de unit_size est toujours dans les bornes.
+
 Deux familles de candidats, traitées séparément :
 - thermiques (TAC/CCG) : modèle discrete_investment_candidate (nombre
   d'unités entier) si nbr_unit_initial est renseigné, continuous_investment_candidate

@@ -44,6 +44,7 @@ import pandas as pd
 import yaml
 from antares.craft import Study, read_study_local
 from antares.craft.exceptions.exceptions import InvalidRequestForScenarioBuilder
+from antares.craft.model.settings.advanced_parameters import UnitCommitmentMode
 from antares.craft.model.scenario_builder import ScenarioBuilder
 from gems_craft.model.parsing import parse_yaml_library
 from gems_craft.model.resolve_library import resolve_library
@@ -376,7 +377,11 @@ class ComponentSettings:
 
 @dataclass(frozen=True)
 class ComponentLogEntry:
-    """Un candidat et son devenir : créé dans le system.yml, ou non et pourquoi."""
+    """Un candidat et son devenir : créé dans le system.yml, ou non et pourquoi.
+
+    warning : avertissement sur un composant créé (voir
+    nominal_capacity_warning).
+    """
 
     family: str
     component: str
@@ -384,6 +389,7 @@ class ComponentLogEntry:
     zone: str
     antares_target: str
     reason: Optional[str] = None  # None = composant créé
+    warning: Optional[str] = None
 
     @property
     def created(self) -> bool:
@@ -503,6 +509,35 @@ def _unusable_cluster_reason(study: Study, area: str, cluster_id: str) -> Option
     return None
 
 
+def nominal_capacity_warning(
+    unit_commitment_mode: UnitCommitmentMode,
+    installed_capacity: float,
+    existing_capacity: float,
+    max_investment: float,
+) -> Optional[str]:
+    """Avertissement si la capacité nominale du cluster borne l'investissement.
+
+    En unit commitment accurate ou MILP, la capacité nominale du cluster
+    (nominal_capacity x unit_count) borne encore sa production, même connecté :
+    elle doit couvrir existing_capacity + max_investment (contrainte de la
+    librairie antares_legacy_investment_candidates), sinon la capacité investie
+    au-delà ne peut pas produire. En mode fast, seule la capacité du port borne
+    la production. Le générateur ne modifie pas l'étude Antares : c'est à
+    l'utilisateur d'augmenter la capacité du cluster (ou de passer en fast).
+    """
+    required = existing_capacity + max_investment
+    if (
+        unit_commitment_mode == UnitCommitmentMode.FAST
+        or installed_capacity >= required
+    ):
+        return None
+    return (
+        f"unit commitment {unit_commitment_mode.value} : la capacité nominale du "
+        f"cluster ({installed_capacity:g} MW) borne sa production et doit couvrir "
+        f"existing_capacity + max_investment ({required:g} MW)"
+    )
+
+
 def thermal_year_ts(
     legacy_sb: Optional[ScenarioBuilder],
     area: str,
@@ -545,12 +580,17 @@ def build_thermal_components(
     l'existing_capacity du candidat. Chaque composant a son propre
     scenario group (son id), les séries n'ayant pas toutes le même nombre de
     colonnes. Les candidats dont le cluster est absent, désactivé, vide ou sans
-    série ne sont pas créés.
+    série ne sont pas créés. En unit commitment accurate ou MILP, un
+    avertissement est journalisé quand la capacité nominale du cluster ne
+    couvre pas existing_capacity + max_investment (voir
+    nominal_capacity_warning).
     """
     result = FamilyComponents()
     series_dir.mkdir(parents=True, exist_ok=True)
     legacy_sb = get_legacy_sb(study, logger)
-    nb_years = study.get_settings().general_parameters.nb_years
+    study_settings = study.get_settings()
+    nb_years = study_settings.general_parameters.nb_years
+    unit_commitment_mode = study_settings.advanced_parameters.unit_commitment_mode
 
     for _, row in candidates.iterrows():
         area = row["zone"]
@@ -563,10 +603,16 @@ def build_thermal_components(
             )
         cluster_id = f"{area}{suffix}"
 
-        def log(reason: Optional[str] = None) -> None:
+        def log(reason: Optional[str] = None, warning: Optional[str] = None) -> None:
             result.log.append(
                 ComponentLogEntry(
-                    "thermique", component_id, row["type"], area, cluster_id, reason
+                    "thermique",
+                    component_id,
+                    row["type"],
+                    area,
+                    cluster_id,
+                    reason,
+                    warning,
                 )
             )
 
@@ -636,7 +682,14 @@ def build_thermal_components(
                 ),
             )
         )
-        log()
+        log(
+            warning=nominal_capacity_warning(
+                unit_commitment_mode,
+                installed_capacity,
+                installed_capacity,
+                float(row["gisement_total"]),
+            )
+        )
 
     return result
 
@@ -809,6 +862,9 @@ def print_family_summary(family: str, entries: List[ComponentLogEntry]) -> None:
     )
     for reason, count in _reason_counts(entries).items():
         print(f"  ⚠ {count} non créé(s) : {reason}")
+    warnings = sum(entry.warning is not None for entry in entries)
+    if warnings:
+        print(f"  ⚠ {warnings} créé(s) avec un avertissement (voir le journal)")
 
 
 def write_generation_log(
@@ -843,7 +899,9 @@ def write_generation_log(
                 lines.append(f"  - {reason} : {count}")
         lines += ["", f"Créés ({len(created)}) :"]
         lines += [
-            f"  + {entry.component:<40} -> {entry.antares_target}" for entry in created
+            f"  + {entry.component:<40} -> {entry.antares_target}"
+            + (f" : ⚠ {entry.warning}" if entry.warning else "")
+            for entry in created
         ] or ["  (aucun)"]
         lines += ["", f"Non créés ({len(not_created)}) :"]
         lines += [
