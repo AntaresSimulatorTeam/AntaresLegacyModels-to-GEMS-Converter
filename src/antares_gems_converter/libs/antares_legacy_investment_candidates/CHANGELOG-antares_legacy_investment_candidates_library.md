@@ -12,7 +12,7 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ## [1.0.0]
 
-- Initial release, replacing `xpansion_models.yml` of the Xpansion direct generator (`xpansion_generator/`, on the `feature/xpansion-direct-generator` branch).
+- Initial release.
 - `continuous_investment_candidate`: continuous invested capacity, between `min_investment` and `max_investment` (MW).
 - `discrete_investment_candidate`: integer number of units of `unit_size`, whose invested capacity is between `min_investment` and `max_investment` (MW).
 - Both models, inspired by Antares Xpansion link candidates:
