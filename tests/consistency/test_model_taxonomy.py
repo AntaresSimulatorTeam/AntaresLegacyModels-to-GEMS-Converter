@@ -1,3 +1,5 @@
+"""The models of each library implement the taxonomy categories they declare."""
+
 from pathlib import Path
 
 import pytest
@@ -25,6 +27,14 @@ def parse_library_file(library_file: Path) -> LibrarySchema:
 @pytest.mark.parametrize("taxonomy_file", TAXONOMY_FILES, ids=ids(TAXONOMY_FILES))
 @pytest.mark.parametrize("library_file", LIBRARY_FILES, ids=ids(LIBRARY_FILES))
 def test_models_implement_taxonomy_contract(library_file, taxonomy_file):
+    """In each library, every model with a taxonomy category references a category of
+    the declared taxonomy and of its flattened copy, and has all the variables,
+    parameters, ports, port-field definitions, constraints, binding constraints, extra
+    outputs and properties of that category (GemsPy `check_library_against_taxonomy`).
+
+    Limits: a model without a taxonomy category is not checked (e.g. the models of
+    `andromede_v1_models.yml`).
+    """
     library = parse_library_file(library_file)
     taxonomy = load_taxonomy(taxonomy_file)
     if taxonomy.id != library.taxonomy:

@@ -1,3 +1,7 @@
+"""GEMS-ViewsBuilder accepts the libraries, catalogs, taxonomies and view configs of the
+package.
+"""
+
 from pathlib import Path
 
 import pytest
@@ -72,6 +76,12 @@ def write_filled_view_config(view_file: Path, output_dir: Path) -> Path:
 # the flattened copy of the taxonomy, if any.
 @pytest.mark.parametrize("taxonomy_id", TAXONOMY_IDS)
 def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
+    """For each taxonomy, GEMS-ViewsBuilder validates the libraries, catalogs and view
+    configs that declare it, against the flattened copy of the taxonomy if any, with the
+    checks of its `validate_input_data` (simulation tables aside), and every view config
+    gets at least one metric. The view configs are given aggregation patterns, as for a
+    study.
+    """
     view_files = files_declaring(taxonomy_id, VIEW_CONFIG_FILES)
     catalog_files = files_declaring(taxonomy_id, CATALOG_FILES)
     library_files = files_declaring(taxonomy_id, LIBRARY_FILES)
@@ -105,6 +115,9 @@ def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
 
 @pytest.mark.parametrize("view_file", VIEW_CONFIG_FILES, ids=ids(VIEW_CONFIG_FILES))
 def test_view_config_lists_all_metrics_of_its_catalogs(view_file):
+    """Each view config lists every metric of the catalogs it uses, in the catalog
+    order, and nothing else, to be trimmed for each study.
+    """
     metric_ids = [
         metric["id"]
         for metric in yaml.safe_load(view_file.read_text(encoding="utf-8"))["view"][

@@ -48,6 +48,10 @@ FILES_DECLARING_A_TAXONOMY = LIBRARY_FILES + CATALOG_FILES + VIEW_CONFIG_FILES
 
 @pytest.mark.parametrize("yaml_file", YAML_FILES, ids=ids(YAML_FILES))
 def test_yaml_file_is_a_known_artifact(yaml_file: Path) -> None:
+    """Every YAML file under `src/antares_gems_converter/` has a single root key among
+    `library`, `catalog`, `taxonomy`, `view` and `template`, so no file escapes the
+    consistency tests.
+    """
     assert kind_of(yaml_file) is not None, (
         f"{yaml_file} is not a recognised artifact: its single root key must be "
         f"one of {sorted(KIND_DIRS)}. If it is a new kind of file, declare it in "
@@ -57,6 +61,11 @@ def test_yaml_file_is_a_known_artifact(yaml_file: Path) -> None:
 
 @pytest.mark.parametrize("yaml_file", YAML_FILES, ids=ids(YAML_FILES))
 def test_artifact_is_stored_in_the_directory_of_its_kind(yaml_file: Path) -> None:
+    """Every YAML artifact is stored under the directory of its kind (`libs/`,
+    `catalogs/`, `taxonomies/`, `views_config/`,
+    `input_converter/data/model_configuration/`, subdirectories allowed); libraries,
+    catalogs, taxonomies and view configs use the `.yml` extension.
+    """
     kind = kind_of(yaml_file)
     if kind is None:
         pytest.skip("unrecognised file, see test_yaml_file_is_a_known_artifact")
@@ -70,12 +79,16 @@ def test_artifact_is_stored_in_the_directory_of_its_kind(yaml_file: Path) -> Non
 
 @pytest.mark.parametrize("kind", FILES_BY_KIND)
 def test_artifacts_of_each_kind_are_found(kind: str) -> None:
+    """At least one library, catalog, taxonomy and view config is found, so a renamed
+    root key or directory cannot silently empty the tests.
+    """
     # Guards against a renamed root key or directory silently emptying the tests.
     assert FILES_BY_KIND[kind], f"No {kind} file found under {KIND_DIRS[kind]}"
 
 
 @pytest.mark.parametrize("kind", FILES_BY_KIND)
 def test_artifact_ids_are_unique(kind: str) -> None:
+    """No two libraries, catalogs, view configs or main taxonomies share an id."""
     # A taxonomy and its flattened copy share their id.
     files = MAIN_TAXONOMY_FILES if kind == TAXONOMY else FILES_BY_KIND[kind]
     counts = Counter(artifact_id(path) for path in files)
@@ -86,6 +99,7 @@ def test_artifact_ids_are_unique(kind: str) -> None:
 
 @pytest.mark.parametrize("taxonomy_file", TAXONOMY_FILES, ids=ids(TAXONOMY_FILES))
 def test_taxonomy_file_is_valid(taxonomy_file: Path) -> None:
+    """Every taxonomy, flattened copies included, loads with GemsPy `load_taxonomy`."""
     load_taxonomy(taxonomy_file)
 
 
@@ -93,6 +107,9 @@ def test_taxonomy_file_is_valid(taxonomy_file: Path) -> None:
     "flattened_file", FLATTENED_TAXONOMY_FILES, ids=ids(FLATTENED_TAXONOMY_FILES)
 )
 def test_flattened_taxonomy_has_a_main_taxonomy(flattened_file: Path) -> None:
+    """Every `<name>_flattened.yml` taxonomy has a `<name>.yml` main taxonomy, with the
+    same id.
+    """
     main_file = flattened_file.with_name(
         flattened_file.name.replace(f"{FLATTENED_SUFFIX}.", ".")
     )
@@ -105,6 +122,7 @@ def test_flattened_taxonomy_has_a_main_taxonomy(flattened_file: Path) -> None:
     "artifact_file", FILES_DECLARING_A_TAXONOMY, ids=ids(FILES_DECLARING_A_TAXONOMY)
 )
 def test_declared_taxonomy_exists(artifact_file: Path) -> None:
+    """Every library, catalog and view config declares a taxonomy that exists."""
     taxonomy_ids = {artifact_id(path) for path in MAIN_TAXONOMY_FILES}
 
     assert (

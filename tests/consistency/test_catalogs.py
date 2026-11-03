@@ -1,3 +1,7 @@
+"""The catalogs agree with the taxonomy they declare, and each flattened taxonomy with
+its main taxonomy.
+"""
+
 import pytest
 
 from tests.consistency.yaml_artifacts import (
@@ -67,6 +71,10 @@ def has_property(category_id, property_id, taxonomy_index):
 
 @pytest.mark.parametrize("catalog_file", CATALOG_FILES, ids=ids(CATALOG_FILES))
 def test_metrics_output_ids_and_properties_are_declared(catalog_file):
+    """In each catalog, every metric term references a category of the declared taxonomy
+    and an output id of that category (or of a parent category), and every breakdown key
+    is a property of the category (or of a parent category).
+    """
     catalog = load_yaml(catalog_file)
 
     taxonomy = load_yaml(main_taxonomy_file(declared_taxonomy(catalog_file)))
@@ -84,6 +92,10 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
 def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(
     catalog_file,
 ):
+    """Same check as `test_metrics_output_ids_and_properties_are_declared`, against the
+    flattened copy of the declared taxonomy (the one given to GEMS-ViewsBuilder).
+    Skipped when the taxonomy has no flattened copy.
+    """
     catalog = load_yaml(catalog_file)
 
     flattened_file = flattened_taxonomy_file(
@@ -119,6 +131,10 @@ def resolve_category(category_id, taxonomy_index):
     "flattened_file", FLATTENED_TAXONOMY_FILES, ids=ids(FLATTENED_TAXONOMY_FILES)
 )
 def test_flattened_taxonomy_matches_main_taxonomy(flattened_file):
+    """Each flattened taxonomy, maintained by hand, has the categories of its main
+    taxonomy, none with a parent, each with the outputs and properties it inherits in
+    the main taxonomy.
+    """
     flattened_taxonomy = load_yaml(flattened_file)
     main_index = build_taxonomy_index(
         load_yaml(main_taxonomy_file(flattened_taxonomy["taxonomy"]["id"]))
