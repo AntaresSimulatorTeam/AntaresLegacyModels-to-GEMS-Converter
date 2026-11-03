@@ -1,17 +1,14 @@
-from pathlib import Path
-
 import pytest
-import yaml
 
-
-CATALOGS_DIR = Path("src/antares_gems_converter/catalogs")
-TAXONOMIES_DIR = Path("src/antares_gems_converter/taxonomies")
-FLATTENED_TAXONOMY_FILE = TAXONOMIES_DIR / "antares_legacy_taxonomy_flattened.yml"
-
-
-def load_yaml(path):
-    with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+from tests.antares_historic.yaml_artifacts import (
+    CATALOG_FILES,
+    FLATTENED_TAXONOMY_FILES,
+    declared_taxonomy,
+    flattened_taxonomy_file,
+    ids,
+    load_yaml,
+    main_taxonomy_file,
+)
 
 
 # This test will be in GEMS view builder but we keep it here for now for ease of development when working on metrics definition.
@@ -68,29 +65,11 @@ def has_property(category_id, property_id, taxonomy_index):
     return False
 
 
-def load_taxonomy_by_id(taxonomy_id):
-    # The flattened taxonomy shares its id with the main one: skip it here.
-    for path in TAXONOMIES_DIR.glob("*.yml"):
-        if path == FLATTENED_TAXONOMY_FILE:
-            continue
-
-        taxonomy = load_yaml(path)
-
-        if taxonomy["taxonomy"]["id"] == taxonomy_id:
-            return taxonomy
-
-    raise ValueError(f"Taxonomy '{taxonomy_id}' not found")
-
-
-CATALOG_FILES = list(CATALOGS_DIR.glob("*.yml"))
-
-
-@pytest.mark.parametrize("catalog_file", CATALOG_FILES)
+@pytest.mark.parametrize("catalog_file", CATALOG_FILES, ids=ids(CATALOG_FILES))
 def test_metrics_output_ids_and_properties_are_declared(catalog_file):
     catalog = load_yaml(catalog_file)
 
-    taxonomy_id = catalog["catalog"]["taxonomy"]
-    taxonomy = load_taxonomy_by_id(taxonomy_id)
+    taxonomy = load_yaml(main_taxonomy_file(declared_taxonomy(catalog_file)))
 
     taxonomy_index = build_taxonomy_index(taxonomy)
 
@@ -101,13 +80,18 @@ def test_metrics_output_ids_and_properties_are_declared(catalog_file):
 
 # The flattened taxonomy is provisional: it exists only until the view builder
 # supports parent categories, at which point it can be removed.
-@pytest.mark.parametrize("catalog_file", CATALOG_FILES)
+@pytest.mark.parametrize("catalog_file", CATALOG_FILES, ids=ids(CATALOG_FILES))
 def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(
     catalog_file,
 ):
     catalog = load_yaml(catalog_file)
 
-    taxonomy = load_yaml(FLATTENED_TAXONOMY_FILE)
+    flattened_file = flattened_taxonomy_file(
+        main_taxonomy_file(declared_taxonomy(catalog_file))
+    )
+    if flattened_file is None:
+        pytest.skip(f"taxonomy '{declared_taxonomy(catalog_file)}' is not flattened")
+    taxonomy = load_yaml(flattened_file)
     taxonomy_index = build_taxonomy_index(taxonomy)
 
     errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
@@ -129,13 +113,17 @@ def resolve_category(category_id, taxonomy_index):
     return ids, properties
 
 
-# The flattened taxonomy is maintained by hand: it must stay equivalent to the
-# main one once parent categories are resolved.
-def test_flattened_taxonomy_matches_main_taxonomy():
+# The flattened taxonomies are maintained by hand: each must stay equivalent to
+# its main taxonomy once parent categories are resolved.
+@pytest.mark.parametrize(
+    "flattened_file", FLATTENED_TAXONOMY_FILES, ids=ids(FLATTENED_TAXONOMY_FILES)
+)
+def test_flattened_taxonomy_matches_main_taxonomy(flattened_file):
+    flattened_taxonomy = load_yaml(flattened_file)
     main_index = build_taxonomy_index(
-        load_yaml(TAXONOMIES_DIR / "antares_legacy_taxonomy.yml")
+        load_yaml(main_taxonomy_file(flattened_taxonomy["taxonomy"]["id"]))
     )
-    flattened_index = build_taxonomy_index(load_yaml(FLATTENED_TAXONOMY_FILE))
+    flattened_index = build_taxonomy_index(flattened_taxonomy)
 
     assert flattened_index.keys() == main_index.keys()
 

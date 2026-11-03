@@ -289,7 +289,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
-| `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
+| `tests/antares_historic/` | Converted models produce correct optimization results; libraries, catalogs, taxonomies and view configs are consistent and work with GEMS-ViewsBuilder (on every such YAML file, see rule 12) | Antares Simulator binary, `gems-views-builder` |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
@@ -364,7 +364,9 @@ Runs on every push to any branch:
 
 11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
 
-12. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
+12. **YAML artifacts are discovered by their root key.** The consistency tests (`test_model_taxonomy.py`, `test_catalogs.py`, `test_views_builder.py`) run on every YAML file under `src/antares_gems_converter/`, classified by its single root key (`library`, `catalog`, `taxonomy`, `view`, `template`) in `tests/antares_historic/yaml_artifacts.py`. A new library, catalog, taxonomy or view config is therefore checked without touching the tests, provided it is a `.yml` file stored under the directory of its kind (`libs/`, `catalogs/`, `taxonomies/`, `views_config/`, subdirectories allowed); `test_yaml_artifacts.py` fails on an unrecognised YAML file or a misplaced one. The flattened copy of a taxonomy `<name>.yml` is `<name>_flattened.yml`, with the same id; when it exists, the view builder is given it instead of the main one.
+
+13. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 
 ---
 

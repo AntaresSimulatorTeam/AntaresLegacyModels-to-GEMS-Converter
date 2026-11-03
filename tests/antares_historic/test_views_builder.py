@@ -30,14 +30,23 @@ from gems_views_builder.validation.view_config_taxonomy import (
     ViewConfigTaxonomyValidator,
 )
 
-SRC_DIR = Path("src/antares_gems_converter")
-CATALOG_FILES = sorted((SRC_DIR / "catalogs").glob("*.yml"))
-LIBRARY_FILES = sorted((SRC_DIR / "libs").rglob("*.yml"))
-VIEW_CONFIG_FILES = sorted((SRC_DIR / "views_config").glob("*.yml"))
-# The view builder doesn't resolve parent categories, so it is given the flattened taxonomy.
-VIEWS_BUILDER_TAXONOMY_FILE = (
-    SRC_DIR / "taxonomies" / "antares_legacy_taxonomy_flattened.yml"
+from tests.antares_historic.yaml_artifacts import (
+    CATALOG_FILES,
+    LIBRARY_FILES,
+    MAIN_TAXONOMY_FILES,
+    VIEW_CONFIG_FILES,
+    artifact_id,
+    declared_taxonomy,
+    ids,
+    views_builder_taxonomy_file,
 )
+
+TAXONOMY_IDS = sorted(artifact_id(path) for path in MAIN_TAXONOMY_FILES)
+
+
+def files_declaring(taxonomy_id: str, files: list[Path]) -> list[Path]:
+    return [path for path in files if declared_taxonomy(path) == taxonomy_id]
+
 
 # Fields left "to be filled in" in the view configs, filled case by case for each study.
 AGGREGATION_PATTERNS = [
@@ -58,16 +67,21 @@ def write_filled_view_config(view_file: Path, output_dir: Path) -> Path:
     return filled_view_file
 
 
-def test_view_configs_are_compatible_with_views_builder(tmp_path):
+# Each taxonomy is validated with the libraries, catalogs and view configs that
+# declare it. The view builder doesn't resolve parent categories, so it is given
+# the flattened copy of the taxonomy, if any.
+@pytest.mark.parametrize("taxonomy_id", TAXONOMY_IDS)
+def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
+    view_files = files_declaring(taxonomy_id, VIEW_CONFIG_FILES)
+    catalog_files = files_declaring(taxonomy_id, CATALOG_FILES)
+    library_files = files_declaring(taxonomy_id, LIBRARY_FILES)
+
     view_configs = load_view_configs(
-        [
-            write_filled_view_config(view_file, tmp_path)
-            for view_file in VIEW_CONFIG_FILES
-        ]
+        [write_filled_view_config(view_file, tmp_path) for view_file in view_files]
     )
-    taxonomy = load_taxonomy(VIEWS_BUILDER_TAXONOMY_FILE)
-    libraries = [create_lib_from_yml(lib) for lib in load_yml_libs(LIBRARY_FILES)]
-    catalogs = load_catalogs(CATALOG_FILES)
+    taxonomy = load_taxonomy(views_builder_taxonomy_file(taxonomy_id))
+    libraries = [create_lib_from_yml(lib) for lib in load_yml_libs(library_files)]
+    catalogs = load_catalogs(catalog_files)
 
     # Same checks, in the same order, as the view builder validate_input_data
     # (simulation tables aside).
@@ -89,7 +103,7 @@ def test_view_configs_are_compatible_with_views_builder(tmp_path):
         assert len(view_config.get_metrics()) == len(view_config.full_metric_ids) > 0
 
 
-@pytest.mark.parametrize("view_file", VIEW_CONFIG_FILES, ids=lambda f: f.stem)
+@pytest.mark.parametrize("view_file", VIEW_CONFIG_FILES, ids=ids(VIEW_CONFIG_FILES))
 def test_view_config_lists_all_metrics_of_its_catalogs(view_file):
     metric_ids = [
         metric["id"]
