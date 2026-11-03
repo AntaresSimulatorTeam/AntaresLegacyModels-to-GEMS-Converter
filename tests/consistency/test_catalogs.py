@@ -1,6 +1,6 @@
 import pytest
 
-from tests.antares_historic.yaml_artifacts import (
+from tests.consistency.yaml_artifacts import (
     CATALOG_FILES,
     FLATTENED_TAXONOMY_FILES,
     declared_taxonomy,

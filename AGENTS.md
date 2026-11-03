@@ -87,6 +87,7 @@ src/antares_gems_converter/
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
+  consistency/                   # Libraries, catalogs, taxonomies and view configs: consistency and GEMS-ViewsBuilder compatibility (no binary needed)
 .github/workflows/ci.yml        # CI pipeline
 .github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
@@ -268,6 +269,9 @@ uv run pytest -n auto
 # Prefer parallel for unit/integration tests
 uv run pytest tests/input_converter/ -n auto
 
+# Consistency of libraries, catalogs, taxonomies and view configs (seconds, no binary)
+uv run pytest tests/consistency/
+
 # Run a specific test
 uv run pytest tests/input_converter/test_converter.py::TestConverter::test_convert_thermals_to_component
 
@@ -289,7 +293,8 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
-| `tests/antares_historic/` | Converted models produce correct optimization results; libraries, catalogs, taxonomies and view configs are consistent and work with GEMS-ViewsBuilder (on every such YAML file, see rule 12) | Antares Simulator binary, `gems-views-builder` |
+| `tests/antares_historic/` | Converted models produce correct optimization results | Antares Simulator binary |
+| `tests/consistency/` | Libraries, catalogs, taxonomies and view configs are consistent and work with GEMS-ViewsBuilder, on every such YAML file (see rule 12) | `gemspy`, `gems-views-builder` (no binary needed) |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
@@ -304,9 +309,12 @@ Runs on every push to any branch:
 1. Install deps (`uv sync --group dev`)
 2. Type checking: `mypy src/`
 3. Format checking: `black --check --diff` (Black 23.7.x)
-4. Download and extract Antares Simulator binary (version from `dependencies.json`)
-5. Run tests
-6. Upload test failure artifacts on failure (logs)
+4. Consistency checks: `pytest tests/consistency` (fails fast, before the Antares download)
+5. Download and extract Antares Simulator binary (version from `dependencies.json`)
+6. Run the other tests (`--ignore=tests/consistency`)
+7. Upload test failure artifacts on failure (logs)
+
+The steps live in the reusable `run-tests.yml`, also used by the weekly dependency-update workflows (code quality steps excepted).
 
 ---
 
@@ -364,7 +372,7 @@ Runs on every push to any branch:
 
 11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
 
-12. **YAML artifacts are discovered by their root key.** The consistency tests (`test_model_taxonomy.py`, `test_catalogs.py`, `test_views_builder.py`) run on every YAML file under `src/antares_gems_converter/`, classified by its single root key (`library`, `catalog`, `taxonomy`, `view`, `template`) in `tests/antares_historic/yaml_artifacts.py`. A new library, catalog, taxonomy or view config is therefore checked without touching the tests, provided it is a `.yml` file stored under the directory of its kind (`libs/`, `catalogs/`, `taxonomies/`, `views_config/`, subdirectories allowed); `test_yaml_artifacts.py` fails on an unrecognised YAML file or a misplaced one. The flattened copy of a taxonomy `<name>.yml` is `<name>_flattened.yml`, with the same id; when it exists, the view builder is given it instead of the main one.
+12. **YAML artifacts are discovered by their root key.** The consistency tests (`tests/consistency/`) run on every YAML file under `src/antares_gems_converter/`, classified by its single root key (`library`, `catalog`, `taxonomy`, `view`, `template`) in `tests/consistency/yaml_artifacts.py`. A new library, catalog, taxonomy or view config is therefore checked without touching the tests, provided it is a `.yml` file stored under the directory of its kind (`libs/`, `catalogs/`, `taxonomies/`, `views_config/`, subdirectories allowed); `test_yaml_artifacts.py` fails on an unrecognised YAML file or a misplaced one. The flattened copy of a taxonomy `<name>.yml` is `<name>_flattened.yml`, with the same id; when it exists, the view builder is given it instead of the main one.
 
 13. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 

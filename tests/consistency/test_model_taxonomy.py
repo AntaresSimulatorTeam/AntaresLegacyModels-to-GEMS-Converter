@@ -5,7 +5,7 @@ from gems_craft.model.parsing import LibrarySchema, parse_yaml_library
 from gems_craft.model.taxonomy import load_taxonomy
 from gems_craft.model.validation import check_library_against_taxonomy
 
-from tests.antares_historic.yaml_artifacts import (
+from tests.consistency.yaml_artifacts import (
     LIBRARY_FILES,
     TAXONOMY_FILES,
     ids,

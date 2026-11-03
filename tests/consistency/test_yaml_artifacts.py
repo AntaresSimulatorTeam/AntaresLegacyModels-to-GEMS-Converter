@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from gems_craft.model.taxonomy import load_taxonomy
 
-from tests.antares_historic.yaml_artifacts import (
+from tests.consistency.yaml_artifacts import (
     CATALOG,
     CATALOG_FILES,
     FLATTENED_SUFFIX,
@@ -51,7 +51,7 @@ def test_yaml_file_is_a_known_artifact(yaml_file: Path) -> None:
     assert kind_of(yaml_file) is not None, (
         f"{yaml_file} is not a recognised artifact: its single root key must be "
         f"one of {sorted(KIND_DIRS)}. If it is a new kind of file, declare it in "
-        "tests/antares_historic/yaml_artifacts.py and cover it with a test."
+        "tests/consistency/yaml_artifacts.py and cover it with a test."
     )
 
 

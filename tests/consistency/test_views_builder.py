@@ -30,7 +30,7 @@ from gems_views_builder.validation.view_config_taxonomy import (
     ViewConfigTaxonomyValidator,
 )
 
-from tests.antares_historic.yaml_artifacts import (
+from tests.consistency.yaml_artifacts import (
     CATALOG_FILES,
     LIBRARY_FILES,
     MAIN_TAXONOMY_FILES,
