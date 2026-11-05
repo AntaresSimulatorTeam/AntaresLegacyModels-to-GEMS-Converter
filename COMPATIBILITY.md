@@ -70,8 +70,8 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
 | Converter | 0.5.1 | `pyproject.toml` |
-| Antares Legacy Models Library | 2.2.1 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
 | Antares Legacy Investment Candidates Library | 1.0.0 | `src/antares_gems_converter/libs/antares_legacy_investment_candidates/antares_legacy_investment_candidates.yml` |
+| Antares Legacy Models Library | 2.4.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
 | Antares-Simulator | 10.2.0 | `dependencies.json` |
 | antares-craft | 0.17.1 | `pyproject.toml` |
 | GemsPy | 0.3.0 | `pyproject.toml` |
