@@ -1,55 +1,32 @@
-"""The catalogs agree with the taxonomy they declare, and each flattened taxonomy with
-its main taxonomy.
+"""The breakdown keys of the catalog metrics are properties of the taxonomy categories
+they apply to.
+
+The rest of the catalog-taxonomy consistency (categories, output ids, location ports)
+is checked by GEMS-ViewsBuilder `CatalogsTaxonomyValidator`, in test_views_builder.
 """
 
 import pytest
 
 from tests.consistency.yaml_artifacts import (
     CATALOG_FILES,
-    FLATTENED_TAXONOMY_FILES,
     declared_taxonomy,
-    flattened_taxonomy_file,
     ids,
     load_yaml,
     main_taxonomy_file,
 )
 
 
-# This test will be in GEMS view builder but we keep it here for now for ease of development when working on metrics definition.
+# GEMS-ViewsBuilder does not check breakdown keys against the taxonomy (an unknown
+# key gives a `None` breakdown value): this check stays here until it does.
 def build_taxonomy_index(taxonomy):
-    categories = {}
-
-    for category in taxonomy["taxonomy"]["categories"]:
-        ids = {variable["id"] for variable in category.get("variables", [])}
-
-        ids.update(output["id"] for output in category.get("extra-outputs", []))
-
-        properties = {prop["id"] for prop in category.get("properties", [])}
-
-        categories[category["id"]] = {
-            "ids": ids,
-            "properties": properties,
+    """The properties and the parent of each category."""
+    return {
+        category["id"]: {
+            "properties": {prop["id"] for prop in category.get("properties", [])},
             "parent": category.get("parent-category"),
         }
-
-    return categories
-
-
-def is_declared_output(category_id, output_id, taxonomy_index):
-    current = category_id
-
-    while current:
-        category = taxonomy_index.get(current)
-
-        if category is None:
-            return False
-
-        if output_id in category["ids"]:
-            return True
-
-        current = category["parent"]
-
-    return False
+        for category in taxonomy["taxonomy"]["categories"]
+    }
 
 
 def has_property(category_id, property_id, taxonomy_index):
@@ -70,132 +47,27 @@ def has_property(category_id, property_id, taxonomy_index):
 
 
 @pytest.mark.parametrize("catalog_file", CATALOG_FILES, ids=ids(CATALOG_FILES))
-def test_metrics_output_ids_and_properties_are_declared(catalog_file):
-    """In each catalog, every metric term references a category of the declared taxonomy
-    and an output id of that category (or of a parent category), and every breakdown key
-    is a property of the category (or of a parent category).
+def test_metric_breakdown_keys_are_category_properties(catalog_file):
+    """In each catalog, every breakdown key of a metric is a property of the taxonomy
+    category of each of its terms (or of a parent category), in the declared taxonomy.
+
+    Limits: checked against the main taxonomy only; the flattened copy given to
+    GEMS-ViewsBuilder has the same properties (test_flattened_taxonomy_matches_main_taxonomy).
     """
     catalog = load_yaml(catalog_file)
+    taxonomy_index = build_taxonomy_index(
+        load_yaml(main_taxonomy_file(declared_taxonomy(catalog_file)))
+    )
 
-    taxonomy = load_yaml(main_taxonomy_file(declared_taxonomy(catalog_file)))
-
-    taxonomy_index = build_taxonomy_index(taxonomy)
-
-    errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
+    errors = [
+        f"{catalog_file.name}: metric '{metric['id']}' "
+        f"uses breakdown key '{breakdown['key']}' "
+        f"but category '{term['taxonomy-category']}' does not declare "
+        f"this property (nor any parent category)"
+        for metric in catalog["catalog"]["metrics-definition"]
+        for breakdown in metric.get("breakdown", [])
+        for term in metric.get("terms", [])
+        if not has_property(term["taxonomy-category"], breakdown["key"], taxonomy_index)
+    ]
 
     assert not errors, "\n".join(errors)
-
-
-# The flattened taxonomy is provisional: it exists only until the view builder
-# supports parent categories, at which point it can be removed.
-@pytest.mark.parametrize("catalog_file", CATALOG_FILES, ids=ids(CATALOG_FILES))
-def test_metrics_output_ids_and_properties_are_declared_in_flattened_taxonomy(
-    catalog_file,
-):
-    """Same check as `test_metrics_output_ids_and_properties_are_declared`, against the
-    flattened copy of the declared taxonomy (the one given to GEMS-ViewsBuilder).
-    Skipped when the taxonomy has no flattened copy.
-    """
-    catalog = load_yaml(catalog_file)
-
-    flattened_file = flattened_taxonomy_file(
-        main_taxonomy_file(declared_taxonomy(catalog_file))
-    )
-    if flattened_file is None:
-        pytest.skip(f"taxonomy '{declared_taxonomy(catalog_file)}' is not flattened")
-    taxonomy = load_yaml(flattened_file)
-    taxonomy_index = build_taxonomy_index(taxonomy)
-
-    errors = find_taxonomy_errors(catalog, catalog_file, taxonomy_index)
-
-    assert not errors, "\n".join(errors)
-
-
-def resolve_category(category_id, taxonomy_index):
-    """Return the ids and properties of a category, parents included."""
-    ids, properties = set(), set()
-    current = category_id
-
-    while current:
-        category = taxonomy_index[current]
-        ids |= category["ids"]
-        properties |= category["properties"]
-        current = category["parent"]
-
-    return ids, properties
-
-
-# The flattened taxonomies are maintained by hand: each must stay equivalent to
-# its main taxonomy once parent categories are resolved.
-@pytest.mark.parametrize(
-    "flattened_file", FLATTENED_TAXONOMY_FILES, ids=ids(FLATTENED_TAXONOMY_FILES)
-)
-def test_flattened_taxonomy_matches_main_taxonomy(flattened_file):
-    """Each flattened taxonomy, maintained by hand, has the categories of its main
-    taxonomy, none with a parent, each with the outputs and properties it inherits in
-    the main taxonomy.
-    """
-    flattened_taxonomy = load_yaml(flattened_file)
-    main_index = build_taxonomy_index(
-        load_yaml(main_taxonomy_file(flattened_taxonomy["taxonomy"]["id"]))
-    )
-    flattened_index = build_taxonomy_index(flattened_taxonomy)
-
-    assert flattened_index.keys() == main_index.keys()
-
-    for category_id, category in flattened_index.items():
-        assert category["parent"] is None, f"'{category_id}' still has a parent"
-        assert (category["ids"], category["properties"]) == resolve_category(
-            category_id, main_index
-        ), f"'{category_id}' differs between main and flattened taxonomies"
-
-
-def find_taxonomy_errors(catalog, catalog_file, taxonomy_index):
-    errors = []
-
-    for metric in catalog["catalog"]["metrics-definition"]:
-        metric_id = metric["id"]
-
-        for term in metric.get("terms", []):
-            category = term["taxonomy-category"]
-            output_id = term["output-id"]
-
-            if category not in taxonomy_index:
-                errors.append(
-                    f"{catalog_file.name}: metric '{metric_id}' "
-                    f"references unknown category '{category}'"
-                )
-                continue
-
-            if not is_declared_output(
-                category,
-                output_id,
-                taxonomy_index,
-            ):
-                errors.append(
-                    f"{catalog_file.name}: metric '{metric_id}' "
-                    f"references output-id '{output_id}' "
-                    f"not declared in category '{category}' "
-                )
-
-        breakdowns = metric.get("breakdown", [])
-
-        for breakdown in breakdowns:
-            property_id = breakdown["key"]
-
-            for term in metric.get("terms", []):
-                category = term["taxonomy-category"]
-
-                if not has_property(
-                    category,
-                    property_id,
-                    taxonomy_index,
-                ):
-                    errors.append(
-                        f"{catalog_file.name}: metric '{metric_id}' "
-                        f"uses breakdown key '{property_id}' "
-                        f"but category '{category}' does not declare "
-                        f"this property (nor any parent category)"
-                    )
-
-    return errors

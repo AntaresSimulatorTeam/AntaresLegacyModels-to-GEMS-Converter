@@ -74,6 +74,12 @@ def write_filled_view_config(view_file: Path, output_dir: Path) -> Path:
 # Each taxonomy is validated with the libraries, catalogs and view configs that
 # declare it. The view builder doesn't resolve parent categories, so it is given
 # the flattened copy of the taxonomy, if any.
+# This is the only check of the libraries against their taxonomy: against the
+# flattened copy, it requires all inherited items (test_taxonomies). When the
+# flattened copy is removed, the libraries are checked against the main taxonomy,
+# without the inherited items (GemsPy `check_library_against_taxonomy` does not
+# resolve parents): a check resolving them must then be restored, unless the view
+# builder does it by then.
 @pytest.mark.parametrize("taxonomy_id", TAXONOMY_IDS)
 def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
     """For each taxonomy, GEMS-ViewsBuilder validates the libraries, catalogs and view
@@ -81,6 +87,9 @@ def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
     checks of its `validate_input_data` (simulation tables aside), and every view config
     gets at least one metric. The view configs are given aggregation patterns, as for a
     study.
+
+    Limits: a model without a taxonomy category is not checked against the taxonomy
+    (e.g. the models of `andromede_v1_models.yml`).
     """
     view_files = files_declaring(taxonomy_id, VIEW_CONFIG_FILES)
     catalog_files = files_declaring(taxonomy_id, CATALOG_FILES)

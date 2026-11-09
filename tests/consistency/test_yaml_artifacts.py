@@ -1,6 +1,6 @@
 """Guards that every YAML artifact of the package is covered by the consistency tests.
 
-The consistency tests (test_model_taxonomy, test_catalogs, test_views_builder)
+The consistency tests (test_taxonomies, test_catalogs, test_views_builder)
 run on the files found by ``yaml_artifacts``. These tests make sure no file
 escapes them: an unrecognised YAML file, or one stored outside the directory
 of its kind, fails here.
@@ -10,7 +10,6 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from gems_craft.model.taxonomy import load_taxonomy
 
 from tests.consistency.yaml_artifacts import (
     CATALOG,
@@ -47,28 +46,22 @@ FILES_DECLARING_A_TAXONOMY = LIBRARY_FILES + CATALOG_FILES + VIEW_CONFIG_FILES
 
 
 @pytest.mark.parametrize("yaml_file", YAML_FILES, ids=ids(YAML_FILES))
-def test_yaml_file_is_a_known_artifact(yaml_file: Path) -> None:
+def test_yaml_file_is_a_known_artifact_in_the_directory_of_its_kind(
+    yaml_file: Path,
+) -> None:
     """Every YAML file under `src/antares_gems_converter/` has a single root key among
     `library`, `catalog`, `taxonomy`, `view` and `template`, so no file escapes the
-    consistency tests.
-    """
-    assert kind_of(yaml_file) is not None, (
-        f"{yaml_file} is not a recognised artifact: its single root key must be "
-        f"one of {sorted(KIND_DIRS)}. If it is a new kind of file, declare it in "
-        "tests/consistency/yaml_artifacts.py and cover it with a test."
-    )
-
-
-@pytest.mark.parametrize("yaml_file", YAML_FILES, ids=ids(YAML_FILES))
-def test_artifact_is_stored_in_the_directory_of_its_kind(yaml_file: Path) -> None:
-    """Every YAML artifact is stored under the directory of its kind (`libs/`,
+    consistency tests. It is stored under the directory of its kind (`libs/`,
     `catalogs/`, `taxonomies/`, `views_config/`,
     `input_converter/data/model_configuration/`, subdirectories allowed); libraries,
     catalogs, taxonomies and view configs use the `.yml` extension.
     """
     kind = kind_of(yaml_file)
-    if kind is None:
-        pytest.skip("unrecognised file, see test_yaml_file_is_a_known_artifact")
+    assert kind is not None, (
+        f"{yaml_file} is not a recognised artifact: its single root key must be "
+        f"one of {sorted(KIND_DIRS)}. If it is a new kind of file, declare it in "
+        "tests/consistency/yaml_artifacts.py and cover it with a test."
+    )
 
     assert yaml_file.is_relative_to(
         KIND_DIRS[kind]
@@ -95,12 +88,6 @@ def test_artifact_ids_are_unique(kind: str) -> None:
     duplicates = sorted(id_ for id_, count in counts.items() if count > 1)
 
     assert not duplicates, f"Duplicate {kind} ids: {duplicates}"
-
-
-@pytest.mark.parametrize("taxonomy_file", TAXONOMY_FILES, ids=ids(TAXONOMY_FILES))
-def test_taxonomy_file_is_valid(taxonomy_file: Path) -> None:
-    """Every taxonomy, flattened copies included, loads with GemsPy `load_taxonomy`."""
-    load_taxonomy(taxonomy_file)
 
 
 @pytest.mark.parametrize(

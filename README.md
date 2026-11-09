@@ -35,8 +35,6 @@ cd AntaresLegacyModels-to-GEMS-Converter
 uv sync --group dev
 ```
 
-What the repository checks, and when (CI workflows, checks of the conversion input, tests), is listed in [CHECKS.md](CHECKS.md).
-
 ## Usage
 
 First, fill in a configuration file (INI format):

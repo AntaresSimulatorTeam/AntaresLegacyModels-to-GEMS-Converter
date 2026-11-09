@@ -1,4 +1,4 @@
-"""Consistency of the YAML artifacts and of this documentation
+"""Consistency of the YAML artifacts
 
 The libraries, catalogs, taxonomies and view configs of the package, wherever they
 are stored: they are found by their root key (see `tests/consistency/yaml_artifacts.py`).
