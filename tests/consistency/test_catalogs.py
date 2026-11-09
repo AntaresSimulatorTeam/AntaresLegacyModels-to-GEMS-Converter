@@ -17,7 +17,8 @@ from tests.consistency.yaml_artifacts import (
 
 
 # GEMS-ViewsBuilder does not check breakdown keys against the taxonomy (an unknown
-# key gives a `None` breakdown value): this check stays here until it does.
+# key gives a `None` breakdown value): this check stays here until it does
+# (AntaresSimulatorTeam/GEMS-ViewsBuilder#215).
 def build_taxonomy_index(taxonomy):
     """The properties and the parent of each category."""
     return {
