@@ -19,8 +19,8 @@ Each line was a hard failure or a measured behaviour in the E2E runs, so the spe
 | R7 | Component ids, scenario groups and series ids: lowercase letters, digits, `_` | Antares id rule; legacy cluster ids such as `fr_ccgt ch4 pcomp` hold spaces |
 | R8 | Investment variables are scenario-independent, so the study is solved with `benders-decomposition` (Xpansion, step `gems`) | `antares-solver` alone re-invests every week at the full annual cost |
 | R9 | Batteries cannot be candidates yet | No st-storage capacity connection in Antares 10.2 or GemsPy 0.2 |
-| R10 | Integer investment variables stay integer in the Benders master; bounds written as parameter expressions (`max_investment / unit_size`) are accepted | `master.mps` holds `INTORG` markers and `UI` bounds; Xpansion builds 1 OCGT unit where the continuous optimum is 0.6 |
-| R11 | In `accurate` or `MILP` unit commitment, the connected cluster's nominal capacity (`nominal_capacity` × `unit_count`) still bounds its generation, so it must cover `existing_capacity + max_investment`. In `fast` mode only the port capacity bounds it | #167 equivalence test (accurate UC): the legacy and hybrid clusters need the nominal capacity `existing_capacity` + invested capacity; #167 Benders test (fast): a 20 MW cluster carries 80 MW of investment |
+| R10 | Integer investment variables stay integer in the Benders master; bounds given by parameters (`min_units`, `max_units`) are accepted | `master.mps` holds `INTORG` markers and `UI` bounds; Xpansion builds 1 OCGT unit where the continuous optimum is 0.6 |
+| R11 | In `accurate` or `MILP` unit commitment, the connected cluster's nominal capacity (`nominal_capacity` × `unit_count`) still bounds its generation, so it must cover `existing_capacity` plus the largest investment (`max_investment`, or `max_units` × `unit_size`). In `fast` mode only the port capacity bounds it | #167 equivalence test (accurate UC): the legacy and hybrid clusters need the nominal capacity `existing_capacity` + invested capacity; #167 Benders test (fast): a 20 MW cluster carries 80 MW of investment |
 | R12 | The discrete model needs a MIP-capable solver when `antares-solver` runs the study (`highs`; `sirius` fails). `resolution-mode: benders-decomposition` is required even then (R8) | #167 E2E tests |
 
 ## From script steps to converter features
@@ -32,15 +32,15 @@ Most steps map onto features that already exist or are specified; three are gaps
 | Zones from `List_countries.xlsx` | `cluster-values: ["${area}_ccgt ch4 pcomp"]` on the cluster parameter: areas without that cluster are simply not iterated. `values` on `area` if the list must be restricted further | #144, PR #153 open |
 | Candidate type → cluster suffix (`correspondance_cluster_antares.xlsx`) | One template per technology (peak, semibase), the suffix written in its `cluster-values` | #144 |
 | Scalars from `X_parameters_candidates.xlsx` (cost, unit size, units) | `external-value` (`table`, `key`, `field`) | #129. Gaps: xlsx tables, and a key on two columns (type, year) |
-| `max_investment` = units × unit size (discrete) or `gisement_ini` (continuous) | `multiply_by: unit_size` on the unit count (parameter reference already exists) | Needs #129's "apply `operation` without `column`" |
-| `annual_investment_cost` = cost per unit ÷ unit size (the library is per MW) | `divide_by: unit_size` | Same as above |
+| `max_units` = unit count (discrete) or `max_investment` = `gisement_ini` (continuous) | Read directly with `external-value` | #129 |
+| `annual_investment_cost` = cost per unit ÷ unit size (the library is per MW) | `divide_by: unit_size` (parameter reference already exists) | Needs #129's "apply `operation` without `column`" |
 | Discrete model when the unit count is given, continuous otherwise | One template per technology and model | The choice moves to the template author |
 | `availability_rate` = series ÷ (nominal capacity × unit count); `existing_capacity` = nominal capacity × unit count | No product of two fields today | **Gap**, see below |
 | `thermal-capacity-connections` | Template section next to `area-connections` | **Gap**, new |
 | Scenario group per candidate, from the legacy thermal SB | `read_year_ts()` already reads the thermal SB of the iterated cluster; the template declares `scenario-group: ..._${area}_${thermal}` | Exists; #143 for partial SBs; R6 changes the "no group" case |
 | Skip empty, missing and disabled clusters; log them | Disabled clusters are skipped (#128); missing ones are not iterated | Exists. Gap: no report of the candidates not created |
 | Library `antares_legacy_investment_candidates` | In `libs/antares_legacy_investment_candidates/` (#167), checked both ways against the templates (`checks.py`) | Done (#167); this branch carries its 1.0.0 as on #167 |
-| Warn when the cluster's nominal capacity does not cover `existing_capacity + max_investment` in accurate / MILP UC (R11) | None: the converter does not read the UC mode for templates | **Gap**, part of W3. The direct generator logs it and does not change the study |
+| Warn when the cluster's nominal capacity does not cover `existing_capacity` plus the largest investment in accurate / MILP UC (R11) | None: the converter does not read the UC mode for templates | **Gap**, part of W3. The direct generator logs it and does not change the study |
 | 2031 only; ch4 until 2031, h2 after | Preparing the input tables | Out of the converter |
 
 The library takes `availability_rate` as a fraction and `existing_capacity` in MW, so the converter must compute both from the cluster: a product of two fields (`nominal_capacity` × `unit_count`), and a series divided by it. The proposal is a derived `installed_capacity` field in `preprocessing.py`, usable as `object-properties` field and as `divide_by` operand. The alternative, the arithmetic in the model (raw series, `nominal_capacity` and `unit_count` as parameters; checked with Antares 10.2), would change the library's parameters.
@@ -66,9 +66,9 @@ template:
           scenario-dependent: false
           value:
             external-value: {table: candidates_2031.csv, key: ccg_ch4, field: Pmax}   # #129
-        - id: max_investment          # same, field nbr_unit_initial, multiply_by: unit_size
+        - id: max_units               # same, field nbr_unit_initial
         - id: annual_investment_cost  # same, field cost_per_year, divide_by: unit_size
-        - id: min_investment
+        - id: min_units
           time-dependent: false
           scenario-dependent: false
           value: {constant: 0}
@@ -98,7 +98,7 @@ New issues:
 
 1. **W1 — `thermal-capacity-connections` in templates.** Same shape as `system.yml` (`component`, `port`, `thermal-component: {area, cluster-id}`), placeholders allowed. HYBRID only: rejected at load in FULL mode, where there is no legacy cluster. The connected cluster must be iterated and enabled (R1). `checks.py` checks that the port's type declares a `thermal-capacity-connection` field.
 2. **W2 — Sanitise ids built from placeholders.** Generalise the `" / "` → `_` rule of link ids (AGENTS.md rule 7): lowercase, and anything outside `[a-z0-9_]` becomes `_`, for component ids, scenario groups and series ids (R7). `cluster-id` in a connection keeps the raw antares-craft id. Duplicate ids after sanitisation are an error.
-3. **W3 — Report the candidates not created, and the risky ones.** For each listed `cluster-values` entry, log the areas where it is absent, disabled or empty (the direct generator's log file is what users read). Also warn, in accurate or MILP unit commitment, when the connected cluster's nominal capacity is below `existing_capacity + max_investment` (R11). Raising the cluster's `unit_count` or `nominal_capacity` stays the user's choice: with `existing_capacity` set to the installed capacity, raising it would also raise `existing_capacity`.
+3. **W3 — Report the candidates not created, and the risky ones.** For each listed `cluster-values` entry, log the areas where it is absent, disabled or empty (the direct generator's log file is what users read). Also warn, in accurate or MILP unit commitment, when the connected cluster's nominal capacity is below `existing_capacity` plus the largest investment (R11). Raising the cluster's `unit_count` or `nominal_capacity` stays the user's choice: with `existing_capacity` set to the installed capacity, raising it would also raise `existing_capacity`.
 4. **W4 — Derived `installed_capacity` field** (`nominal_capacity` × `unit_count`) for thermal clusters in `preprocessing.py`, for `existing_capacity` and the `availability_rate` division. (The library itself is #167.)
 5. **W5 — Xpansion in CI.** Add `antares_xpansion_version` to `dependencies.json` and download the release in CI, so the Benders E2E test (now opt-in through `ANTARES_XPANSION_DIR`) runs on every push. It needs OpenMPI on the runner (`libopenmpi3`, `openmpi-bin`; as root, `OMPI_ALLOW_RUN_AS_ROOT=1` and `OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1`).
 
@@ -120,6 +120,6 @@ Open questions:
 
 - [x] Is `cost_per_year` per unit or per MW? Per unit of `Pmax` in the inputs; the library takes `annual_investment_cost` per MW (as Xpansion's `annual-cost-per-mw`), so the generator divides it by `unit_size`.
 - [x] Integer or continuous investment? Both: `discrete_investment_candidate` (integer `invested_units`) when the unit count is given, `continuous_investment_candidate` (`invested_capacity` in MW, up to `gisement_ini`) otherwise.
-- [ ] `min_investment` is 0 for every candidate: should the inputs give it?
+- [ ] The lower bound (`min_units`, `min_investment`) is 0 for every candidate: should the inputs give it?
 - [ ] Should W2 also apply to existing templates (renewable and storage ids can hold spaces too), at the cost of changing their output ids?
 - [ ] The direct generator stays a separate script until W1–W4 land: keep it in `src/`, or move it to an `examples/` folder?

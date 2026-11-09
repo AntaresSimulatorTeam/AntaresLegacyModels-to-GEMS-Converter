@@ -428,7 +428,9 @@ def investment_model_and_parameters(
     - modèle discret si max_unit est renseigné, continu sinon ;
     - existing_capacity : capacité installée du cluster connecté, que la
       thermal-capacity-connection remplacerait sinon ;
-    - max_investment : gisement_total (MW), min_investment : 0 ;
+    - bornes de l'investissement, minimum 0 : max_units = max_unit (nombre
+      d'unités) pour le modèle discret, max_investment = gisement_total (MW)
+      pour le modèle continu ;
     - annual_investment_cost (par MW et par an) : cost_per_year, donné par
       unité de Pmax (unit_size) dans les fichiers d'entrée, divisé par unit_size.
     """
@@ -437,10 +439,20 @@ def investment_model_and_parameters(
         raise ValueError(
             f"Taille d'unité (Pmax) absente ou nulle pour le type '{candidate['type']}'"
         )
+    discrete = not pd.isna(candidate["max_unit"])
+    if discrete:
+        bounds = [
+            constant_parameter("min_units", 0),
+            constant_parameter("max_units", candidate["max_unit"]),
+        ]
+    else:
+        bounds = [
+            constant_parameter("min_investment", 0),
+            constant_parameter("max_investment", candidate["gisement_total"]),
+        ]
     parameters = [
         constant_parameter("existing_capacity", existing_capacity),
-        constant_parameter("min_investment", 0),
-        constant_parameter("max_investment", candidate["gisement_total"]),
+        *bounds,
         constant_parameter(
             "annual_investment_cost", float(candidate["cost_per_year"]) / unit_size
         ),
@@ -451,7 +463,7 @@ def investment_model_and_parameters(
             scenario_dependent=True,
         ),
     ]
-    if pd.isna(candidate["max_unit"]):
+    if not discrete:
         return settings.continuous_model, parameters
     return (
         settings.discrete_model,
@@ -513,19 +525,21 @@ def nominal_capacity_warning(
     unit_commitment_mode: UnitCommitmentMode,
     installed_capacity: float,
     existing_capacity: float,
-    max_investment: float,
+    largest_investment: float,
 ) -> Optional[str]:
     """Avertissement si la capacité nominale du cluster borne l'investissement.
 
     En unit commitment accurate ou MILP, la capacité nominale du cluster
     (nominal_capacity x unit_count) borne encore sa production, même connecté :
-    elle doit couvrir existing_capacity + max_investment (contrainte de la
-    librairie antares_legacy_investment_candidates), sinon la capacité investie
+    elle doit couvrir existing_capacity + le plus grand investissement
+    (largest_investment, en MW : max_investment, ou max_units x unit_size pour
+    le modèle discret ; contrainte de la librairie
+    antares_legacy_investment_candidates), sinon la capacité investie
     au-delà ne peut pas produire. En mode fast, seule la capacité du port borne
     la production. Le générateur ne modifie pas l'étude Antares : c'est à
     l'utilisateur d'augmenter la capacité du cluster (ou de passer en fast).
     """
-    required = existing_capacity + max_investment
+    required = existing_capacity + largest_investment
     if (
         unit_commitment_mode == UnitCommitmentMode.FAST
         or installed_capacity >= required
@@ -534,7 +548,7 @@ def nominal_capacity_warning(
     return (
         f"unit commitment {unit_commitment_mode.value} : la capacité nominale du "
         f"cluster ({installed_capacity:g} MW) borne sa production et doit couvrir "
-        f"existing_capacity + max_investment ({required:g} MW)"
+        f"existing_capacity + l'investissement maximal ({required:g} MW)"
     )
 
 
@@ -582,7 +596,7 @@ def build_thermal_components(
     colonnes. Les candidats dont le cluster est absent, désactivé, vide ou sans
     série ne sont pas créés. En unit commitment accurate ou MILP, un
     avertissement est journalisé quand la capacité nominale du cluster ne
-    couvre pas existing_capacity + max_investment (voir
+    couvre pas existing_capacity + l'investissement maximal (voir
     nominal_capacity_warning).
     """
     result = FamilyComponents()
@@ -687,6 +701,7 @@ def build_thermal_components(
                 unit_commitment_mode,
                 installed_capacity,
                 installed_capacity,
+                # in MW: max_unit x unit_size for the discrete model
                 float(row["gisement_total"]),
             )
         )

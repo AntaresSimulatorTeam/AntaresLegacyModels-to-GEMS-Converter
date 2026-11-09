@@ -84,14 +84,14 @@ def test_system_yml_is_a_gemspy_hybrid_system(generated: Path) -> None:
         "unit_size": OCGT_UNIT_SIZE,
         # installed capacity of fr_ocgt ch4 pcomp
         "existing_capacity": 50,
-        "min_investment": 0,
         # 10 units of 50 MW
-        "max_investment": 500,
+        "min_units": 0,
+        "max_units": 10,
         # per MW: the inputs give it per unit
         "annual_investment_cost": pytest.approx(OCGT_COST_PER_UNIT / OCGT_UNIT_SIZE),
         "availability_rate": f"availability_rate_{PEAK_FR}",
     }
-    assert parameters(SEMIBASE_DE)["max_investment"] == 300
+    assert parameters(SEMIBASE_DE)["max_units"] == 3
     assert parameters(SEMIBASE_DE)["annual_investment_cost"] == pytest.approx(
         CCGT_COST_PER_UNIT / CCGT_UNIT_SIZE
     )

@@ -50,16 +50,18 @@ Contraintes d'usage de la librairie (voir sa description et son changelog) :
   existing_capacity = capacité installée du cluster ;
 - en unit commitment accurate ou MILP, la capacité nominale du cluster
   (nominal_capacity x unit_count) borne encore sa production : elle doit
-  couvrir existing_capacity + max_investment. Le générateur ne modifie pas
+  couvrir existing_capacity + l'investissement maximal (max_investment, ou
+  max_units x unit_size). Le générateur ne modifie pas
   l'étude Antares ; il journalise un avertissement pour chaque candidat
   concerné ;
-- dans le modèle discret, unit_size (Pmax) doit être positif ; avec
-  min_investment = 0, un multiple de unit_size est toujours dans les bornes.
+- dans le modèle discret, unit_size (Pmax) doit être positif et min_units ne
+  doit pas dépasser max_units (min_units = 0, max_units = nbr_unit_initial).
 
 Deux familles de candidats, traitées séparément :
 - thermiques (TAC/CCG) : modèle discrete_investment_candidate (nombre
-  d'unités entier) si nbr_unit_initial est renseigné, continuous_investment_candidate
-  (gisement_ini en MW) sinon ; série de disponibilité et capacité installée
+  d'unités entier, jusqu'à max_units = nbr_unit_initial) si nbr_unit_initial
+  est renseigné, continuous_investment_candidate (jusqu'à max_investment =
+  gisement_ini en MW) sinon ; série de disponibilité et capacité installée
   (existing_capacity) du cluster Antares, thermal-capacity-connections ;
 - batteries : journalisées seulement, Antares ne sachant pas encore connecter
   un port de capacité à un short-term storage.
