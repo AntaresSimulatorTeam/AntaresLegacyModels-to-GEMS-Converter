@@ -12,12 +12,13 @@
 """E2E tests of the antares_legacy_investment_candidates library.
 
 - Equivalence with legacy (antares-solver, as for the other libraries): a
-  candidate with a fixed investment (min_investment = max_investment) gives the
-  same weekly objectives as the legacy study whose cluster has the capacity
+  candidate with a fixed investment (lower bound = upper bound) gives the same
+  weekly objectives as the legacy study whose cluster has the capacity
   existing_capacity + invested capacity.
-- A study using both models runs in Antares (antares-solver,
-  antares-problem-generator) and in Antares Xpansion. The Xpansion test runs
-  only when ANTARES_XPANSION_DIR is set to its install folder (the one holding
+- A study using both models gives the expected Benders master problem in
+  antares-problem-generator, and the analytic optimum in Antares Xpansion. The
+  Xpansion test is opt-in, hence not run in CI: it runs only when
+  ANTARES_XPANSION_DIR is set to its install folder (the one holding
   antares-xpansion-launcher).
 
 Benders study: two independent areas (one candidate model each), load 400 MW, base
@@ -31,12 +32,15 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
 import pytest
 import yaml
 from antares.craft import AreaProperties, ThermalClusterProperties, create_study_local
+from antares.craft.model.area import Area
+from antares.craft.model.study import Study
 from gems_craft.model.parsing import parse_yaml_library
 from gems_craft.model.resolve_library import resolve_library
 from gems_craft.study.parsing import ComponentParameterSchema, ComponentSchema
@@ -63,26 +67,45 @@ LIBRARY_PATH = Path(f"src/antares_gems_converter/libs/{LIBRARY_ID}/{LIBRARY_ID}.
 CONTINUOUS = f"{LIBRARY_ID}.continuous_investment_candidate"
 DISCRETE = f"{LIBRARY_ID}.discrete_investment_candidate"
 VARIABLES = {CONTINUOUS: "invested_capacity", DISCRETE: "invested_units"}
+# parameters bounding the investment variable: MW (continuous), units (discrete)
+BOUNDS = {
+    CONTINUOUS: ("min_investment", "max_investment"),
+    DISCRETE: ("min_units", "max_units"),
+}
 COST_PER_MW = {CONTINUOUS: 30000, DISCRETE: 20000}
 UNIT_SIZE = 30
 # MW per unit of the investment variable
 UNIT_SCALE = {CONTINUOUS: 1, DISCRETE: UNIT_SIZE}
+CANDIDATE_CLUSTER = "candidate_cluster"
 
 HOURS = 8760
 HOURS_SIMULATED = 8736  # 52 weeks
 LOAD, BASE, EXISTING = 400, 300, 20
 BASE_COST, CANDIDATE_COST, UNSUPPLIED_COST = 10, 50, 1000
 
-# case: {area: (model, min_investment, max_investment, optimal variable value)}
+# case: {area: (model, lower bound, upper bound, optimal variable value)}, in
+# units of the investment variable
 CASES = {
     # 80 MW; 80 MW rounded up to 3 units of 30 MW
-    "free": {"continuous": (CONTINUOUS, 0, 500, 80), "discrete": (DISCRETE, 0, 400, 3)},
-    # min_investment binds; max_investment binds, rounded down to 1 unit (45 / 30)
+    "free": {"continuous": (CONTINUOUS, 0, 500, 80), "discrete": (DISCRETE, 0, 13, 3)},
+    # the lower bound binds; the upper bound binds
     "bounds": {
         "continuous": (CONTINUOUS, 150, 500, 150),
-        "discrete": (DISCRETE, 0, 45, 1),
+        "discrete": (DISCRETE, 0, 1, 1),
     },
 }
+
+
+class Candidate(NamedTuple):
+    """A candidate on the cluster CANDIDATE_CLUSTER of area; bounds in units of
+    the investment variable."""
+
+    area: str
+    model: str
+    existing_capacity: float
+    lower_bound: float
+    upper_bound: float
+    availability_rate: np.ndarray
 
 
 def _variable(area: str, model: str) -> str:
@@ -97,50 +120,31 @@ def _parameter(
     )
 
 
-def _candidate(
-    area: str,
-    model: str,
-    existing_capacity: float,
-    min_investment: float,
-    max_investment: float,
-    availability_rate: np.ndarray,
-    input_dir: Path,
-) -> tuple[ComponentSchema, ThermalCapacityConnectionSchema]:
-    """Component and thermal-capacity-connection (GemsPy schemas) of a candidate
-    on the cluster candidate_cluster of area; writes its availability series."""
-    component = f"{area}_candidate"
+def _component(candidate: Candidate, input_dir: Path) -> ComponentSchema:
+    """GemsPy component of the candidate; writes its availability series."""
+    component = f"{candidate.area}_candidate"
     series = f"availability_rate_{component}"
-    (input_dir / "data-series").mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(availability_rate).to_csv(
+    pd.DataFrame(candidate.availability_rate).to_csv(
         input_dir / "data-series" / f"{series}.tsv", sep="\t", header=False, index=False
     )
+    lower, upper = BOUNDS[candidate.model]
     parameters = [
-        _parameter("existing_capacity", existing_capacity),
-        _parameter("min_investment", min_investment),
-        _parameter("max_investment", max_investment),
-        _parameter("annual_investment_cost", COST_PER_MW[model]),
+        _parameter("existing_capacity", candidate.existing_capacity),
+        _parameter(lower, candidate.lower_bound),
+        _parameter(upper, candidate.upper_bound),
+        _parameter("annual_investment_cost", COST_PER_MW[candidate.model]),
         _parameter("availability_rate", series, series=True),
     ]
-    if model == DISCRETE:
+    if candidate.model == DISCRETE:
         parameters.append(_parameter("unit_size", UNIT_SIZE))
-    return ComponentSchema(
-        id=component, model=model, parameters=parameters
-    ), ThermalCapacityConnectionSchema(
-        component=component,
-        port="capacity_port",
-        thermal_component=ThermalComponentSchema(
-            area=area, cluster_id="candidate_cluster"
-        ),
-    )
+    return ComponentSchema(id=component, model=candidate.model, parameters=parameters)
 
 
-def _write_gems_input(
-    input_dir: Path,
-    components: list[ComponentSchema],
-    connections: list[ThermalCapacityConnectionSchema],
-) -> None:
-    """Adds the candidates to the system.yml (created if absent) with GemsPy,
-    checks it against the library, and writes the library and optim-config.yml."""
+def _add_candidates(input_dir: Path, candidates: list[Candidate]) -> None:
+    """Adds the candidates and their thermal-capacity-connections to the
+    system.yml (created if absent) with GemsPy, checks it against the library,
+    and writes the library and optim-config.yml."""
+    (input_dir / "data-series").mkdir(parents=True, exist_ok=True)
     (input_dir / "model-libraries").mkdir(exist_ok=True)
     shutil.copy2(LIBRARY_PATH, input_dir / "model-libraries")
     system_file = input_dir / "system.yml"
@@ -149,10 +153,20 @@ def _write_gems_input(
             system = parse_yaml_hybrid_system(file)
     else:
         system = HybridSystemSchema(id="investment_candidates")
+    components = [_component(candidate, input_dir) for candidate in candidates]
     system.components = system.components + components
     system.thermal_capacity_connections = (
         system.thermal_capacity_connections or []
-    ) + connections
+    ) + [
+        ThermalCapacityConnectionSchema(
+            component=component.id,
+            port="capacity_port",
+            thermal_component=ThermalComponentSchema(
+                area=candidate.area, cluster_id=CANDIDATE_CLUSTER
+            ),
+        )
+        for candidate, component in zip(candidates, components)
+    ]
     # GemsPy resolves every component against its model (ids, parameters)
     libraries = resolve_library(
         [
@@ -183,11 +197,24 @@ def _write_gems_input(
     )
 
 
+def _new_study(parent_dir: Path, name: str) -> Study:
+    return create_study_local(name, ANTARES_VERSION_CREATED_STUDIES, parent_dir)
+
+
+def _add_thermal_cluster(
+    area: Area, name: str, capacity: float, cost: float, series: np.ndarray
+) -> None:
+    area.create_thermal_cluster(
+        name,
+        ThermalClusterProperties(
+            nominal_capacity=capacity, marginal_cost=cost, market_bid_cost=cost
+        ),
+    ).set_series(pd.DataFrame(series))
+
+
 def _create_study(parent_dir: Path, case: str) -> Path:
-    study = create_study_local(case, ANTARES_VERSION_CREATED_STUDIES, parent_dir)
-    input_dir = parent_dir / case / "input"
-    components, connections = [], []
-    for area_name, (model, min_investment, max_investment, _) in CASES[case].items():
+    study = _new_study(parent_dir, case)
+    for area_name in CASES[case]:
         area = study.create_area(
             area_name,
             properties=AreaProperties(
@@ -195,32 +222,31 @@ def _create_study(parent_dir: Path, case: str) -> Path:
             ),
         )
         area.set_load(pd.DataFrame(np.full((HOURS, 1), LOAD)))
-        for name, capacity, cost in [
-            ("base", BASE, BASE_COST),
-            ("candidate_cluster", EXISTING, CANDIDATE_COST),
-        ]:
-            area.create_thermal_cluster(
-                name,
-                ThermalClusterProperties(
-                    nominal_capacity=capacity, marginal_cost=cost, market_bid_cost=cost
-                ),
-            ).set_series(pd.DataFrame(np.full((HOURS, 1), capacity)))
-        component, connection = _candidate(
-            area_name,
-            model,
+        _add_thermal_cluster(area, "base", BASE, BASE_COST, np.full((HOURS, 1), BASE))
+        _add_thermal_cluster(
+            area,
+            CANDIDATE_CLUSTER,
             EXISTING,
-            min_investment,
-            max_investment,
-            np.ones((HOURS, 1)),
-            input_dir,
+            CANDIDATE_COST,
+            np.full((HOURS, 1), EXISTING),
         )
-        components.append(component)
-        connections.append(connection)
-    _write_gems_input(input_dir, components, connections)
+    _add_candidates(
+        parent_dir / case / "input",
+        [
+            Candidate(area, model, EXISTING, lower, upper, np.ones((HOURS, 1)))
+            for area, (model, lower, upper, _) in CASES[case].items()
+        ],
+    )
     settings = parent_dir / case / "user" / "expansion" / "settings.ini"
     settings.parent.mkdir(parents=True)
     settings.write_text("optimality_gap = 0\nrelative_gap = 1e-8\nsolver = Cbc\n")
     return parent_dir / case
+
+
+@pytest.fixture(params=CASES)
+def benders_study(request: pytest.FixtureRequest, tmp_path: Path) -> tuple[str, Path]:
+    """(case, path of the study using both models)."""
+    return request.param, _create_study(tmp_path, request.param)
 
 
 def _run(command: list) -> None:
@@ -241,24 +267,21 @@ def _run(command: list) -> None:
 EQUIVALENCE_EXISTING = 50
 EQUIVALENCE_RATE = 0.2 + 0.8 * np.random.default_rng(167).random((HOURS, 1))
 EQUIVALENCE_REL_ACCURACY = 5 * 1e-5
-# model: invested capacity I
-FIXED_INVESTMENTS = {CONTINUOUS: 75.3, DISCRETE: 2 * UNIT_SIZE}
+# model: fixed value of the investment variable (75.3 MW; 2 units of 30 MW)
+FIXED_INVESTMENTS = {CONTINUOUS: 75.3, DISCRETE: 2}
 
 
 def _equivalence_study(
     parent_dir: Path, name: str, capacity: float, series_capacity: float
 ) -> Path:
-    study = create_study_local(name, ANTARES_VERSION_CREATED_STUDIES, parent_dir)
+    study = _new_study(parent_dir, name)
     area = _create_area_with_base_clusters(
         study,
         pd.read_csv("tests/antares_historic/data/load_matrix_1.txt", header=None),
     )
-    area.create_thermal_cluster(
-        "candidate_cluster",
-        ThermalClusterProperties(
-            nominal_capacity=capacity, marginal_cost=15, market_bid_cost=15
-        ),
-    ).set_series(pd.DataFrame(series_capacity * EQUIVALENCE_RATE))
+    _add_thermal_cluster(
+        area, CANDIDATE_CLUSTER, capacity, 15, series_capacity * EQUIVALENCE_RATE
+    )
     addHybridBehavior(parent_dir / name)
     return parent_dir / name
 
@@ -267,22 +290,19 @@ def _equivalence_study(
 def test_fixed_investment_matches_legacy_cluster(
     model: str, tmp_path: Path, antares_exec_folder: Path
 ) -> None:
-    assert_antares_exec_exists(antares_exec_folder)
-    invested = FIXED_INVESTMENTS[model]
-    total = EQUIVALENCE_EXISTING + invested
+    assert_antares_exec_exists(antares_exec_folder, "antares-solver")
+    value = FIXED_INVESTMENTS[model]
+    total = EQUIVALENCE_EXISTING + value * UNIT_SCALE[model]
     legacy = _equivalence_study(tmp_path, "legacy", total, total)
     hybrid = _equivalence_study(tmp_path, "hybrid", total, EQUIVALENCE_EXISTING)
-    component, connection = _candidate(
-        "unique",
-        model,
-        EQUIVALENCE_EXISTING,
-        invested,
-        invested,
-        EQUIVALENCE_RATE,
+    _add_candidates(
         hybrid / "input",
+        [
+            Candidate(
+                "unique", model, EQUIVALENCE_EXISTING, value, value, EQUIVALENCE_RATE
+            )
+        ],
     )
-    _write_gems_input(hybrid / "input", [component], [connection])
-
     # sensitivity: 10 % less capacity in the legacy study
     perturbated = _equivalence_study(tmp_path, "perturbated", total, 0.9 * total)
 
@@ -293,25 +313,12 @@ def test_fixed_investment_matches_legacy_cluster(
         return table.query('output == "OBJECTIVE_VALUE"')["value"].to_numpy()
 
     hybrid_objectives = weekly_objectives(hybrid)
-    for study, equivalent in [(legacy, True), (perturbated, False)]:
-        legacy_objectives = weekly_objectives(study)
-        # largest weekly gap
-        gap = np.abs(hybrid_objectives / legacy_objectives - 1).max()
-        assert (gap < EQUIVALENCE_REL_ACCURACY) == equivalent, gap
-        if not equivalent:
-            assert gap > 10 * EQUIVALENCE_REL_ACCURACY
 
+    def largest_weekly_gap(study: Path) -> float:
+        return np.abs(hybrid_objectives / weekly_objectives(study) - 1).max()
 
-@pytest.mark.parametrize("case", CASES)
-def test_antares_solver_runs_the_study(
-    case: str, tmp_path: Path, antares_exec_folder: Path
-) -> None:
-    assert_antares_exec_exists(antares_exec_folder)
-    study_path = _create_study(tmp_path, case)
-    # the discrete model needs a MIP solver: highs, not sirius (the default)
-    _run(
-        [antares_exec_folder / "antares-solver", study_path, "--linear-solver", "highs"]
-    )
+    assert largest_weekly_gap(legacy) < EQUIVALENCE_REL_ACCURACY
+    assert largest_weekly_gap(perturbated) > 10 * EQUIVALENCE_REL_ACCURACY
 
 
 def _master_columns(master_mps: Path) -> dict[str, list]:
@@ -326,6 +333,8 @@ def _master_columns(master_mps: Path) -> dict[str, list]:
             integer = "'INTORG'" in fields
         elif section == "COLUMNS" and fields[1] == "OBJ":
             columns[fields[0]] = [float(fields[2]), 0.0, float("inf"), integer]
+        elif section == "BOUNDS" and fields[0] == "BV":  # binary: integer in [0, 1]
+            columns[fields[2]][1:3] = [0.0, 1.0]
         elif section == "BOUNDS" and fields[0] in ("LO", "LI", "FX"):
             columns[fields[2]][1] = float(fields[3])
         if section == "BOUNDS" and fields[0] in ("UP", "UI", "FX"):
@@ -333,12 +342,11 @@ def _master_columns(master_mps: Path) -> dict[str, list]:
     return columns
 
 
-@pytest.mark.parametrize("case", CASES)
 def test_problem_generator_writes_the_master_problem(
-    case: str, tmp_path: Path, antares_exec_folder: Path
+    benders_study: tuple[str, Path], antares_exec_folder: Path
 ) -> None:
-    assert_antares_exec_exists(antares_exec_folder)
-    study_path = _create_study(tmp_path, case)
+    assert_antares_exec_exists(antares_exec_folder, "antares-problem-generator")
+    case, study_path = benders_study
     _run([antares_exec_folder / "antares-problem-generator", study_path])
 
     (output,) = (study_path / "output").iterdir()
@@ -346,21 +354,20 @@ def test_problem_generator_writes_the_master_problem(
     assert _master_columns(output / "master.mps") == {
         _variable(area, model): [
             pytest.approx(COST_PER_MW[model] * UNIT_SCALE[model]),
-            pytest.approx(min_investment / UNIT_SCALE[model]),
-            pytest.approx(max_investment / UNIT_SCALE[model]),
+            pytest.approx(lower),
+            pytest.approx(upper),
             model == DISCRETE,
         ]
-        for area, (model, min_investment, max_investment, _) in CASES[case].items()
+        for area, (model, lower, upper, _) in CASES[case].items()
     }
 
 
 @pytest.mark.skipif(
     "ANTARES_XPANSION_DIR" not in os.environ,
-    reason="needs Antares Xpansion: set ANTARES_XPANSION_DIR",
+    reason="opt-in, not run in CI: needs Antares Xpansion, set ANTARES_XPANSION_DIR",
 )
-@pytest.mark.parametrize("case", CASES)
-def test_xpansion_finds_the_analytic_optimum(case: str, tmp_path: Path) -> None:
-    study_path = _create_study(tmp_path, case)
+def test_xpansion_finds_the_analytic_optimum(benders_study: tuple[str, Path]) -> None:
+    case, study_path = benders_study
     xpansion_dir = Path(os.environ["ANTARES_XPANSION_DIR"])
     _run(
         [

@@ -49,8 +49,10 @@ def antares_exec_folder() -> Path:
         raise RuntimeError("Unsupported OS")
 
 
-def assert_antares_exec_exists(antares_exec_folder: Path) -> None:
-    antares_exec = antares_exec_folder / "antares-modeler"
+def assert_antares_exec_exists(
+    antares_exec_folder: Path, executable: str = "antares-modeler"
+) -> None:
+    antares_exec = antares_exec_folder / executable
     assert antares_exec.exists(), f"Antares executable not found at {antares_exec}"
 
 
