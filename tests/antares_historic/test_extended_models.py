@@ -57,6 +57,18 @@ LOAD = 900 + 400 * DAILY_SHAPE + 100 * np.sin(2 * np.pi * HOURS / NUM_TIME_STEPS
 UNUSED_THERMAL_FAST_PARAMETERS: dict[str, Value] = dict(
     startup_cost=0, fixed_cost=0, d_min_up=1, d_min_down=1
 )
+# Models aligned with a category of antares_legacy_taxonomy: id in the reference
+# library -> id in extended_models.yml of their renamed variables and ports. Their
+# components also set the properties technology and name.
+TAXONOMY_RENAMES: dict[str, dict[str, str]] = {
+    "thermal_milp": {"generation": "generation_power"},
+    "thermal_fast": {"generation": "generation_power"},
+    "short-term-storage": {
+        "p_injection": "injection_power",
+        "p_withdrawal": "withdrawal_power",
+        "injection_port": "balance_port",
+    },
+}
 
 
 class Flavour:
@@ -94,9 +106,22 @@ class Flavour:
         return study
 
     def component(self, component_id: str, model: str, **parameters: Value) -> dict:
-        """A component of a tested model, the same with both libraries."""
+        """A component of a tested model, the same with both libraries, but for the
+        properties of the models aligned with the taxonomy."""
         library = LEGACY if self.is_reference else EXTENDED
-        return component(component_id, f"{library}.{model}", **parameters)
+        result = component(component_id, f"{library}.{model}", **parameters)
+        if not self.is_reference and model in TAXONOMY_RENAMES:
+            result["properties"] = [
+                {"id": "technology", "value": model},
+                {"id": "name", "value": component_id},
+            ]
+        return result
+
+    def renamed(self, model: str, element_id: str) -> str:
+        """The id of a variable or port of model in this flavour's library."""
+        if self.is_reference:
+            return element_id
+        return TAXONOMY_RENAMES.get(model, {}).get(element_id, element_id)
 
 
 REFERENCE = Flavour(is_reference=True)
@@ -244,7 +269,7 @@ def test_thermal_fast(tmp_path: Path, antares_exec_folder: Path) -> None:
     )
 
     assert extended.objective == pytest.approx(reference.objective, rel=REL_TOL)
-    assert extended.series("cheap", "generation") == pytest.approx(
+    assert extended.series("cheap", "generation_power") == pytest.approx(
         reference.series("cheap", "generation"), abs=1e-6
     )
     assert without_spinning.objective < extended.objective * (1 - 100 * REL_TOL)
@@ -297,7 +322,7 @@ def storage_study(
             p_withdrawal_when_injection_max=100,
             cycle_constraint=cycle_constraint,
         ),
-        port="injection_port",
+        port=flavour.renamed("short-term-storage", "injection_port"),
     )
     return study
 
@@ -617,13 +642,25 @@ CONSTANT_PARAMETERS = re.compile(r"d_min_up|d_min_down|alpha_.*")
 @pytest.mark.parametrize("model_id", sorted(_models(EXTENDED_LIBRARY)))
 def test_same_ids_as_the_reference_library(model_id: str) -> None:
     """A system written for the reference library can use extended_models.yml, but
-    for the library id: same models, parameters (and their dependencies, but for
-    CONSTANT_PARAMETERS), variables, ports and extra outputs (this does not need the
-    Antares binary)."""
+    for the library id and TAXONOMY_RENAMES: same models, parameters (and their
+    dependencies, but for CONSTANT_PARAMETERS), variables, ports and extra outputs.
+    The models aligned with the taxonomy may have more extra outputs (this does not
+    need the Antares binary)."""
     model = _models(EXTENDED_LIBRARY)[model_id]
     reference = _models(REFERENCE_LIBRARY)[model_id]
-    for key in ["variables", "ports", "extra-outputs"]:
-        assert _declarations(model, key) == _declarations(reference, key), key
+    renames = TAXONOMY_RENAMES.get(model_id, {})
+    for key in ["variables", "ports"]:
+        expected_items = [
+            (renames.get(item_id, item_id), *dependencies)
+            for item_id, *dependencies in _declarations(reference, key)
+        ]
+        assert _declarations(model, key) == expected_items, key
+    extra_outputs = _declarations(model, "extra-outputs")
+    reference_extra_outputs = _declarations(reference, "extra-outputs")
+    if model_id in TAXONOMY_RENAMES:
+        assert set(reference_extra_outputs) <= set(extra_outputs)
+    else:
+        assert extra_outputs == reference_extra_outputs
     expected = [
         (
             (parameter_id, False, False)
@@ -671,8 +708,8 @@ def _window(expression: str, term: str) -> list[int]:
 @pytest.mark.parametrize(
     "model, prefix, reference_term, term",
     [
-        ("short-term-storage", "daily_pump_max", "p_injection", "p_injection"),
-        ("short-term-storage", "daily_turb_max", "p_withdrawal", "p_withdrawal"),
+        ("short-term-storage", "daily_pump_max", "p_injection", "injection_power"),
+        ("short-term-storage", "daily_turb_max", "p_withdrawal", "withdrawal_power"),
         ("bc_nuc_daily_less", "bc_daily", "rhs", "rhs"),
         (
             "bc_nuc_daily_less",
