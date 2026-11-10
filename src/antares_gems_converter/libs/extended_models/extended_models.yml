@@ -1,0 +1,671 @@
+# Copyright (c) 2024, RTE (https://www.rte-france.com)
+#
+# See AUTHORS.txt
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# SPDX-License-Identifier: MPL-2.0
+#
+# This file is part of the Antares project.
+#
+# Models that are NOT in antares_legacy_models.yml, to be used next to it.
+# The area, load, link, renewable and thermal ("accurate") models are taken from
+# antares_legacy_models.yml: this library only holds variants and new constructs.
+# The ids of the models, parameters, variables, ports and constraints are those of
+# the external library they come from, so that the same system can use them, but for
+# the elements renamed to follow the categories of antares_legacy_taxonomy:
+# - thermal_milp, thermal_fast (dispatchable_generation): variable generation -> generation_power;
+# - short-term-storage (short_term_storage): variables p_injection -> injection_power and
+#   p_withdrawal -> withdrawal_power, port injection_port -> balance_port.
+# These models also have the properties technology and name, which every component must set.
+library:
+  id: extended_models
+  description: Models to use next to the Antares legacy model library (MILP and fast thermal clusters, storage with cycle limits, curtailable renewables, nuclear binding constraints)
+  version: "1.0.0"
+  taxonomy: antares_legacy_taxonomy
+
+  # Same port type as antares_legacy_models.flow, so that the components of both
+  # libraries can be connected, and connected to legacy areas in HYBRID mode.
+  port-types:
+    - id: flow
+      description: A port that transfers power flow.
+      fields:
+        - id: flow
+        - id: price
+        - id: spillage_bound # Generation that may be spilled in the area (positive), as in the legacy "fictitious load" constraint
+        - id: unsupplied_energy_bound # Load that may be left unsupplied in the area (positive), as in the legacy bound on unsupplied energy
+      area-connection:
+        injection-to-balance: flow
+        spillage-bound: spillage_bound
+        unsupplied-energy-bound: unsupplied_energy_bound
+
+  models:
+    # Thermal cluster with integer unit-commitment variables.
+    - id: thermal_milp
+      taxonomy-category: dispatchable_generation
+      parameters:
+        - id: minimum_generation_modulation
+          scenario-dependent: true
+          time-dependent: true
+        - id: p_max_cluster
+          scenario-dependent: true
+          time-dependent: true
+        - id: p_min_unit
+        - id: p_max_unit
+        - id: generation_cost
+        - id: startup_cost
+        - id: fixed_cost
+        - id: d_min_up # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: d_min_down # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: unit_count
+        - id: spinning # in percentage
+      variables:
+        - id: generation_power
+          lower-bound: min(max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit)), minimum_generation_modulation * unit_count * p_max_unit)
+          upper-bound: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit))
+          variable-type: continuous
+        - id: nb_units_on
+          lower-bound: ceil(min(p_max_cluster / p_max_unit, minimum_generation_modulation * unit_count * p_max_unit / (p_max_unit * (1 - spinning / 100))))
+          upper-bound: ceil(p_max_cluster / p_max_unit)
+          variable-type: integer
+        - id: nb_starting
+          lower-bound: 0
+          variable-type: integer
+        - id: nb_stopping
+          lower-bound: 0
+          variable-type: integer
+        - id: nb_failing
+          lower-bound: 0
+          upper-bound: max(0, (ceil(p_max_cluster / p_max_unit))[t-1] - ceil(p_max_cluster / p_max_unit))
+          variable-type: integer
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: generation_power
+        - port: balance_port
+          field: spillage_bound
+          definition: generation_power # Dispatchable generation may be spilled
+        - port: balance_port
+          field: unsupplied_energy_bound
+          definition: 0
+      constraints:
+        - id: max_generation
+          expression: generation_power <= nb_units_on * p_max_unit * (1 - spinning / 100)
+        - id: min_generation
+          expression: generation_power >= nb_units_on * p_min_unit
+        - id: on_units_dynamics
+          expression: nb_units_on = nb_units_on[t-1] + nb_starting - nb_stopping
+        - id: nb_failing_lower_than_stopping
+          expression: nb_failing <= nb_stopping
+        - id: min_up_duration
+          expression: sum(t-d_min_up+1 .. t, nb_starting - nb_failing) <= nb_units_on
+        - id: min_down_duration
+          expression: sum(t-d_min_down+1 .. t, nb_stopping) <= (ceil(p_max_cluster / p_max_unit))[t-d_min_down] - nb_units_on + sum(t-d_min_down+1 .. t, max(0, ceil(p_max_cluster / p_max_unit) - (ceil(p_max_cluster / p_max_unit))[t-1]))
+      objective-contributions:
+        - id: objective
+          expression: sum(generation_cost * generation_power + startup_cost * nb_starting + fixed_cost * nb_units_on)
+      # Required by the dispatchable_generation category of antares_legacy_taxonomy
+      extra-outputs:
+        - id: prop_cost
+          expression: generation_cost * generation_power
+        - id: non_prop_cost
+          expression: startup_cost * nb_starting + fixed_cost * nb_units_on
+        - id: actual_num_units_on
+          expression: nb_units_on
+        - id: cluster_availability
+          expression: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit))
+        - id: min_gen_power
+          expression: min(generation_power, minimum_generation_modulation * unit_count * p_max_unit)
+        - id: up_margin
+          expression: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit)) - generation_power
+        # No emission rates in this model: the emissions are 0
+        - id: co2_emissions
+          expression: 0 * generation_power
+        - id: nh3_emissions
+          expression: 0 * generation_power
+        - id: so2_emissions
+          expression: 0 * generation_power
+        - id: nox_emissions
+          expression: 0 * generation_power
+        - id: pm2_5_emissions
+          expression: 0 * generation_power
+        - id: pm5_emissions
+          expression: 0 * generation_power
+        - id: pm10_emissions
+          expression: 0 * generation_power
+        - id: nmvoc_emissions
+          expression: 0 * generation_power
+        - id: op1_emissions
+          expression: 0 * generation_power
+        - id: op2_emissions
+          expression: 0 * generation_power
+        - id: op3_emissions
+          expression: 0 * generation_power
+        - id: op4_emissions
+          expression: 0 * generation_power
+        - id: op5_emissions
+          expression: 0 * generation_power
+        - id: profit
+          expression: (sum_connections(balance_port.price) - generation_cost) * max(generation_power - minimum_generation_modulation * unit_count * p_max_unit, 0)
+      properties: # Required by the taxonomy category; GemsPy requires every component to set them
+        - id: technology
+        - id: name
+
+    # Thermal cluster without unit commitment: only the generation bounds are kept.
+    # startup_cost, fixed_cost, d_min_up and d_min_down are not used.
+    - id: thermal_fast
+      taxonomy-category: dispatchable_generation
+      parameters:
+        - id: minimum_generation_modulation
+          scenario-dependent: true
+          time-dependent: true
+        - id: p_max_cluster
+          scenario-dependent: true
+          time-dependent: true
+        - id: p_min_unit
+        - id: p_max_unit
+        - id: generation_cost
+        - id: startup_cost
+        - id: fixed_cost
+        - id: d_min_up # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: d_min_down # Bound of a time sum, so must not depend on time
+          time-dependent: false
+          scenario-dependent: false
+        - id: unit_count
+        - id: spinning # in percentage
+      variables:
+        - id: generation_power
+          lower-bound: min(max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit)), minimum_generation_modulation * unit_count * p_max_unit)
+          upper-bound: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit))
+          variable-type: continuous
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: generation_power
+        - port: balance_port
+          field: spillage_bound
+          definition: generation_power # Dispatchable generation may be spilled
+        - port: balance_port
+          field: unsupplied_energy_bound
+          definition: 0
+      objective-contributions:
+        - id: objective
+          expression: sum(generation_cost * generation_power)
+      # Required by the dispatchable_generation category of antares_legacy_taxonomy
+      extra-outputs:
+        - id: prop_cost
+          expression: generation_cost * generation_power
+        - id: non_prop_cost
+          expression: 0 * generation_power # No unit commitment
+        - id: actual_num_units_on
+          expression: ceil(generation_power / (p_max_unit * (1 - spinning / 100)))
+        - id: cluster_availability
+          expression: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit))
+        - id: min_gen_power
+          expression: min(generation_power, minimum_generation_modulation * unit_count * p_max_unit)
+        - id: up_margin
+          expression: max(p_max_cluster * (1 - spinning / 100), p_min_unit * ceil(p_max_cluster / p_max_unit)) - generation_power
+        # No emission rates in this model: the emissions are 0
+        - id: co2_emissions
+          expression: 0 * generation_power
+        - id: nh3_emissions
+          expression: 0 * generation_power
+        - id: so2_emissions
+          expression: 0 * generation_power
+        - id: nox_emissions
+          expression: 0 * generation_power
+        - id: pm2_5_emissions
+          expression: 0 * generation_power
+        - id: pm5_emissions
+          expression: 0 * generation_power
+        - id: pm10_emissions
+          expression: 0 * generation_power
+        - id: nmvoc_emissions
+          expression: 0 * generation_power
+        - id: op1_emissions
+          expression: 0 * generation_power
+        - id: op2_emissions
+          expression: 0 * generation_power
+        - id: op3_emissions
+          expression: 0 * generation_power
+        - id: op4_emissions
+          expression: 0 * generation_power
+        - id: op5_emissions
+          expression: 0 * generation_power
+        - id: profit
+          expression: (sum_connections(balance_port.price) - generation_cost) * max(generation_power - minimum_generation_modulation * unit_count * p_max_unit, 0)
+      properties: # Required by the taxonomy category; GemsPy requires every component to set them
+        - id: technology
+        - id: name
+
+    # Short-term storage with a hurdle cost, McCormick cuts against simultaneous
+    # injection and withdrawal, and daily cycle limits.
+    # The level at t is the level BEFORE the flows of t (level[0] is the initial level),
+    # unlike antares_legacy_models.short_term_storage.
+    # The daily cycle limits assume a weekly horizon (time steps 0 to 167).
+    - id: short-term-storage
+      taxonomy-category: short_term_storage
+      parameters:
+        - id: reservoir_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: injection_nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: withdrawal_nominal_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: efficiency_injection
+          time-dependent: false
+          scenario-dependent: false
+        - id: efficiency_withdrawal
+          time-dependent: false
+          scenario-dependent: false
+        - id: lower_rule_curve
+          time-dependent: true
+          scenario-dependent: true
+        - id: upper_rule_curve
+          time-dependent: true
+          scenario-dependent: true
+        - id: p_max_injection_modulation
+          time-dependent: true
+          scenario-dependent: true
+        - id: p_max_withdrawal_modulation
+          time-dependent: true
+          scenario-dependent: true
+        - id: inflows
+          time-dependent: true
+          scenario-dependent: true
+        - id: initial_level
+          time-dependent: false
+          scenario-dependent: true
+        - id: cost_injection
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_withdrawal
+          time-dependent: true
+          scenario-dependent: true
+        - id: cost_level
+          time-dependent: true
+          scenario-dependent: true
+        - id: p_t_cost # Hurdle cost on injection and withdrawal, against simultaneous injection and withdrawal
+          time-dependent: false
+          scenario-dependent: false
+        - id: nb_cycles_max # Maximum number of daily cycles (injected or withdrawn energy over reservoir capacity)
+          time-dependent: false
+          scenario-dependent: false
+        - id: mccormick # 1 to add the usual McCormick cut, 0 otherwise
+          time-dependent: false
+          scenario-dependent: false
+        - id: mccormick_grand_maison # 1 to add the Grand'Maison McCormick cut, 0 otherwise
+          time-dependent: false
+          scenario-dependent: false
+        - id: p_withdrawal_when_injection_max # Withdrawal allowed by the Grand'Maison cut at maximum injection (620 for Grand'Maison)
+          time-dependent: false
+          scenario-dependent: false
+        - id: cycle_constraint # 1 to limit the daily cycles, 0 otherwise
+          time-dependent: false
+          scenario-dependent: false
+      variables:
+        - id: injection_power
+          lower-bound: 0
+          upper-bound: p_max_injection_modulation * injection_nominal_capacity
+          variable-type: continuous
+        - id: withdrawal_power
+          lower-bound: 0
+          upper-bound: p_max_withdrawal_modulation * withdrawal_nominal_capacity
+          variable-type: continuous
+        - id: level
+          lower-bound: lower_rule_curve * reservoir_capacity
+          upper-bound: upper_rule_curve * reservoir_capacity
+          variable-type: continuous
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: withdrawal_power - injection_power
+        - port: balance_port
+          field: spillage_bound
+          definition: withdrawal_power # Withdrawn energy may be spilled, injected energy does not reduce the bound
+        - port: balance_port
+          field: unsupplied_energy_bound
+          definition: 0
+      constraints:
+        - id: initial_level_constraint
+          expression: level[0] = initial_level * reservoir_capacity
+        - id: level_equation
+          expression: level[t+1] = level + efficiency_injection * injection_power - efficiency_withdrawal * withdrawal_power + inflows
+        # Both McCormick cuts in one (the flags being 0 or 1): the Grand'Maison cut, through
+        # (max injection, p_withdrawal_when_injection_max) and (0, max withdrawal), is the
+        # usual one when p_withdrawal_when_injection_max is 0, and the usual one is tighter.
+        - id: mccormick constraint
+          expression: max(mccormick, mccormick_grand_maison) * (injection_power * (withdrawal_nominal_capacity * p_max_withdrawal_modulation - (1 - mccormick) * p_withdrawal_when_injection_max) + withdrawal_power * injection_nominal_capacity * p_max_injection_modulation) <= p_max_injection_modulation * injection_nominal_capacity * p_max_withdrawal_modulation * withdrawal_nominal_capacity
+        - id: daily_pump_max_1_w1
+          expression: cycle_constraint * efficiency_injection * sum(0 .. 23, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_2_w1
+          expression: cycle_constraint * efficiency_injection * sum(24 .. 47, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_3_w1
+          expression: cycle_constraint * efficiency_injection * sum(48 .. 71, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_4_w1
+          expression: cycle_constraint * efficiency_injection * sum(72 .. 95, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_5_w1
+          expression: cycle_constraint * efficiency_injection * sum(96 .. 119, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_6_w1
+          expression: cycle_constraint * efficiency_injection * sum(120 .. 143, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_pump_max_7_w1
+          expression: cycle_constraint * efficiency_injection * sum(144 .. 167, injection_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_1_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(0 .. 23, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_2_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(24 .. 47, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_3_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(48 .. 71, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_4_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(72 .. 95, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_5_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(96 .. 119, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_6_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(120 .. 143, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+        - id: daily_turb_max_7_w1
+          expression: cycle_constraint * efficiency_withdrawal * sum(144 .. 167, withdrawal_power) <= nb_cycles_max * reservoir_capacity
+      objective-contributions:
+        - id: objective
+          expression: sum((p_t_cost + cost_injection) * injection_power + (p_t_cost + cost_withdrawal) * withdrawal_power + cost_level * level)
+      # Required by the short_term_storage category of antares_legacy_taxonomy
+      extra-outputs:
+        - id: profit
+          expression: floor((withdrawal_power - injection_power) * sum_connections(balance_port.price) + 0.5)
+      properties: # Required by the taxonomy category; GemsPy requires every component to set them
+        - id: technology
+        - id: name
+
+    # Curtailment of a renewable generation modelled elsewhere (e.g. by a renewable
+    # cluster): the curtailed power is withdrawn from the area.
+    - id: enr
+      parameters:
+        - id: generation_cost # Negative price of the renewable generation: curtailing saves -generation_cost per MWh
+          time-dependent: false
+          scenario-dependent: false
+        - id: enr_total # Load factor, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: enr_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_non_ecretable # Non curtailable share, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+      variables:
+        - id: enr_ecrete # Curtailed power, bounded by the curtailable power
+          lower-bound: 0
+          upper-bound: enr_total * enr_capacity * (1 - taux_non_ecretable)
+          variable-type: continuous
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -enr_ecrete
+        - port: balance_port
+          field: spillage_bound
+          definition: 0
+        - port: balance_port
+          field: unsupplied_energy_bound
+          definition: 0
+      objective-contributions:
+        - id: objective
+          expression: sum(-generation_cost * enr_ecrete)
+      extra-outputs:
+        - id: enr_non_ecretable
+          expression: enr_total * enr_capacity * taux_non_ecretable
+        - id: enr_non_ecrete # Curtailable power that is not curtailed
+          expression: enr_total * enr_capacity * (1 - taux_non_ecretable) - enr_ecrete
+
+    # Curtailment in 5 bands, each with its own share and cost. The bands are
+    # independent: this model is equivalent to 5 enr components
+    # (taux_non_ecretable = 1 - taux_ecretable_<i>).
+    - id: enr_multi_bandes
+      parameters:
+        - id: enr_fc_total # Load factor, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: enr_capacity
+          time-dependent: false
+          scenario-dependent: false
+        - id: generation_cost_1 # Negative price of band 1
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_ecretable_1 # Curtailable share of band 1, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: generation_cost_2 # Negative price of band 2
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_ecretable_2 # Curtailable share of band 2, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: generation_cost_3 # Negative price of band 3
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_ecretable_3 # Curtailable share of band 3, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: generation_cost_4 # Negative price of band 4
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_ecretable_4 # Curtailable share of band 4, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+        - id: generation_cost_5 # Negative price of band 5
+          time-dependent: false
+          scenario-dependent: false
+        - id: taux_ecretable_5 # Curtailable share of band 5, between 0 and 1
+          time-dependent: true
+          scenario-dependent: true
+      variables:
+        - id: enr_ecrete_1
+          lower-bound: 0
+          upper-bound: enr_fc_total * enr_capacity * taux_ecretable_1
+          variable-type: continuous
+        - id: enr_ecrete_2
+          lower-bound: 0
+          upper-bound: enr_fc_total * enr_capacity * taux_ecretable_2
+          variable-type: continuous
+        - id: enr_ecrete_3
+          lower-bound: 0
+          upper-bound: enr_fc_total * enr_capacity * taux_ecretable_3
+          variable-type: continuous
+        - id: enr_ecrete_4
+          lower-bound: 0
+          upper-bound: enr_fc_total * enr_capacity * taux_ecretable_4
+          variable-type: continuous
+        - id: enr_ecrete_5
+          lower-bound: 0
+          upper-bound: enr_fc_total * enr_capacity * taux_ecretable_5
+          variable-type: continuous
+      ports:
+        - id: balance_port
+          type: flow
+      port-field-definitions:
+        - port: balance_port
+          field: flow
+          definition: -(enr_ecrete_1 + enr_ecrete_2 + enr_ecrete_3 + enr_ecrete_4 + enr_ecrete_5)
+        - port: balance_port
+          field: spillage_bound
+          definition: 0
+        - port: balance_port
+          field: unsupplied_energy_bound
+          definition: 0
+      objective-contributions:
+        - id: objective
+          expression: -sum(generation_cost_1 * enr_ecrete_1 + generation_cost_2 * enr_ecrete_2 + generation_cost_3 * enr_ecrete_3 + generation_cost_4 * enr_ecrete_4 + generation_cost_5 * enr_ecrete_5)
+      extra-outputs:
+        - id: enr_ecrete_total
+          expression: enr_ecrete_1 + enr_ecrete_2 + enr_ecrete_3 + enr_ecrete_4 + enr_ecrete_5
+        - id: enr_prod_total
+          expression: enr_fc_total * enr_capacity - (enr_ecrete_1 + enr_ecrete_2 + enr_ecrete_3 + enr_ecrete_4 + enr_ecrete_5)
+
+    # Binding constraints on the nuclear clusters. Each flow_<cluster> port is
+    # connected to the balance_port of a cluster, with the coefficient alpha_<cluster>.
+    # The models share their parameters, ports and port field definitions (YAML anchors).
+    - id: bc_nuc_hourly_less
+      parameters: &bc_nuc_parameters
+        - id: alpha_fr_nuclear_cp0_cp1_cp2 # Constant coefficients: if time-dependent, a constraint with alpha outside a time sum or index gets one row per time step
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_epr
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_n4
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_p4
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_peak1
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_peak2
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_fr_nuclear_peak3
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_y_nuc_modulation_nuclear_epr
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_y_nuc_modulation_nuclear_n4
+          time-dependent: false
+          scenario-dependent: false
+        - id: alpha_y_nuc_modulation_nuclear_p4
+          time-dependent: false
+          scenario-dependent: false
+        - id: rhs
+          time-dependent: true
+          scenario-dependent: true
+      ports: &bc_nuc_ports
+        - id: flow_fr_nuclear_cp0_cp1_cp2
+          type: flow
+        - id: flow_fr_nuclear_epr
+          type: flow
+        - id: flow_fr_nuclear_n4
+          type: flow
+        - id: flow_fr_nuclear_p4
+          type: flow
+        - id: flow_fr_nuclear_peak1
+          type: flow
+        - id: flow_fr_nuclear_peak2
+          type: flow
+        - id: flow_fr_nuclear_peak3
+          type: flow
+        - id: flow_y_nuc_modulation_nuclear_cp0_cp1_cp2
+          type: flow
+        - id: flow_y_nuc_modulation_nuclear_epr
+          type: flow
+        - id: flow_y_nuc_modulation_nuclear_n4
+          type: flow
+        - id: flow_y_nuc_modulation_nuclear_p4
+          type: flow
+      # A connection needs each field of the port type to be defined on one side:
+      # the clusters define flow and the bounds, the area defines price.
+      port-field-definitions: &bc_nuc_port_field_definitions
+        - port: flow_fr_nuclear_cp0_cp1_cp2
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_epr
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_n4
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_p4
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_peak1
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_peak2
+          field: price
+          definition: 0
+        - port: flow_fr_nuclear_peak3
+          field: price
+          definition: 0
+        - port: flow_y_nuc_modulation_nuclear_cp0_cp1_cp2
+          field: price
+          definition: 0
+        - port: flow_y_nuc_modulation_nuclear_epr
+          field: price
+          definition: 0
+        - port: flow_y_nuc_modulation_nuclear_n4
+          field: price
+          definition: 0
+        - port: flow_y_nuc_modulation_nuclear_p4
+          field: price
+          definition: 0
+      binding-constraints:
+        - id: bc_hourly
+          expression: alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow) <= rhs
+
+    - id: bc_nuc_hourly_greater
+      parameters: *bc_nuc_parameters
+      ports: *bc_nuc_ports
+      port-field-definitions: *bc_nuc_port_field_definitions
+      binding-constraints:
+        - id: bc_hourly
+          expression: alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow) >= rhs
+
+    - id: bc_nuc_daily_less # Days of a weekly horizon (time steps 0 to 167)
+      parameters: *bc_nuc_parameters
+      ports: *bc_nuc_ports
+      port-field-definitions: *bc_nuc_port_field_definitions
+      binding-constraints:
+        - id: bc_daily_0
+          expression: sum(0 .. 23, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(0 .. 23, rhs)
+        - id: bc_daily_1
+          expression: sum(24 .. 47, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(24 .. 47, rhs)
+        - id: bc_daily_2
+          expression: sum(48 .. 71, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(48 .. 71, rhs)
+        - id: bc_daily_3
+          expression: sum(72 .. 95, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(72 .. 95, rhs)
+        - id: bc_daily_4
+          expression: sum(96 .. 119, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(96 .. 119, rhs)
+        - id: bc_daily_5
+          expression: sum(120 .. 143, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(120 .. 143, rhs)
+        - id: bc_daily_6
+          expression: sum(144 .. 167, alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(144 .. 167, rhs)
+
+    - id: bc_nuc_weekly_less
+      parameters: *bc_nuc_parameters
+      ports: *bc_nuc_ports
+      port-field-definitions: *bc_nuc_port_field_definitions
+      binding-constraints:
+        - id: bc_weekly
+          expression: sum(alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) <= sum(rhs)
+
+    - id: bc_nuc_weekly_greater
+      parameters: *bc_nuc_parameters
+      ports: *bc_nuc_ports
+      port-field-definitions: *bc_nuc_port_field_definitions
+      binding-constraints:
+        - id: bc_weekly
+          expression: sum(alpha_fr_nuclear_cp0_cp1_cp2 * sum_connections(flow_fr_nuclear_cp0_cp1_cp2.flow) + alpha_fr_nuclear_epr * sum_connections(flow_fr_nuclear_epr.flow) + alpha_fr_nuclear_n4 * sum_connections(flow_fr_nuclear_n4.flow) + alpha_fr_nuclear_p4 * sum_connections(flow_fr_nuclear_p4.flow) + alpha_fr_nuclear_peak1 * sum_connections(flow_fr_nuclear_peak1.flow) + alpha_fr_nuclear_peak2 * sum_connections(flow_fr_nuclear_peak2.flow) + alpha_fr_nuclear_peak3 * sum_connections(flow_fr_nuclear_peak3.flow) + alpha_y_nuc_modulation_nuclear_cp0_cp1_cp2 * sum_connections(flow_y_nuc_modulation_nuclear_cp0_cp1_cp2.flow) + alpha_y_nuc_modulation_nuclear_epr * sum_connections(flow_y_nuc_modulation_nuclear_epr.flow) + alpha_y_nuc_modulation_nuclear_n4 * sum_connections(flow_y_nuc_modulation_nuclear_n4.flow) + alpha_y_nuc_modulation_nuclear_p4 * sum_connections(flow_y_nuc_modulation_nuclear_p4.flow)) >= sum(rhs)

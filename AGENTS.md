@@ -79,6 +79,8 @@ src/antares_gems_converter/
       antares_legacy_models.yml   # GEMS model definitions for Antares legacy components
     reference_models/
       andromede_v1_models.yml     # Andromede reference models (battery, DSR, etc.)
+    extended_models/
+      extended_models.yml         # Models absent from antares_legacy_models.yml, used next to it (not used by the templates)
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
   views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns filled per study; metrics lists every metric of the template's catalog, as <catalog_id>.<metric_id>, to trim per study)
@@ -87,6 +89,7 @@ src/antares_gems_converter/
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
+  extended_models/               # E2E tests of libs/extended_models/; gems_study.py writes GEMS studies
 .github/workflows/ci.yml        # CI pipeline
 .github/workflows/check-views-builder-update.yml  # Weekly check: opens an issue on new GEMS-ViewsBuilder release
 pyproject.toml                   # Package metadata, tool config (Black, isort, mypy)
@@ -242,6 +245,7 @@ template:
 
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
+- **`extended_models.yml`** (`libs/extended_models/`) — Models that are not in `antares_legacy_models.yml`, to be loaded next to it: `thermal_milp` (integer unit commitment), `thermal_fast` (no unit commitment), `short-term-storage` (hurdle cost, McCormick cuts, daily cycle limits), `enr` and `enr_multi_bandes` (curtailment), `bc_nuc_<hourly|daily|weekly>_<less|greater>` (binding constraints). No template uses them. They keep the ids of models, parameters, variables and ports of the external library they come from, so that its systems can use them: do not rename them, except to implement a taxonomy category. `thermal_milp`, `thermal_fast` (`dispatchable_generation`) and `short-term-storage` (`short_term_storage`) implement one, with the renames listed in the library header; their components set the properties `technology` and `name`. Its `flow` port type is the one of `antares_legacy_models.yml`. Antares Modeler requires each field of a connection to be defined on exactly one side, so a model connected to the `balance_port` of a cluster defines `price` (the binding constraint models define it as `0`). `tests/extended_models/test_extended_models.py` solves small studies with some of these models.
 
 Both use a `flow` port-type for power balance connections. In `antares_legacy_models.yml`, its `area-connection` (HYBRID mode) maps the `flow`, `spillage_bound` and `unsupplied_energy_bound` fields to the balance, the bound on spilled energy and the bound on unsupplied energy of the legacy area, after the legacy constraints. Antares fails when a model connected to an area does not define all three (define `0` when a model does not contribute).
 
@@ -290,6 +294,7 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
 | `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
+| `tests/extended_models/` | Studies with models of `extended_models.yml` (GEMS studies written by `gems_study.py`, solved with `antares-modeler`) | Antares Simulator binary |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
