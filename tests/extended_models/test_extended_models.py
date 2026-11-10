@@ -30,7 +30,7 @@ import numpy as np
 import pytest
 import yaml
 
-from tests.antares_historic.gems_study import (
+from tests.extended_models.gems_study import (
     GemsResult,
     GemsStudy,
     Value,
@@ -42,7 +42,7 @@ LIBS_DIR = Path("src/antares_gems_converter/libs")
 LEGACY_LIBRARY = LIBS_DIR / "antares_historic" / "antares_legacy_models.yml"
 EXTENDED_LIBRARY = LIBS_DIR / "extended_models" / "extended_models.yml"
 REFERENCE_LIBRARY = Path(
-    "tests/antares_historic/data/reference_libraries/antares_legacy_models_external.yml"
+    "tests/extended_models/data/antares_legacy_models_external.yml"
 )
 LEGACY = "antares_legacy_models"
 EXTENDED = "extended_models"

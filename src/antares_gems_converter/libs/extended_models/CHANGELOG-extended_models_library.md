@@ -8,7 +8,7 @@ the rules of the Antares Legacy Models Library (see `COMPATIBILITY.md`).
 ## [1.0.0]
 
 First version, from an external library also named `antares_legacy_models` (kept as test
-data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_external.yml`).
+data: `tests/extended_models/data/antares_legacy_models_external.yml`).
 
 - **Scope**: only the models that are not in `antares_legacy_models.yml`: `thermal_milp`,
   `thermal_fast`, `short-term-storage`, `enr`, `enr_multi_bandes`, `bc_nuc_hourly_less`,
@@ -48,7 +48,7 @@ data: `tests/antares_historic/data/reference_libraries/antares_legacy_models_ext
   constraint models define `price` (`0`): Antares Modeler requires each field of a connection
   to be defined on exactly one side.
 - **Compacted expressions**, with the same optimal solutions (checked by
-  `tests/antares_historic/test_extended_models.py`):
+  `tests/extended_models/test_extended_models.py`):
     - Daily sums written with time sums on a range, `sum(0 .. 23, x)`, instead of
       `x[0] + ... + x[23]` (`daily_pump_max_<d>_w1`, `daily_turb_max_<d>_w1`, `bc_daily_<d>`).
     - Parameters, ports and port field definitions of the `bc_nuc_*` models shared with YAML
