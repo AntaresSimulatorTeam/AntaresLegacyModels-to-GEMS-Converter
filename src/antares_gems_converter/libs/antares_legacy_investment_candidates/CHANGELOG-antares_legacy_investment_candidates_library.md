@@ -17,7 +17,8 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 - `discrete_investment_candidate`: integer number of units of `unit_size` (MW), between `min_units` and `max_units` (Xpansion's `max-units`).
 - Both models, inspired by Antares Xpansion link candidates:
   - `existing_capacity` (MW): capacity already installed, without investment cost, with the same `availability_rate` as the invested capacity (Xpansion's `already-installed-capacity`, without a separate profile).
-  - The bounds apply to the investment, existing capacity excluded (Xpansion's `max-investment` and `max-units`; Xpansion has no minimum).
+  - The bounds apply to the investment, existing capacity excluded (Xpansion's `max-investment` and `max-units`).
+  - `min_investment` and `min_units` have no Xpansion equivalent. A positive minimum gives the same optimal decisions as adding it to `existing_capacity`, but the forced investment stays in the investment variable and its cost in the objective. With the minimum equal to the maximum, the investment is fixed, e.g. to evaluate a given investment plan (as `test_fixed_investment_matches_legacy_cluster` does).
   - `annual_investment_cost` is per MW and per year, also for the discrete model (Xpansion's `annual-cost-per-mw`).
   - A `capacity_port`, connected to an Antares thermal cluster through `thermal-capacity-connections` (hybrid mode only). Its capacity replaces the cluster's availability: `existing_capacity` keeps the cluster's installed capacity.
 - Studies using these models need `resolution-mode: benders-decomposition` in `optim-config.yml` (Antares 10.2 rejects scenario-independent variables otherwise), and a solver supporting integer variables for the discrete model. The connected cluster's nominal capacity must cover the existing capacity plus the largest investment (it still bounds generation in accurate unit commitment).

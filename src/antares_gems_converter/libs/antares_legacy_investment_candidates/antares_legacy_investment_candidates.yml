@@ -46,6 +46,11 @@ library:
         (existing_capacity + invested_capacity) * availability_rate, where
         availability_rate is the available fraction (between 0 and 1), per hour
         and scenario. annual_investment_cost is in currency per MW per year.
+        A positive min_investment forces an investment that is paid for: it
+        gives the same optimal decisions as adding it to existing_capacity, but
+        keeps it in invested_capacity and its cost in the objective. With
+        min_investment = max_investment, the investment is fixed, e.g. to
+        evaluate a given investment plan.
       parameters:
         - id: existing_capacity
           time-dependent: false
@@ -89,7 +94,12 @@ library:
         availability_rate, where availability_rate is the available fraction
         (between 0 and 1), per hour and scenario. annual_investment_cost is in
         currency per MW per year, not per unit. unit_size must be positive and
-        min_units must not exceed max_units.
+        min_units must not exceed max_units. A positive min_units forces
+        units that are paid for: it gives the same optimal decisions as adding
+        unit_size * min_units to existing_capacity, but keeps them in
+        invested_units and their cost in the objective. With min_units =
+        max_units, the investment is fixed, e.g. to evaluate a given
+        investment plan.
       parameters:
         - id: unit_size
           time-dependent: false
