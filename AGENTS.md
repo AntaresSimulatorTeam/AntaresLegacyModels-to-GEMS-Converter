@@ -87,6 +87,8 @@ src/antares_gems_converter/
 tests/
   input_converter/               # Unit/integration tests (in-memory studies via antares-craft)
   antares_historic/              # E2E tests (require Antares Simulator binary)
+  antares_runner/                # Unit tests of antares_runner (simulation table reading)
+  consistency/                   # Libraries, catalogs, taxonomies and view configs: consistency and GEMS-ViewsBuilder compatibility (no binary needed)
 docs/                            # User documentation, linked from README.md
   template-parameters.md         # Template parameter lists and ad-hoc parameters (keep in sync with "Template loop")
   scenario-groups.md             # How a component's scenario group is set (keep in sync with "Scenario groups")
@@ -176,7 +178,7 @@ User-facing examples of `values`, `cluster-values`, `exclude` and ad-hoc paramet
   | links | the links it is an end of | that link | rejected |
   | clusters of a type | its clusters of that type | rejected | that cluster, if of the template's type, else rejected |
 
-  An entry may use the placeholders of the outer parameters and, in a cluster exclusion only, `${area}` (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy.
+  An entry may use the placeholders of the outer parameters and, in a cluster exclusion only, `${area}` (`{type: area, area: ${area}}` or `link: ${area} / z_batteries` would match nothing). Any other entry is rejected at load. Filling it is the user's responsibility: the reference templates only exclude what they cannot convert themselves (battery excludes the `z_batteries` areas). To keep e.g. the battery legacy artefacts from being converted by the area, thermal or link templates as well, the user declares them in the `exclude` of those templates (see `exclude_battery_artefacts` in `tests/input_converter/conftest.py`); in hybrid mode, excluded objects are not converted, hence not deleted, and stay legacy. Examples: see "`exclude` examples" below.
 - **`exclude` and `legacy-objects-to-delete` are distinct**: the former decides which objects are iterated over (both modes); the latter lists what hybrid mode removes from the study copy after the conversion.
 
 ### Two Conversion Modes
@@ -251,6 +253,101 @@ template:
 - **Electricity carrier assumption**: all current templates assume components belong to the electricity system (`carrier: electricity`). Multi-energy support would require revisiting this assumption in every template.
 - **Identifier naming** (components, parameters, properties): `snake_case`; qualifier first (adjective before noun); `is_` prefix for booleans; units in schema metadata, not names. Component IDs start with the area: `${area}_<detail>` (e.g. `${area}_node`, `${area}_hydro_storage`) — never `<detail>_${area}`. Abbreviations whitelist: `gen` (generation), `prop` (proportional), `abs` (absolute), `alg` (algebraic), `min` (minimum), `max` (maximum), `num` (number), pollutant codes (`co2`, `nh3`, `so2`, `nox`, `pm2_5`, `pm5`, `pm10`, `nmvoc`, `op1`–`op5`). Everything else spelled out in full.
 
+### `exclude` examples
+
+The rules are in "Template loop" above; these examples go from simple to complex. Each entry has a free `id` and `object-properties` with exactly `{type: area, area: …}`, `{type: link, link: …}` or `{type: thermal|renewable|st_storage, area: …, cluster: …}`. Ids are the ones antares-craft gives (e.g. link `at / fr`): an entry with a wrong id is not rejected, it just excludes nothing.
+
+1. **An area, in a template instantiated for each area** (load, wind, solar, hydro…): no GEMS load for `fr`; in hybrid mode its legacy load is not blanked and stays legacy.
+
+   ```yaml
+   template:
+     name: load
+     template-parameters:
+       - name: area
+         exclude:
+           - id: skip_fr
+             object-properties: {type: area, area: fr}
+   ```
+
+2. **One link**, in the link template:
+
+   ```yaml
+       - name: link
+         exclude:
+           - id: at_fr
+             object-properties: {type: link, link: at / fr}
+   ```
+
+3. **All the links of an area**, in the link template: an area exclusion excludes every link the area is an end of.
+
+   ```yaml
+       - name: link
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+   ```
+
+4. **One named cluster**, in a cluster template: `area` and `cluster` are both required. To exclude all the clusters of an area, use `type: area` instead.
+
+   ```yaml
+   template:
+     name: thermal
+     template-parameters:
+       - name: area
+         cluster-type: thermal
+         exclude:
+           - id: fr_nuclear
+             object-properties: {type: thermal, area: fr, cluster: nuclear}
+           - id: all_thermal_of_de
+             object-properties: {type: area, area: de}
+   ```
+
+5. **The same cluster in every area**, with `${area}`: in a cluster exclusion, `${area}` stands for the area of the cluster, so this entry excludes `fr_batteries_inj` in `fr`, `de_batteries_inj` in `de`, etc.
+
+   ```yaml
+         exclude:
+           - id: batteries_inj
+             object-properties:
+               type: thermal
+               area: "${area}"
+               cluster: "${area}_batteries_inj"
+   ```
+
+6. **Converting battery together with other models.** The battery template excludes the `z_batteries` and `z_batteries_pcomp` areas itself, but `exclude` is local: the area, link and thermal templates would also convert these battery artefacts. To prevent it, declare them in each of these templates (this is what `exclude_battery_artefacts` in `tests/input_converter/conftest.py` does; with it, the output is the same as before `exclude` became local). In the area and link templates, the two area exclusions are enough (they cover the areas and the links they are an end of):
+
+   ```yaml
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+           - id: z_batteries_pcomp
+             object-properties: {type: area, area: z_batteries_pcomp}
+   ```
+
+   The thermal template also excludes the injection clusters, which are in the real areas:
+
+   ```yaml
+       - name: area
+         cluster-type: thermal
+         exclude:
+           - id: z_batteries
+             object-properties: {type: area, area: z_batteries}
+           - id: z_batteries_pcomp
+             object-properties: {type: area, area: z_batteries_pcomp}
+           - id: batteries_inj
+             object-properties: {type: thermal, area: "${area}", cluster: "${area}_batteries_inj"}
+   ```
+
+   In hybrid mode, the excluded objects are neither converted nor deleted: they stay legacy.
+
+**Rejected at load:**
+
+```yaml
+{type: area, area: fr, cluster: c}        # extra field: it would exclude the whole area fr
+{type: link, link: at / fr}               # in a thermal template: can never match
+{type: renewable, area: fr, cluster: pv}  # in a thermal template: wrong cluster type
+{type: area, area: "${area}"}             # ${area} is only substituted in a cluster exclusion
+```
+
 ---
 
 ## GEMS Model Libraries
@@ -258,7 +355,7 @@ template:
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
 
-Both use the `flow` port-type with a single `flow` field for power balance connections.
+Both use a `flow` port-type for power balance connections. In `antares_legacy_models.yml`, its `area-connection` (HYBRID mode) maps the `flow`, `spillage_bound` and `unsupplied_energy_bound` fields to the balance, the bound on spilled energy and the bound on unsupplied energy of the legacy area, after the legacy constraints. Antares fails when a model connected to an area does not define all three (define `0` when a model does not contribute).
 
 ---
 
@@ -283,6 +380,9 @@ uv run pytest -n auto
 # Prefer parallel for unit/integration tests
 uv run pytest tests/input_converter/ -n auto
 
+# Consistency of libraries, catalogs, taxonomies and view configs (seconds, no binary)
+uv run pytest tests/consistency/
+
 # Run a specific test
 uv run pytest tests/input_converter/test_converter.py::TestConverter::test_convert_thermals_to_component
 
@@ -304,7 +404,9 @@ uv run pytest --cov=antares_gems_converter --cov=antares_runner --cov-report=htm
 | Directory | What it tests | Dependencies |
 |-----------|---------------|--------------|
 | `tests/input_converter/` | Converter logic: template loop, YAML output, component generation | `antares-craft` in-memory studies (no binary needed) |
-| `tests/antares_historic/` | Converted models produce correct optimization results; catalogs, taxonomies and view configs work with GEMS-ViewsBuilder | Antares Simulator binary, `gems-views-builder` |
+| `tests/antares_historic/` | Converted models produce correct optimization results | Antares Simulator binary |
+| `tests/antares_runner/` | `antares_runner` helpers (reading simulation tables) | none |
+| `tests/consistency/` | Libraries, catalogs, taxonomies and view configs are consistent and work with GEMS-ViewsBuilder, on every such YAML file (see rule 12) | `gemspy`, `gems-views-builder` (no binary needed) |
 
 **Fixture pattern** (`tests/input_converter/conftest.py`): Fixtures build up progressively — `local_study` → `local_study_w_areas` → `local_study_w_thermal` etc. Each adds one layer of study objects. Tests use these to create `AntaresStudyConverter` instances.
 
@@ -319,9 +421,12 @@ Runs on every push to any branch:
 1. Install deps (`uv sync --group dev`)
 2. Type checking: `mypy src/`
 3. Format checking: `black --check --diff` (Black 23.7.x)
-4. Download and extract Antares Simulator binary (version from `dependencies.json`)
-5. Run tests
-6. Upload test failure artifacts on failure (logs)
+4. Consistency checks: `pytest tests/consistency` (fails fast, before the Antares download)
+5. Download and extract Antares Simulator binary (version from `dependencies.json`)
+6. Run the other tests (`--ignore=tests/consistency`)
+7. Upload test failure artifacts on failure (logs)
+
+The steps live in the reusable `run-tests.yml`, also used by the weekly dependency-update workflows (code quality steps excepted).
 
 ---
 
@@ -379,7 +484,9 @@ Runs on every push to any branch:
 
 11. **`system.yml` must stay loadable by GemsPy.** GemsPy reads it with `yaml.safe_load`, so it must contain plain YAML only (no `!!python` tags): keep `mode="json"` and `yaml.safe_dump` in `dump_to_yaml`. Schema defaults the converter does not set (e.g. `integer-strategy`) must stay unset so `exclude_unset` omits them: any `model_dump` → schema round-trip must use `exclude_unset=True`. `test_dumped_system_yaml_has_no_python_tags` guards this.
 
-12. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
+12. **YAML artifacts are discovered by their root key.** The consistency tests (`tests/consistency/`) run on every YAML file under `src/antares_gems_converter/`, classified by its single root key (`library`, `catalog`, `taxonomy`, `view`, `template`) in `tests/consistency/yaml_artifacts.py`. A new library, catalog, taxonomy or view config is therefore checked without touching the tests, provided it is a `.yml` file stored under the directory of its kind (`libs/`, `catalogs/`, `taxonomies/`, `views_config/`, subdirectories allowed); `test_yaml_artifacts.py` fails on an unrecognised YAML file or a misplaced one. The flattened copy of a taxonomy `<name>.yml` is `<name>_flattened.yml`, with the same id; when it exists, the view builder is given it instead of the main one.
+
+13. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 
 ---
 
