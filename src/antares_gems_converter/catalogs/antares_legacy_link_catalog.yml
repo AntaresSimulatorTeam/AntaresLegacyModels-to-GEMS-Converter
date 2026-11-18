@@ -55,16 +55,16 @@ catalog:
         - taxonomy-category: link
           output-id: is_directly_congested
           location-port: null
-      terms-operator: sum
-      time-operator: sum
+      terms-operator: avg
+      time-operator: avg
 
     - id: CONG_PROB_INDIR
       terms:
         - taxonomy-category: link
           output-id: is_indirectly_congested
           location-port: null
-      terms-operator: sum
-      time-operator: sum
+      terms-operator: avg
+      time-operator: avg
 
     - id: HURDLE_COST
       terms:
