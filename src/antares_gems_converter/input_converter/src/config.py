@@ -143,6 +143,3 @@ MODEL_NAME_TO_FILE_NAME = {
 }
 
 MATRIX_TYPES = ["load", "solar", "wind", "misc_gen", "ror"]
-CLUSTER_TYPES = ["thermal", "renewable", "st_storage"]
-LINK_TYPES = ["link"]
-AREA_TYPES = ["area"]

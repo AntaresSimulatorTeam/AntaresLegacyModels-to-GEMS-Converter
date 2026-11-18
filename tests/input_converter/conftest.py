@@ -21,6 +21,9 @@ from antares.craft.model.renewable import RenewableClusterProperties
 from antares.craft.model.st_storage import STStorageProperties
 from antares.craft.model.study import Study, create_study_local
 from antares.craft.model.thermal import ThermalClusterProperties
+from yaml import safe_load
+
+from antares_gems_converter.input_converter.src.parsing import ConversionTemplate
 
 
 @pytest.fixture
@@ -41,6 +44,63 @@ def local_study(tmp_path) -> Study:
     study_name = "studyTest"
     study_version = "930"
     return create_study_local(study_name, study_version, tmp_path.absolute())
+
+
+LIB_PATHS = [
+    str(Path(__file__).parents[2] / "src/antares_gems_converter/libs" / lib)
+    for lib in [
+        "antares_historic/antares_legacy_models.yml",
+        "reference_models/andromede_v1_models.yml",
+    ]
+]
+
+# The `exclude` entries a user declares in their templates so that only the
+# battery template converts the battery legacy artefacts: the z_batteries areas
+# (with their clusters and the links they are an end of) and the injection
+# clusters
+BATTERY_AREAS_EXCLUDE = safe_load(
+    """
+- id: z_batteries
+  object-properties: {type: area, area: z_batteries}
+- id: z_batteries_pcomp
+  object-properties: {type: area, area: z_batteries_pcomp}
+"""
+)
+INJECTION_CLUSTERS_EXCLUDE = safe_load(
+    """
+- id: batteries_inj
+  object-properties: {type: thermal, area: "${area}", cluster: "${area}_batteries_inj"}
+"""
+)
+
+
+def with_exclude(
+    template: ConversionTemplate, entries: list[dict]
+) -> ConversionTemplate:
+    """Return a copy of `template` whose `exclude` also has `entries`."""
+    data = template.model_dump()
+    parameter = data["template_parameters"][0]
+    parameter["exclude"] = (parameter["exclude"] or []) + entries
+    return ConversionTemplate.model_validate(data)
+
+
+def exclude_battery_artefacts(
+    templates: dict[str, ConversionTemplate],
+) -> dict[str, ConversionTemplate]:
+    """Return a copy of `templates` in which every template but battery
+    excludes the battery artefacts."""
+    return {
+        model: (
+            template
+            if model == "battery"
+            else with_exclude(
+                template,
+                BATTERY_AREAS_EXCLUDE
+                + (INJECTION_CLUSTERS_EXCLUDE if model == "thermal" else []),
+            )
+        )
+        for model, template in templates.items()
+    }
 
 
 def create_dataframe_from_constant(

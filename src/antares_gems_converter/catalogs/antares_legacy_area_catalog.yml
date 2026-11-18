@@ -203,7 +203,7 @@ catalog:
           output-id: injection_power
           location-port: balance_port
       breakdown:
-        - key: group
+        - key: technology
       terms-operator: sum
       time-operator: sum
 
@@ -213,7 +213,7 @@ catalog:
           output-id: withdrawal_power
           location-port: balance_port
       breakdown:
-        - key: group
+        - key: technology
       terms-operator: sum
       time-operator: sum
 
@@ -223,8 +223,8 @@ catalog:
           output-id: level
           location-port: balance_port
       breakdown:
-        - key: group
-      terms-operator: avg
+        - key: technology
+      terms-operator: sum
       time-operator: avg
 
     - id: UNSP_ENRG

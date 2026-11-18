@@ -1,0 +1,17 @@
+view:
+
+  id: view_renewable
+
+  taxonomy: antares_legacy_taxonomy
+
+  scope:
+    location:
+      taxonomy-category: balance # category of the taxonomy, the components of which serve as locational objects. Main case is 'area'.
+    extra-locations:
+    # to be filled in
+
+  aggregations-patterns:
+    # to be filled in
+
+  metrics: # metrics selected among the catalogs, as <catalog_id>.<metric_id>: keep only the ones needed
+    - id: antares_legacy_renewable_cluster_catalog.GENERATION

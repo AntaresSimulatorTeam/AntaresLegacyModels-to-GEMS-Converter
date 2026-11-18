@@ -48,6 +48,9 @@ template:
         - id: technology
           value:
             constant: wind
+        - id: name
+          value:
+            constant: wind
 
   # For full modeler mode
   connections:

@@ -25,10 +25,12 @@ SERIES_FOLDER = "data-series"
 
 
 class ModelConversionPreprocessor:
-    preprocessed_values: dict[str, float] = {}
     param_id: str
 
     def __init__(self, study: Study, mode: ConversionMode, output_folder: Path):
+        # Values computed by an earlier parameter, referenced by `divide_by`.
+        # Per instance: a class-level dict leaked values across conversions.
+        self.preprocessed_values: dict[str, float] = {}
         self.study = study
         self.mode = mode
         self.output_folder = output_folder
@@ -284,6 +286,12 @@ class ModelConversionPreprocessor:
                     hydro,
                     TIMESERIES_NAME_TO_METHOD[value_content.object_properties.field],  # type: ignore
                 )()
+            else:
+                # Scalar hydro field: no time series to check.
+                return True
+        else:
+            # Not a time series type: nothing to check.
+            return True
         if getattr(value_content, "column", None) is not None:
             time_series: pd.Series = time_series.iloc[:, value_content.column]  # type: ignore
         return check_dataframe_validity(time_series)

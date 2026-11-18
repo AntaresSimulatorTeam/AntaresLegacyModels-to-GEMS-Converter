@@ -1,0 +1,20 @@
+catalog:
+  id: antares_legacy_renewable_cluster_catalog
+
+  taxonomy: antares_legacy_taxonomy
+
+  location:
+    taxonomy-category: balance
+
+  metrics-definition:
+    # The run-of-river component shares the renewable model: it gives a
+    # 'run_of_river' row next to the renewable clusters
+    - id: GENERATION
+      terms:
+        - taxonomy-category: renewable_fatal_generation
+          output-id: generation_power
+          location-port: balance_port
+      breakdown:
+        - key: name
+      terms-operator: sum
+      time-operator: sum

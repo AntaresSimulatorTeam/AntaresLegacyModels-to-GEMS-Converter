@@ -207,7 +207,7 @@ template:
         - id: carrier
           value:
             constant: electricity
-        - id: group
+        - id: technology
           value:
             object-properties:
               type: st_storage

@@ -30,11 +30,6 @@ template:
           object-properties:
             type: area
             area: z_batteries_pcomp
-        - id: area_batteries_inj
-          object-properties:
-            type: thermal
-            area: ${area}
-            cluster: ${area}_batteries_inj
 
 
   components:
@@ -171,11 +166,11 @@ template:
       object-properties:
         type: binding_constraint
         binding-constraint-id: battery_level_${area}
-    - id: virtual_links
+    - id: battery_links
       object-properties:
         type: link
         link: ${area} / z_batteries
-    - id: virtual_nodes
+    - id: battery_nodes
       object-properties:
         type: area
         area: z_batteries

@@ -49,6 +49,9 @@ template:
         - id: technology
           value:
             constant: run_of_river
+        - id: name
+          value:
+            constant: run_of_river
 
   # For full modeler mode
   connections:
