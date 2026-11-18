@@ -45,7 +45,7 @@ The catalog of each metric is the one of the view config template: [`antares_leg
 | `UNSP. ENRG` | `UNSP_ENRG` | MWh |  |
 | `SPIL. ENRG` | `SPIL_ENRG` | MWh | Not given in the doc |
 | `LOLD` | `LOLD` | h |  |
-| `LOLP` | `LOLP` | % | The catalog averages a 0/1 indicator: it gives a fraction, not a percentage |
+| `LOLP` | `LOLP` | Fraction (0 to 1) | Antares gives a percentage |
 | `NPCAP HOURS` | `NPCAP_HOURS` | h |  |
 | `AVL DTG` | `AVL_DTG` | MWh |  |
 | `DTG MRG` | `DTG_MRG` | MWh |  |
@@ -64,8 +64,8 @@ The 9 metrics of the link catalog cover 9 of the 10 legacy link variables; only 
 | `CONG. FEE (ALG.)` | `CONG_FEE_ALG` | Euro |  |
 | `CONG. FEE (ABS.)` | `CONG_FEE_ABS` | Euro |  |
 | `MARG. COST` | `MARG_COST` | Euro/MW |  |
-| `CONG. PROB +` | `CONG_PROB_DIR` | % | The catalog sums a 0/1 indicator over time: it gives a number of hours, not a probability |
-| `CONG. PROB -` | `CONG_PROB_INDIR` | % | Same |
+| `CONG. PROB +` | `CONG_PROB_DIR` | Fraction (0 to 1) | Antares gives a percentage |
+| `CONG. PROB -` | `CONG_PROB_INDIR` | Fraction (0 to 1) | Same |
 | `HURDLE COST` | `HURDLE_COST` | Euro |  |
 
 ## Per-cluster views: thermal, storage, renewable
@@ -106,4 +106,3 @@ These variables have no metric in the catalogs yet: for each one, the metric mus
 
 - [ ] Hard-code the table in Antares or store it in a YAML file (in that case, next to the catalogs, in the GEMS repo or the converter).
 - [ ] Create, or exclude from V1, each variable without a metric.
-- [ ] Fix the `LOLP`, `CONG_PROB_DIR` and `CONG_PROB_INDIR` metrics so they give a percentage, like Antares.
