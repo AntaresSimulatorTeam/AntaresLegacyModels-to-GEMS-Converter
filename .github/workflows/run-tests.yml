@@ -43,7 +43,8 @@ jobs:
     name: Tests
     runs-on: ubuntu-22.04
     outputs:
-      test_outcome: ${{ steps.run_tests.outcome }}
+      # A failed consistency check stops the job before the test run, which is then skipped.
+      test_outcome: ${{ steps.consistency.outcome == 'failure' && 'failure' || steps.run_tests.outcome }}
 
     steps:
       - name: Checkout repository
@@ -87,6 +88,12 @@ jobs:
         if: inputs.views_builder_version != ''
         run: uv pip install "gems-views-builder==${{ inputs.views_builder_version }}"
 
+      # Libraries, catalogs, taxonomies and view configs: no Antares binary needed,
+      # so they run first and fail fast. The test run below skips them.
+      - name: Consistency checks
+        id: consistency
+        run: uv run pytest tests/consistency -v --tb=short
+
       - name: Resolve Antares version for downstream steps
         id: resolve_version
         run: |
@@ -112,7 +119,7 @@ jobs:
 
       - name: Run tests
         id: run_tests
-        run: uv run pytest -n auto --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
+        run: uv run pytest -n auto --ignore=tests/consistency --cov=antares_gems_converter --cov=antares_runner --cov-report=xml -v --tb=short
         continue-on-error: true
 
       - name: Upload test artifacts on failure
