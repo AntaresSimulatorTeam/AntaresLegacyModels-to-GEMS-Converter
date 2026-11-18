@@ -339,8 +339,11 @@ The rules are in "Template loop" above; these examples go from simple to complex
 
 - **`antares_legacy_models.yml`** — Defines models for: `area`, `load`, `link`, `renewable`, `thermal`, `short_term_storage`, `miscellaneous_generation`, `long_term_storage`. These mirror the implicit models in the Antares solver.
 - **`andromede_v1_models.yml`** — Defines models for: `battery`, `dsr`, `electrolyser`. These represent new modelling constructs not in the legacy solver.
+- **`antares_legacy_investment_candidates.yml`** — Defines `continuous_investment_candidate` and `discrete_investment_candidate`: investment on Antares legacy thermal clusters, HYBRID mode only, solved with Antares Xpansion. No conversion template uses it yet.
 
 Both use a `flow` port-type for power balance connections. In `antares_legacy_models.yml`, its `area-connection` (HYBRID mode) maps the `flow`, `spillage_bound` and `unsupplied_energy_bound` fields to the balance, the bound on spilled energy and the bound on unsupplied energy of the legacy area, after the legacy constraints. Antares fails when a model connected to an area does not define all three (define `0` when a model does not contribute).
+
+The investment candidates instead use a `capacity_port`, connected to a legacy thermal cluster through `thermal-capacity-connections`. Its capacity **replaces** the cluster's availability, so `existing_capacity` must carry the cluster's installed capacity, and the cluster's nominal capacity must cover the existing capacity plus the largest investment (it still bounds generation in accurate unit commitment). Their investment variables are scenario-independent: a study using them needs `resolution-mode: benders-decomposition` in `optim-config.yml`, even when only `antares-solver` runs it, and a MIP-capable solver (e.g. `highs`, not `sirius`) for the discrete model. The Xpansion E2E test is opt-in (set `ANTARES_XPANSION_DIR`), so it does not run in CI.
 
 ---
 
