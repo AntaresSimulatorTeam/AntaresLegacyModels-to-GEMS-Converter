@@ -22,7 +22,7 @@ from antares.craft.model.study import Study
 from antares_gems_converter.input_converter.src.config import (
     HYDRO_SB_SHARED_FIELDS,
     HYDRO_TYPE_TO_SET_METHOD,
-    MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR,
+    LEGACY_TYPE_TO_SB_ATTR,
     MATRIX_TYPES_TO_SET_METHOD,
     STUDY_LEVEL_DELETION,
     STUDY_LEVEL_GET,
@@ -86,8 +86,13 @@ def delete_legacy_objects(
                     areas[legacy_component.area],
                     MATRIX_TYPES_TO_SET_METHOD[legacy_component.type],
                 )(pd.DataFrame())
-                if legacy_component.type in MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR:
-                    sb_cleanups.append((legacy_component.area, legacy_component.type))
+                if legacy_component.type in LEGACY_TYPE_TO_SB_ATTR:
+                    sb_cleanups.append(
+                        (
+                            legacy_component.area,
+                            LEGACY_TYPE_TO_SB_ATTR[legacy_component.type],
+                        )
+                    )
             elif (
                 legacy_component.type == "hydro"
                 and legacy_component.area is not None
