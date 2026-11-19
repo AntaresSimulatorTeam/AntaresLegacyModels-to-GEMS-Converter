@@ -45,7 +45,7 @@ The catalog of each metric is the one of the view config template: [`antares_leg
 | `UNSP. ENRG` | `UNSP_ENRG` | MWh |  |
 | `SPIL. ENRG` | `SPIL_ENRG` | MWh | Not given in the doc |
 | `LOLD` | `LOLD` | h |  |
-| `LOLP` | `LOLP` | Fraction (0 to 1) | Antares gives a percentage |
+| `LOLP` | `LOLP` | Fraction (0 to 1) | Antares gives a percentage. Above hourly resolution, the metric is the share of hours in loss of load over the period; Antares counts a period as 100% if at least one hour is in loss of load |
 | `NPCAP HOURS` | `NPCAP_HOURS` | h |  |
 | `AVL DTG` | `AVL_DTG` | MWh |  |
 | `DTG MRG` | `DTG_MRG` | MWh |  |
@@ -64,7 +64,7 @@ The 9 metrics of the link catalog cover 9 of the 10 legacy link variables; only 
 | `CONG. FEE (ALG.)` | `CONG_FEE_ALG` | Euro |  |
 | `CONG. FEE (ABS.)` | `CONG_FEE_ABS` | Euro |  |
 | `MARG. COST` | `MARG_COST` | Euro/MW |  |
-| `CONG. PROB +` | `CONG_PROB_DIR` | Fraction (0 to 1) | Antares gives a percentage |
+| `CONG. PROB +` | `CONG_PROB_DIR` | Fraction (0 to 1) | Antares gives a percentage. Above hourly resolution, the metric is the share of congested hours over the period; Antares counts a period as 100% if at least one hour is congested |
 | `CONG. PROB -` | `CONG_PROB_INDIR` | Fraction (0 to 1) | Same |
 | `HURDLE COST` | `HURDLE_COST` | Euro |  |
 
