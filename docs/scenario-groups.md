@@ -18,7 +18,7 @@ A template declares a group with `scenario-group` on a component, e.g. `thermal_
 | `hydro` (any field: inflows, ror, max power…) | the hydro of the `area` |
 | `link` | the `link` |
 
-Other types (`st_storage`, `misc_gen`, `area`, `binding_constraint`) and constants have no entry: they don't count. Parameters that are not scenario-dependent have a single column, so they don't count either.
+Other types (`st_storage`, `misc_gen`, `area`, `binding_constraint`) and constants don't count: the converter reads no legacy scenario builder entry for them. Antares 9.3 has one for the inflows of short-term storage, which the converter does not read yet. Parameters that are not scenario-dependent have a single column, so they don't count either.
 
 Several fields of the same object count as one object: the `hydro` template reads `maxpower`, `mingen`, `mod_inflows`… of the same area, so its source is the hydro of that area.
 
@@ -26,13 +26,22 @@ Then, according to the number of legacy objects found:
 
 | Legacy objects read | Scenario group of the component |
 |---|---|
-| **one** | that object's entries in the legacy scenario builder. The years with a random draw are left out. If every year is random, the component gets no group. |
+| **one** | that object's entries in the legacy scenario builder, for the years where it is explicit. If every year is random, the component gets no group, and GemsPy then uses column *k* in year *k*, where Antares draws at random. If only some years are random, see [Random years](#random-years). |
 | **several** | ambiguous, so the conversion fails with a `ValueError` naming the template, the component and the objects. |
 | **none**, e.g. a new component with constant parameters | there is nothing to convert. The group is kept only if you give your own `modeler-scenariobuilder.dat` (`modeler_scenario_builder_file` of `AntaresStudyConverter`) and it defines the group; if the file doesn't define it, the conversion fails with a `ValueError`. Without such a file, the group is dropped with a warning. |
 
 A load, solar, wind, misc gen or run-of-river component whose time series are empty or all zeros is not generated, so it gets no group: its legacy scenario builder entries are not read, and it is not compared with the other components of its group (see below).
 
 The rule is the same whatever the template parameters: with or without ad-hoc parameters, and whether or not the template deletes legacy objects in hybrid mode.
+
+### Random years
+
+The converter writes only the explicit years of a group to `modeler-scenariobuilder.dat`, and GemsPy needs every Monte Carlo year of a group:
+
+- a random year before the group's last explicit year makes GemsPy fail when it reads the file (`no mapping for MC scenarios`);
+- a random year after it makes the run fail when it reaches that year (`not defined for group`).
+
+So a legacy object whose scenario builder mixes explicit and random years cannot be simulated by GemsPy as converted. Make its years all explicit, or all random, in the legacy scenario builder.
 
 ### Shared groups
 
@@ -46,7 +55,7 @@ The components of a group use the same column in every year, so they must get th
 | different explicit years or series | the conversion fails with a `ValueError` naming the group, its components so far and this component. It stops at the first such component, before `system.yml` is written. |
 | every year random | the component gets no group (as for a single object) and is not compared |
 
-Only the explicit years are compared. Two objects with the same explicit years that are both random in another year are accepted in one group, but they then use the same column in that year, where Antares draws each one separately. To keep Antares' behaviour, give such components their own group, i.e. use every placeholder of the loop in the name.
+Only the explicit years are compared: two objects with the same explicit years that are both random in another year are accepted in one group (see [Random years](#random-years) for that year).
 
 ### Group names
 
@@ -57,7 +66,7 @@ The `" / "` of link ids (`at / fr`) is replaced by `_` in group names, as in com
 ## Output file
 
 - Without a user file, the converter writes `modeler-scenariobuilder.dat` from the groups above, if there is at least one.
-- With a user file, it is copied as is, and nothing is generated. The converter only checks it for the groups with no legacy source (see above). A group that does have a source is set from the legacy scenario builder, as without a file: make sure your file defines it, or GemsPy fails at run time.
+- With a user file, the converter does not write `modeler-scenariobuilder.dat`: your file is copied as is, so the mappings GemsPy uses are yours. The legacy scenario builder is still read, to set the `scenario-group` of each component in `system.yml` as above. Your file is only checked for the groups with no legacy source: make sure it also defines the other groups, or GemsPy fails at run time.
 
 In hybrid mode, the legacy scenario builder entries of the load, solar and wind of an area are cleared when that object is converted (blanked) in the study.
 
@@ -82,7 +91,7 @@ The other reference templates (short-term storage, battery, misc gen, area) decl
 
 | `fr/gaz` | `fr/coal` | Result |
 |---|---|---|
-| 2, 1, random | 2, 1, random | both in `thermal_fr_group`, with series 2 and 1 in the first two years. The third year is random for both, and both use the same column in it. |
+| 2, 1, random | 2, 1, random | both in `thermal_fr_group`, with series 2 and 1 in the first two years. The third year is random for both: GemsPy fails if the run includes it (see [Random years](#random-years)). |
 | 2, 1, random | 3, 1, random | `ValueError`: the first year differs |
 | 2, 1, random | 2, 1, 4 | `ValueError`: the third year is explicit for `coal` only |
 | 2, 1, random | random, random, random | `fr_thermal_gaz` in `thermal_fr_group`, `fr_thermal_coal` with no group |
