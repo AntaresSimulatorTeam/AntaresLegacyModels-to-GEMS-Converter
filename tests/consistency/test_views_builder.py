@@ -146,22 +146,11 @@ def catalog_metric_ids(catalog_ids: set[str]) -> list[str]:
     return metric_ids
 
 
-# The view configs that mirror the legacy digest (mc-all/grid/digest.txt) list only the
-# catalog metrics that match a digest column.
-DIGEST_AREA_METRICS_NOT_IN_DIGEST = {
-    # A year counts 100 % in the digest if any hour is short; GVB `avg` gives a share
-    # of hours.
-    "antares_legacy_area_catalog.LOLP",
-    # Different from the Antares variables on purpose (see the catalog).
-    "antares_legacy_area_catalog.H_VAL",
-    "antares_legacy_area_catalog.H_COST",
-}
+# The view configs that mirror the legacy digest (mc-all/grid/digest.txt): every area
+# metric (those that differ from the digest are commented in the file), and the only
+# link metric of the digest.
 DIGEST_VIEW_CONFIG_METRICS = {
-    "view_digest_area": [
-        metric_id
-        for metric_id in catalog_metric_ids({"antares_legacy_area_catalog"})
-        if metric_id not in DIGEST_AREA_METRICS_NOT_IN_DIGEST
-    ],
+    "view_digest_area": catalog_metric_ids({"antares_legacy_area_catalog"}),
     "view_digest_link": ["antares_legacy_link_catalog.FLOW_LIN"],
 }
 
@@ -198,8 +187,8 @@ def test_digest_view_configs_exist():
     "view_file", DIGEST_VIEW_CONFIG_FILES, ids=ids(DIGEST_VIEW_CONFIG_FILES)
 )
 def test_digest_view_config(view_file):
-    """A digest view config lists the metrics of the digest columns, in the catalog
-    order, with a single pattern giving the expected value over the whole period, and
+    """A digest view config lists its metrics in the catalog order, with a single
+    pattern giving the expected value over the whole period, and
     no location filter (the digest ignores the geographic trimming).
     """
     view = yaml.safe_load(view_file.read_text(encoding="utf-8"))["view"]

@@ -1,7 +1,8 @@
 view:
 
   # Mirrors the legacy digest (mc-all/grid/digest.txt), area and district part: the
-  # expected value over the whole simulated period of each variable.
+  # expected value over the whole simulated period of each variable. The metrics
+  # commented below differ from the digest.
 
   id: view_digest_area
 
@@ -19,7 +20,7 @@ view:
       time-granularity: year
       scenario: true
 
-  metrics: # the metrics of the catalog that match a digest column, as <catalog_id>.<metric_id>: keep only the ones printed
+  metrics: # metrics selected among the catalogs, as <catalog_id>.<metric_id>: keep only the ones printed
     - id: antares_legacy_area_catalog.OV_COST
     - id: antares_legacy_area_catalog.OP_COST
     - id: antares_legacy_area_catalog.MRG_PRICE
@@ -50,7 +51,13 @@ view:
     - id: antares_legacy_area_catalog.NP_COST
     - id: antares_legacy_area_catalog.AVL_DTG
     - id: antares_legacy_area_catalog.DTG_MRG
+    # LOLD: district: the legacy digest counts an hour once if any area is short
+    # (spatialAggregateSumThen1IfPositive); GVB adds the areas
     - id: antares_legacy_area_catalog.LOLD
+    # LOLP: the legacy digest counts a year as 100 % if any hour is short
+    # (computeStatisticsOrForTheCurrentYear); GVB `avg` gives a share of hours
+    - id: antares_legacy_area_catalog.LOLP
+    # NPCAP_HOURS: district: same difference as LOLD
     - id: antares_legacy_area_catalog.NPCAP_HOURS
     - id: antares_legacy_area_catalog.ROW_BAL
     - id: antares_legacy_area_catalog.MISC_NDG
@@ -59,4 +66,9 @@ view:
     - id: antares_legacy_area_catalog.H_PUMP
     - id: antares_legacy_area_catalog.H_OVFL
     - id: antares_legacy_area_catalog.H_INFL
+    # H_LEV: district: the legacy digest gives N/A; GVB gives an average
     - id: antares_legacy_area_catalog.H_LEV
+    # H_VAL: different from the Antares variable on purpose (see the catalog)
+    - id: antares_legacy_area_catalog.H_VAL
+    # H_COST: different from the Antares variable on purpose (see the catalog)
+    - id: antares_legacy_area_catalog.H_COST
