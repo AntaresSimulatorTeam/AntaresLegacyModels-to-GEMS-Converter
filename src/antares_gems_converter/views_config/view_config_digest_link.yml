@@ -1,0 +1,20 @@
+view:
+
+  # Mirrors the legacy digest (mc-all/grid/digest.txt), Links (FLOW LIN.) matrix.
+
+  id: view_digest_link
+
+  taxonomy: antares_legacy_taxonomy
+
+  scope:
+    location:
+      taxonomy-category: link # category of the taxonomy, the components of which serve as locational objects. Main case is 'area'.
+    # no location-filter: the digest ignores the geographic trimming
+
+  aggregations-patterns:
+    - id: year_all # the digest values are the 'exp' rows
+      time-granularity: year
+      scenario: true
+
+  metrics: # the metric of the catalog that matches the digest matrix, as <catalog_id>.<metric_id>
+    - id: antares_legacy_link_catalog.FLOW_LIN

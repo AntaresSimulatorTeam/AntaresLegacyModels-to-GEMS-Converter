@@ -82,6 +82,7 @@ src/antares_gems_converter/
   catalogs/                       # GEMS-ViewsBuilder metric catalogs
   taxonomies/                     # Taxonomy + flattened copy (temporary, no parent categories)
   views_config/                   # GEMS-ViewsBuilder view templates (extra-locations, aggregations-patterns filled per study; metrics lists every metric of the template's catalog, as <catalog_id>.<metric_id>, to trim per study)
+    view_config_digest_*.yml      # mirror the legacy digest (mc-all/grid/digest.txt): one year_all pattern, no location-filter, area: every catalog metric, those that differ from the digest commented; link: FLOW_LIN only; extra-locations (districts) filled per study
   antares_runner/
     antares_runner.py             # AntaresHybridRunner, benchmarker, modeler runner
 tests/
