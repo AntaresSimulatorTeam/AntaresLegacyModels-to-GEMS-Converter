@@ -53,6 +53,7 @@ def files_declaring(taxonomy_id: str, files: list[Path]) -> list[Path]:
 
 
 # Fields left "to be filled in" in the view configs, filled case by case for each study.
+# A view config that sets its own aggregations-patterns (e.g. the digest) keeps them.
 AGGREGATION_PATTERNS = [
     {"id": "annual_all_scenario", "time-granularity": "year", "scenario": True},
     {"id": "hourly_per_scenario", "time-granularity": "hour", "scenario": False},
@@ -60,9 +61,10 @@ AGGREGATION_PATTERNS = [
 
 
 def write_filled_view_config(view_file: Path, output_dir: Path) -> Path:
-    """Copy a view config with its aggregations-patterns filled."""
+    """Copy a view config with its aggregations-patterns filled, if left empty."""
     view = yaml.safe_load(view_file.read_text(encoding="utf-8"))["view"]
-    view["aggregations-patterns"] = AGGREGATION_PATTERNS
+    if not view.get("aggregations-patterns"):
+        view["aggregations-patterns"] = AGGREGATION_PATTERNS
 
     filled_view_file = output_dir / view_file.name
     filled_view_file.write_text(
@@ -85,8 +87,8 @@ def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
     """For each taxonomy, GEMS-ViewsBuilder validates the libraries, catalogs and view
     configs that declare it, against the flattened copy of the taxonomy if any, with the
     checks of its `validate_input_data` (simulation tables aside), and every view config
-    gets at least one metric. The view configs are given aggregation patterns, as for a
-    study.
+    gets at least one metric. The view configs without aggregation patterns are given
+    some, as for a study.
 
     Limits: a model without a taxonomy category is not checked against the taxonomy
     (e.g. the models of `andromede_v1_models.yml`).
@@ -122,26 +124,88 @@ def test_view_configs_are_compatible_with_views_builder(taxonomy_id, tmp_path):
         assert len(view_config.get_metrics()) == len(view_config.full_metric_ids) > 0
 
 
-@pytest.mark.parametrize("view_file", VIEW_CONFIG_FILES, ids=ids(VIEW_CONFIG_FILES))
-def test_view_config_lists_all_metrics_of_its_catalogs(view_file):
-    """Each view config lists every metric of the catalogs it uses, in the catalog
-    order, and nothing else, to be trimmed for each study.
-    """
-    metric_ids = [
+def metric_ids_of(view_file: Path) -> list[str]:
+    return [
         metric["id"]
         for metric in yaml.safe_load(view_file.read_text(encoding="utf-8"))["view"][
             "metrics"
         ]
     ]
-    catalog_ids = {metric_id.split(".")[0] for metric_id in metric_ids}
 
-    catalog_metric_ids = []
+
+def catalog_metric_ids(catalog_ids: set[str]) -> list[str]:
+    """The metrics of these catalogs, as <catalog_id>.<metric_id>, in catalog order."""
+    metric_ids = []
     for catalog_file in CATALOG_FILES:
         catalog = yaml.safe_load(catalog_file.read_text(encoding="utf-8"))["catalog"]
         if catalog["id"] in catalog_ids:
-            catalog_metric_ids += [
+            metric_ids += [
                 f"{catalog['id']}.{metric['id']}"
                 for metric in catalog["metrics-definition"]
             ]
+    return metric_ids
 
-    assert metric_ids == catalog_metric_ids
+
+# The view configs that mirror the legacy digest (mc-all/grid/digest.txt) list only the
+# catalog metrics that match a digest column.
+DIGEST_AREA_METRICS_NOT_IN_DIGEST = {
+    # A year counts 100 % in the digest if any hour is short; GVB `avg` gives a share
+    # of hours.
+    "antares_legacy_area_catalog.LOLP",
+    # Different from the Antares variables on purpose (see the catalog).
+    "antares_legacy_area_catalog.H_VAL",
+    "antares_legacy_area_catalog.H_COST",
+}
+DIGEST_VIEW_CONFIG_METRICS = {
+    "view_digest_area": [
+        metric_id
+        for metric_id in catalog_metric_ids({"antares_legacy_area_catalog"})
+        if metric_id not in DIGEST_AREA_METRICS_NOT_IN_DIGEST
+    ],
+    "view_digest_link": ["antares_legacy_link_catalog.FLOW_LIN"],
+}
+
+DIGEST_VIEW_CONFIG_FILES = [
+    path
+    for path in VIEW_CONFIG_FILES
+    if artifact_id(path) in DIGEST_VIEW_CONFIG_METRICS
+]
+TEMPLATE_VIEW_CONFIG_FILES = [
+    path for path in VIEW_CONFIG_FILES if path not in DIGEST_VIEW_CONFIG_FILES
+]
+
+
+@pytest.mark.parametrize(
+    "view_file", TEMPLATE_VIEW_CONFIG_FILES, ids=ids(TEMPLATE_VIEW_CONFIG_FILES)
+)
+def test_view_config_lists_all_metrics_of_its_catalogs(view_file):
+    """Each view config, digest aside, lists every metric of the catalogs it uses, in
+    the catalog order, and nothing else, to be trimmed for each study.
+    """
+    metric_ids = metric_ids_of(view_file)
+    catalog_ids = {metric_id.split(".")[0] for metric_id in metric_ids}
+
+    assert metric_ids == catalog_metric_ids(catalog_ids)
+
+
+def test_digest_view_configs_exist():
+    assert sorted(artifact_id(path) for path in DIGEST_VIEW_CONFIG_FILES) == sorted(
+        DIGEST_VIEW_CONFIG_METRICS
+    )
+
+
+@pytest.mark.parametrize(
+    "view_file", DIGEST_VIEW_CONFIG_FILES, ids=ids(DIGEST_VIEW_CONFIG_FILES)
+)
+def test_digest_view_config(view_file):
+    """A digest view config lists the metrics of the digest columns, in the catalog
+    order, with a single pattern giving the expected value over the whole period, and
+    no location filter (the digest ignores the geographic trimming).
+    """
+    view = yaml.safe_load(view_file.read_text(encoding="utf-8"))["view"]
+
+    assert metric_ids_of(view_file) == DIGEST_VIEW_CONFIG_METRICS[view["id"]]
+    assert view["aggregations-patterns"] == [
+        {"id": "year_all", "time-granularity": "year", "scenario": True}
+    ]
+    assert "location-filter" not in view["scope"]
