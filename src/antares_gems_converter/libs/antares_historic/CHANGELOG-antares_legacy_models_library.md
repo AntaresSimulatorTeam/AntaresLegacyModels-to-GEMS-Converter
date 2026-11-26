@@ -10,6 +10,15 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [2.5.0]
+
+- `short_term_storage` model: added `is_initial_level_optimized` parameter (Antares `initial_level_optim`). When it is `1`, `initial_level_constraint` is relaxed: the level stays cyclic over the week but its initial value is optimized.
+- `thermal` model: renamed `cluster_max_generation` to `available_power`.
+- `long_term_storage` model: renamed `nominal_pumping_capacity` to `nominal_injection_capacity`, `nominal_generation_capacity` to `nominal_withdrawal_capacity`, `minimum_generation` to `minimum_withdrawal` and `pumping_efficiency` to `injection_efficiency`. The data series of converted studies are renamed accordingly (`{param_id}_{component_id}.tsv`).
+- Taxonomy: `display-priority: high` on the main parameters and properties of each category; binding constraints listed under `constraints`; `technology` and `available_power` moved up to the `generation` category.
+
+---
+
 ## [2.4.0]
 
 - `flow` port-type: new fields `spillage_bound` and `unsupplied_energy_bound`, mapped to the `spillage-bound` and `unsupplied-energy-bound` of the hybrid `area-connection` (previously `flow` and nothing). Every model with a `flow` port defines them after the legacy bounds on spilled and unsupplied energy:

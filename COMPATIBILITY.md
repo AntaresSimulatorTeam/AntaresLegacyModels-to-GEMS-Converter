@@ -4,6 +4,7 @@ This table maps converter versions to the tool versions they are compatible with
 
 | Converter | Antares-Simulator | antares-craft | GemsPy | Notes |
 |-----------|-------------------|---------------|--------|-------|
+| 0.6.0     | 10.2.0            | 0.17.1        | 0.3.0  | Antares Legacy Models Library 2.5.0: `is_initial_level_optimized` on `short_term_storage` (Antares `initial_level_optim`); `thermal` and `long_term_storage` parameters renamed (`available_power`, `nominal_injection_capacity`, `nominal_withdrawal_capacity`, `minimum_withdrawal`, `injection_efficiency`), studies must be converted again; taxonomy `display-priority` |
 | 0.5.2     | 10.2.0            | 0.17.1        | 0.3.0  | GemsPy 0.3.0; Antares Legacy Models Library 2.4.0: dedicated `spillage_bound` / `unsupplied_energy_bound` fields on the `flow` port for the hybrid area-connection (hybrid results change, see library changelog), `name` on `renewable`, `group` renamed to `technology` on `short_term_storage`; disabled thermal and short-term storage clusters skipped; catalog fixes (STS_LEVEL summed over clusters, MARG_COST averaged over time); view configs for GEMS-ViewsBuilder 0.1.x with a new renewable cluster view; template `exclude` made local |
 | 0.5.1     | 10.2.0            | 0.17.1        | 0.2.0  | Bug fixes: !!python tags removed from system.yml; template parameter/property id validation against library models; STS CASHFLOW catalog aggregation; CLI hybrid mode and shared preprocessor state fixes; converter refactored into focused modules |
 | 0.5.0     | 10.2.0            | 0.17.1        | 0.2.0  | Antares-Simulator 10.2.0: `optim-config.yml` generated next to `system.yml`; in HYBRID mode, the GEMS components replacing load, wind, solar, misc gen, hydro and ror end with `_gems` (Antares rejects ids of legacy objects still in the study, e.g. `fr_load`); HYBRID conversion fails when a converted legacy object is referenced by a binding constraint; `antares_runner` requires Antares >= 10.2 and its hybrid runner writes only the simulation tables (no mc-ind / mc-all results) |
@@ -70,9 +71,9 @@ Runtime and development Python packages are pinned to exact versions in `pyproje
 
 | Component | Current Version | Version File |
 |-----------|----------------|--------------|
-| Converter | 0.5.2 | `pyproject.toml` |
+| Converter | 0.6.0 | `pyproject.toml` |
 | Antares Legacy Investment Candidates Library | 1.0.0 | `src/antares_gems_converter/libs/antares_legacy_investment_candidates/antares_legacy_investment_candidates.yml` |
-| Antares Legacy Models Library | 2.4.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
+| Antares Legacy Models Library | 2.5.0 | `src/antares_gems_converter/libs/antares_historic/antares_legacy_models.yml` |
 | Antares-Simulator | 10.2.0 | `dependencies.json` |
 | antares-craft | 0.17.1 | `pyproject.toml` |
 | GemsPy | 0.3.0 | `pyproject.toml` |
