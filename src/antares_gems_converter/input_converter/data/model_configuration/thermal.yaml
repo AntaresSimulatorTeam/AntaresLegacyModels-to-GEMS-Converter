@@ -34,7 +34,7 @@ template:
               cluster: ${thermal}
               field: prepro_modulation_matrix 
             column: 3
-        - id: cluster_max_generation
+        - id: available_power
           scenario-dependent: true
           time-dependent: true
           value:

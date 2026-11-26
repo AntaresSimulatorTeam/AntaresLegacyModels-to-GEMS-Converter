@@ -32,7 +32,7 @@ template:
               type: hydro
               area: ${area}
               field: reservoir_capacity
-        - id: nominal_pumping_capacity
+        - id: nominal_injection_capacity
           time-dependent: true
           scenario-dependent: true
           value:
@@ -41,7 +41,7 @@ template:
               area: ${area}
               field: maxpower
             column: 2
-        - id: nominal_generation_capacity
+        - id: nominal_withdrawal_capacity
           time-dependent: true
           scenario-dependent: true
           value:
@@ -50,7 +50,7 @@ template:
               area: ${area}
               field: maxpower
             column: 0
-        - id: minimum_generation
+        - id: minimum_withdrawal
           time-dependent: true
           scenario-dependent: true
           value:
@@ -58,7 +58,7 @@ template:
               type: hydro
               area: ${area}
               field: mingen
-        - id: pumping_efficiency
+        - id: injection_efficiency
           time-dependent: false
           scenario-dependent: false
           value:

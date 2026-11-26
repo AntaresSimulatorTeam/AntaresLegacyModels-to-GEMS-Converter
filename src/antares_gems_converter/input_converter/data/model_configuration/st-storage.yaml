@@ -203,6 +203,15 @@ template:
               type: hydro
               area: ${area}
               field: overflow_spilled_cost_difference
+        - id: is_initial_level_optimized
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: initial_level_optim
       properties:
         - id: carrier
           value:
