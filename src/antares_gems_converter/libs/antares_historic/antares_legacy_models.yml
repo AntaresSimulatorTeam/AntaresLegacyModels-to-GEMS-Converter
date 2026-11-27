@@ -430,6 +430,9 @@ library:
         - id: overflow_cost
           time-dependent: false
           scenario-dependent: false
+        - id: is_initial_level_optimized
+          time-dependent: false
+          scenario-dependent: false
       variables:
         - id: injection_power
           lower-bound: 0
@@ -468,7 +471,7 @@ library:
           definition: 0
       constraints:
         - id: initial_level_constraint
-          expression: level[167] = initial_level * reservoir_capacity # 167 = last timestep of the week (168h - 1); enforces end-of-week level target
+          expression: level[167] * (1 - is_initial_level_optimized) = initial_level * reservoir_capacity * (1 - is_initial_level_optimized) #167 = last timestep of the week (168h - 1); enforces end-of-week level target
         - id: level_equation
           expression: level = level[t-1] + injection_efficiency * injection_power - withdrawal_efficiency * withdrawal_power + inflows - overflow
         - id: up_injection_variation

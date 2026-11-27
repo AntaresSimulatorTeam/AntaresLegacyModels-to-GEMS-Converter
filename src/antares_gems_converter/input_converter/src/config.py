@@ -70,6 +70,7 @@ MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {
 CLUSTER_TYPE_TO_SB_ATTR: dict[str, str] = {
     "thermal": "thermal",
     "renewable": "renewable",
+    "st_storage": "storage_inflows",
 }
 
 LINK_TYPE_TO_SCENARIO_BUILDER_ATTR: dict[str, str] = {

@@ -10,6 +10,12 @@ Versioning follows the rules defined in `COMPATIBILITY.md`:
 
 ---
 
+## [Unreleased]
+
+- `short_term_storage` model: added `is_initial_level_optimized` parameter (Antares `initial_level_optim`). When it is `1`, `initial_level_constraint` is relaxed: the level stays cyclic over the week but its initial value is optimized.
+
+---
+
 ## [2.4.0]
 
 - `flow` port-type: new fields `spillage_bound` and `unsupplied_energy_bound`, mapped to the `spillage-bound` and `unsupplied-energy-bound` of the hybrid `area-connection` (previously `flow` and nothing). Every model with a `flow` port defines them after the legacy bounds on spilled and unsupplied energy:
