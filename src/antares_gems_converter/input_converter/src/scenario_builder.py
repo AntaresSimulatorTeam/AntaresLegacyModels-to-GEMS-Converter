@@ -29,36 +29,34 @@ from antares_gems_converter.input_converter.src.templates import StudyObject
 MODELER_SCENARIO_BUILDER_FILE = "modeler-scenariobuilder.dat"
 
 
-def get_legacy_sb(study: Study, logger: logging.Logger) -> ScenarioBuilder | None:
-    # Returns None (instead of raising) when the study has no SB or it cannot be read,
-    # so the rest of the conversion proceeds without SB data.
-    try:
-        return study.get_scenario_builder()
-    except Exception as e:
-        logger.warning(f"Could not read legacy scenario builder: {e}")
-        return None
-
-
 def read_year_ts(
     legacy_sb: ScenarioBuilder | None,
     template_name: str,
     study_object: StudyObject,
-) -> dict[int, int]:
-    """Return {year_index: ts_index} for all years that have an explicit SB
-    entry (non-None) for `study_object`, an object that the template named
-    `template_name` is instantiated for."""
+) -> dict[int, int] | None:
+    """Return {year_index: ts_index} for `study_object`, an object that the
+    template named `template_name` is instantiated for: all the MC years, or
+    {} when none has an SB entry (Antares draws the series at random).
+
+    Return None when there is no SB information (no SB given, or no SB
+    attribute for the template). Raise a ValueError when only some MC years
+    have an SB entry: GemsPy cannot reproduce the random draw of the others.
+    """
     if legacy_sb is None:
-        return {}
+        return None
     # Links, cluster types (thermal/renewable) and area matrix types
     # (wind/solar/load/hydro/ror) have their own SB attribute
     if study_object.kind == ObjectKind.LINK:
         attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(template_name)
+        label = f"link {study_object.link}"
     elif study_object.kind == ObjectKind.AREA:
         attr = MATRIX_TYPES_TO_SCENARIO_BUILDER_ATTR.get(template_name)
+        label = f"area {study_object.area}"
     else:
         attr = CLUSTER_TYPE_TO_SB_ATTR.get(study_object.kind)
+        label = f"{study_object.kind} {study_object.area} / {study_object.cluster}"
     if attr is None:
-        return {}
+        return None
 
     sb_matrices = getattr(legacy_sb, attr)
     if study_object.kind == ObjectKind.LINK:
@@ -68,9 +66,15 @@ def read_year_ts(
         sb_matrix = sb_matrices.get_area(study_object.area)
     else:
         sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
-    return {
-        year: ts for year, ts in enumerate(sb_matrix.get_scenario()) if ts is not None
-    }
+    scenario = sb_matrix.get_scenario()
+    year_ts = {year: ts for year, ts in enumerate(scenario) if ts is not None}
+    missing = [year for year, ts in enumerate(scenario) if ts is None]
+    if year_ts and missing:
+        raise ValueError(
+            f"Legacy scenario builder of {template_name} {label} is partially "
+            f"filled: MC years {missing} have no time series. Set all MC years."
+        )
+    return year_ts
 
 
 def clear_legacy_sb_entries(

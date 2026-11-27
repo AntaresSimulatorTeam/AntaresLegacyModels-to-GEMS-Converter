@@ -64,7 +64,7 @@ system:
       model: antares_legacy_models.load
       parameters:
         - id: load
-          scenario-dependent: true
+          scenario-dependent: false
           time-dependent: true
           value: load_fr_load
       properties:
@@ -74,11 +74,11 @@ system:
       model: antares_legacy_models.thermal
       parameters:
         - id: cluster_min_gen_modulation
-          scenario-dependent: true
+          scenario-dependent: false
           time-dependent: true
           value: cluster_min_gen_modulation_fr_thermal_fr_nuclear_epr
         - id: cluster_max_generation
-          scenario-dependent: true
+          scenario-dependent: false
           time-dependent: true
           value: cluster_max_generation_fr_thermal_fr_nuclear_epr
         - id: min_power_per_unit

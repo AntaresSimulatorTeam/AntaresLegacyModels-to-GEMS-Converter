@@ -45,7 +45,6 @@ from antares_gems_converter.input_converter.src.parsing import (
 )
 from antares_gems_converter.input_converter.src.scenario_builder import (
     copy_scenario_builder_file,
-    get_legacy_sb,
     read_year_ts,
     write_scenario_builder_file,
 )
@@ -176,7 +175,7 @@ class AntaresStudyConverter:
     def _convert_instance(
         self,
         instance: TemplateInstance,
-        year_ts: dict[int, int],
+        year_ts: dict[int, int] | None,
         id_suffix: str,
         mp: ModelConversionPreprocessor,
         fragment: SystemFragment,
@@ -184,17 +183,37 @@ class AntaresStudyConverter:
         """Add to `fragment` what `instance` converts its study object to.
 
         Components get their scenario group only when the legacy SB has
-        entries for the object (`year_ts`: {year: ts index}). Components of
-        a matrix type whose time series are empty or all zeros are skipped,
-        with their connections.
+        entries for the object (`year_ts`: {year: ts index}, None when there
+        is no SB information). When it has none, Antares draws the series at
+        random: a ValueError is raised if the object has several series, else
+        its parameters are made scenario-independent. Components of a matrix
+        type whose time series are empty or all zeros are skipped, with their
+        connections.
         """
         skipped_components: set[str] = set()
         for comp in instance.components:
             scenario_group = None
+            scenario_independent = False
             if comp.scenario_group is not None and year_ts:
                 # " / " in group names comes from link IDs (e.g. "at / fr")
                 scenario_group = comp.scenario_group.replace(" / ", "_")
                 fragment.group_data[scenario_group] = year_ts
+            elif comp.scenario_group is not None and year_ts is not None:
+                num_series = max(
+                    (
+                        mp.num_series(param.value)
+                        for param in comp.parameters
+                        if param.scenario_dependent
+                    ),
+                    default=1,
+                )
+                if num_series > 1:
+                    raise ValueError(
+                        f"Legacy scenario builder of {comp.id} has no entry while "
+                        f"it has {num_series} time series: Antares draws them at "
+                        "random, which GEMS cannot reproduce. Set all MC years."
+                    )
+                scenario_independent = True
             if instance.name in MATRIX_TYPES and not all(
                 mp.check_timeseries_validity(param.value) for param in comp.parameters
             ):
@@ -202,7 +221,12 @@ class AntaresStudyConverter:
                 continue
             fragment.components.append(
                 self._component_schema(
-                    comp, instance.model, scenario_group, id_suffix, mp
+                    comp,
+                    instance.model,
+                    scenario_group,
+                    id_suffix,
+                    mp,
+                    scenario_independent,
                 )
             )
 
@@ -246,9 +270,11 @@ class AntaresStudyConverter:
         scenario_group: Optional[str],
         id_suffix: str,
         mp: ModelConversionPreprocessor,
+        scenario_independent: bool = False,
     ) -> ComponentSchema:
         """The GEMS component, its parameter and property values read from
-        the study (time series are written to the data series folder)."""
+        the study (time series are written to the data series folder).
+        `scenario_independent` makes all its parameters scenario-independent."""
         return ComponentSchema(
             id=self._output_component_id(comp.id, id_suffix),
             model=model,
@@ -257,7 +283,8 @@ class AntaresStudyConverter:
                 ComponentParameterSchema(
                     id=param.id,
                     time_dependent=param.time_dependent,
-                    scenario_dependent=param.scenario_dependent,
+                    scenario_dependent=param.scenario_dependent
+                    and not scenario_independent,
                     value=mp.convert_param_value(param.id, param.value, comp.id),
                 )
                 for param in comp.parameters
@@ -353,7 +380,7 @@ class AntaresStudyConverter:
         `self.legacy_objects`.
         """
         # Read the legacy SB once and pass it to every model conversion
-        legacy_sb = get_legacy_sb(self.study, self.logger)
+        legacy_sb = self.study.get_scenario_builder()
         converted = SystemFragment()
         for conversion_template in model_conversion_templates.values():
             self.logger.info(
