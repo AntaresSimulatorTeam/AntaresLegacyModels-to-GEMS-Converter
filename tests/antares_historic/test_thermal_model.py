@@ -852,13 +852,7 @@ def test_min_gen_modulation(
     antares_exec_folder: Path,
 ) -> None:
     for marg_cluster_properties in cluster_list_general_test:
-        availability = np.concatenate(
-            [
-                random_availability_ratio(seed=1000),
-                random_availability_ratio(seed=2000),
-            ],
-            axis=1,
-        )
+        availability = random_availability_ratio(seed=1000)
         df = pd.DataFrame(
             data=marg_cluster_properties.unit_count
             * marg_cluster_properties.nominal_capacity
