@@ -16,12 +16,17 @@ taxonomy:
   categories:
 
     - id: balance
+      parameters:
+        - id: unsupplied_energy_cost
+          display-priority: high
+        - id: spillage_cost
+          display-priority: high
       variables:
         - id: unsupplied_energy
         - id: spilled_energy
       ports:
         - id: balance_port
-      binding-constraints:
+      constraints:
         - id: balance
       extra-outputs:
         - id: price
@@ -31,13 +36,28 @@ taxonomy:
         - id: is_near_loss_of_load
 
     - id: generation
+      parameters:
+        - id: available_power
+          display-priority: high
       ports:
         - id: balance_port
+      properties:
+        - id: technology
+          display-priority: high
 
     - id: dispatchable_generation
+      parameters:
+        - id: available_power
+          display-priority: high
+        - id: num_units
+          display-priority: high
+        - id: max_power_per_unit
+          display-priority: high
+        - id: market_bid_cost
+          display-priority: high
       ports:
         - id: balance_port
-      variables: 
+      variables:
         - id: generation_power
       extra-outputs:
         - id: prop_cost
@@ -62,6 +82,7 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
+          display-priority: high
         - id: name
 
     - id: fatal_generation
@@ -69,6 +90,10 @@ taxonomy:
         - id: balance_port
       parameters:
         - id: available_power
+          display-priority: high
+      properties:
+        - id: technology
+          display-priority: high
       extra-outputs:
         - id: minus_generation
         - id: generation_power
@@ -78,11 +103,17 @@ taxonomy:
         - id: balance_port
       parameters:
         - id: available_power
+          display-priority: high
+        - id: nominal_capacity
+          display-priority: high
+        - id: num_units
+          display-priority: high
       extra-outputs:
         - id: minus_generation
         - id: generation_power
       properties:
         - id: technology
+          display-priority: high
         - id: name
 
     - id: miscellaneous_fatal_generation
@@ -90,11 +121,13 @@ taxonomy:
         - id: balance_port
       parameters:
         - id: available_power
+          display-priority: high
       extra-outputs:
         - id: minus_generation
         - id: generation_power
       properties:
-        - id: technology 
+        - id: technology
+          display-priority: high
         - id: miscellaneous_type
 
     - id: consumption
@@ -108,16 +141,37 @@ taxonomy:
         - id: balance_port
       extra-outputs:
         - id: actual_load
+      parameters:
+        - id: load
+          display-priority: high
 
     - id: storage
+      parameters:
+        - id: reservoir_capacity
+          display-priority: high
+        - id: nominal_withdrawal_capacity
+          display-priority: high
+        - id: nominal_injection_capacity
+          display-priority: high
+        - id: injection_efficiency
+          display-priority: high
       ports:
         - id: balance_port
       variables:
         - id: injection_power
         - id: withdrawal_power
         - id: level
-    
+
     - id: long_term_storage
+      parameters:
+        - id: reservoir_capacity
+          display-priority: high
+        - id: nominal_withdrawal_capacity
+          display-priority: high
+        - id: nominal_injection_capacity
+          display-priority: high
+        - id: injection_efficiency
+          display-priority: high
       ports:
         - id: balance_port
       variables:
@@ -130,6 +184,15 @@ taxonomy:
         - id: level_percentage
 
     - id: long_term_storage_with_watervalues
+      parameters:
+        - id: reservoir_capacity
+          display-priority: high
+        - id: nominal_withdrawal_capacity
+          display-priority: high
+        - id: nominal_injection_capacity
+          display-priority: high
+        - id: injection_efficiency
+          display-priority: high
       ports:
         - id: balance_port
       variables:
@@ -144,6 +207,21 @@ taxonomy:
         - id: bellman_value
 
     - id: short_term_storage
+      parameters:
+        - id: reservoir_capacity
+          display-priority: high
+        - id: nominal_withdrawal_capacity
+          display-priority: high
+        - id: nominal_injection_capacity
+          display-priority: high
+        - id: injection_efficiency
+          display-priority: high
+        - id: withdrawal_efficiency
+          display-priority: high
+        - id: initial_level
+          display-priority: high
+        - id: is_initial_level_optimized
+          display-priority: high
       ports:
         - id: balance_port
       variables:
@@ -154,9 +232,15 @@ taxonomy:
         - id: profit
       properties:
         - id: technology
+          display-priority: high
         - id: name
 
     - id: link
+      parameters:
+        - id: direct_capacity
+          display-priority: high
+        - id: indirect_capacity
+          display-priority: high
       ports:
         - id: out_port
         - id: in_port

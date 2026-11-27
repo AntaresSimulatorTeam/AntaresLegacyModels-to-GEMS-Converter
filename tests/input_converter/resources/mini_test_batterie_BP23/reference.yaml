@@ -77,10 +77,10 @@ system:
           scenario-dependent: true
           time-dependent: true
           value: cluster_min_gen_modulation_fr_thermal_fr_nuclear_epr
-        - id: cluster_max_generation
+        - id: available_power
           scenario-dependent: true
           time-dependent: true
-          value: cluster_max_generation_fr_thermal_fr_nuclear_epr
+          value: available_power_fr_thermal_fr_nuclear_epr
         - id: min_power_per_unit
           scenario-dependent: false
           time-dependent: false
