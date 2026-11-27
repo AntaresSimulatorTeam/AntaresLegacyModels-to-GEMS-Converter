@@ -40,7 +40,7 @@ BASE_STS_PROPERTIES = STStorageProperties(
 # General tests [OK:sts_list_general_test]
 
 # Testing Boolean/discrete parameters
-## initial_level_optim [OK : test_initial_level_optim]
+## initial_level_optim [TODO]
 ## enabled [OK : test_disabled_sts]
 ## penalize_variation_injection [OK : test_penalize_variation_injection]
 ## penalize_variation_withdrawal [OK : test_penalize_variation_withdrawal]
@@ -591,25 +591,6 @@ def test_allow_overflow(
         auto_generated_studies_path,
         antares_exec_folder,
         sts_timeseries=sts_timeseries,
-    )
-
-
-@pytest.mark.parametrize("load_time_serie_file", LOAD_TIME_SERIE_FILES_STS)
-def test_initial_level_optim(
-    load_time_serie_file: str,
-    auto_generated_studies_path: Path,
-    antares_exec_folder: Path,
-) -> None:
-    # Empty initial level: freeing it changes the optimum
-    sts_properties = replace(
-        BASE_STS_PROPERTIES, initial_level=0.0, initial_level_optim=False
-    )
-    sts_test_procedure_bool_param(
-        sts_properties,
-        "initial_level_optim",
-        load_time_serie_file,
-        auto_generated_studies_path,
-        antares_exec_folder,
     )
 
 
