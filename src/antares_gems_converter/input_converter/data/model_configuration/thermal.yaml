@@ -26,7 +26,7 @@ template:
       parameters:
         - id: cluster_min_gen_modulation
           time-dependent: true
-          scenario-dependent: true
+          scenario-dependent: false
           value:
             object-properties:
               type: thermal

@@ -9,6 +9,8 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
+import numpy as np
+import pandas as pd
 import pytest
 from antares.craft.model.area import AreaProperties
 from antares.craft.model.hydro import HydroProperties
@@ -58,6 +60,10 @@ class TestConverterScenarioBuilder:
         assert all(
             c.scenario_group is None for c in system.components
         ), "No component must have a scenario_group when the legacy SB is empty"
+        # A single series: no random draw, the parameters are scenario-independent
+        assert not any(
+            p.scenario_dependent for c in system.components for p in c.parameters
+        )
 
         sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
         assert (
@@ -104,6 +110,29 @@ class TestConverterScenarioBuilder:
         assert (
             "thermal_fr_gaz_group, 0 = 3" in content
         ), f"Expected 'thermal_fr_gaz_group, 0 = 3' in generated SB file, got:\n{content}"
+
+    # -------------------------------------------------------------------------
+    # Case 2b — legacy SB with years drawn at random by Antares (partially
+    # filled, or empty with several series): the conversion fails
+    # -------------------------------------------------------------------------
+
+    @pytest.mark.parametrize(
+        "scenario, message",
+        [([2, None, 3], r"MC years \[1\]"), ([None] * 3, "2 time series")],
+    )
+    def test_random_legacy_sb_raises(self, fr_wind: Study, scenario, message):
+        fr_wind.update_settings(
+            StudySettingsUpdate(general_parameters=GeneralParametersUpdate(nb_years=3))
+        )
+        gaz = fr_wind.get_areas()["fr"].get_thermals()["gaz"]
+        gaz.set_series(pd.DataFrame(np.ones((8760, 2))))
+        sb = fr_wind.get_scenario_builder()
+        sb.thermal.get_cluster("fr", "gaz").set_new_scenario(scenario)
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(fr_wind, model_list=["thermal"])
+        with pytest.raises(ValueError, match=message):
+            converter.system_and_scenario_groups(converter.load_and_check_templates())
 
     # -------------------------------------------------------------------------
     # Case 3 — hybrid mode: legacy SB cleared for converted areas, modeler SB
@@ -454,7 +483,7 @@ class TestScenarioBuilderTwoAreas:
 
     def test_hydro_sb_one_area_only(self, two_area_study):
         sb = two_area_study.get_scenario_builder()
-        sb.hydro.get_area("ba00").set_new_scenario([1, 2])
+        sb.hydro.get_area("ba00").set_new_scenario([1, 2, 1])
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro"])
@@ -478,7 +507,7 @@ class TestScenarioBuilderTwoAreas:
 
     def test_hydro_sb_both_areas(self, two_area_study):
         sb = two_area_study.get_scenario_builder()
-        sb.hydro.get_area("ba00").set_new_scenario([1, 2])  # years 0→1, 1→2
+        sb.hydro.get_area("ba00").set_new_scenario([1, 2, 1])  # years 0→1, 1→2, 2→1
         sb.hydro.get_area("hr00").set_new_scenario([2, 1, 3])  # years 0→2, 1→1, 2→3
         two_area_study.set_scenario_builder(sb)
 
@@ -505,7 +534,7 @@ class TestScenarioBuilderTwoAreas:
 
     def test_ntc_sb_only(self, two_area_study):
         sb = two_area_study.get_scenario_builder()
-        sb.link.get_link("ba00 / hr00").set_new_scenario([1])
+        sb.link.get_link("ba00 / hr00").set_new_scenario([1, 1, 1])
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["link"])
@@ -526,9 +555,9 @@ class TestScenarioBuilderTwoAreas:
 
     def test_all_combined(self, two_area_study):
         sb = two_area_study.get_scenario_builder()
-        sb.hydro.get_area("ba00").set_new_scenario([1, 2])
+        sb.hydro.get_area("ba00").set_new_scenario([1, 2, 1])
         sb.hydro.get_area("hr00").set_new_scenario([2, 1, 3])
-        sb.link.get_link("ba00 / hr00").set_new_scenario([1])
+        sb.link.get_link("ba00 / hr00").set_new_scenario([1, 1, 1])
         two_area_study.set_scenario_builder(sb)
 
         converter = self._init_converter(two_area_study, ["hydro", "link"])

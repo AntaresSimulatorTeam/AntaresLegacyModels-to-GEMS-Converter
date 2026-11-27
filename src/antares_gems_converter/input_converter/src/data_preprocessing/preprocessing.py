@@ -201,38 +201,45 @@ class ModelConversionPreprocessor:
             return value
         return time_series
 
-    def calculate_value(
-        self, obj: ConversionValue, component_id: str
-    ) -> Union[float, str]:
+    def _raw_value(self, obj: ConversionValue) -> Any:
+        """The scalar or the full time series that `obj` reads from the study."""
         if obj.object_properties is None or obj.object_properties.type is None:
             raise ValueError(f"Object properties {obj} must not be None")
         type_resource: str = obj.object_properties.type
-        time_series: pd.DataFrame = pd.DataFrame()
-
-        self.file_path = Path(f"{self.param_id}_{component_id.replace(' / ','_')}.tsv")
-        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
-
         if type_resource == "area":
             return self.calculate_area_data_values(obj)
         elif type_resource in ["load", "wind", "solar", "misc_gen"]:
-            time_series = self.calculate_matrix_data_values(obj, type_resource)
+            return self.calculate_matrix_data_values(obj, type_resource)
         elif type_resource == "binding_constraint":
             # TODO No timeseries linked to binding constraints for the moment
-            return self.calculate_binding_constraint_data_values(obj)  # type: ignore
+            return self.calculate_binding_constraint_data_values(obj)
         elif type_resource == "link":
-            time_series = self.calculate_link_data_values(obj)
+            return self.calculate_link_data_values(obj)
         elif type_resource in ["st_storage", "thermal", "renewable"]:
-            data = self.calculate_cluster_data_values(type_resource, obj)
-            if isinstance(data, pd.DataFrame):
-                time_series = data
-            else:
-                return data
+            return self.calculate_cluster_data_values(type_resource, obj)
         elif type_resource in ["hydro"]:
-            data = self.calculate_hydro_data_values(obj)
-            if isinstance(data, pd.DataFrame):
-                time_series = data
-            else:
-                return data
+            return self.calculate_hydro_data_values(obj)
+        return pd.DataFrame()
+
+    def num_series(self, value_content: ConversionValue) -> int:
+        """Number of time series (columns) that `value_content` reads: 1 for a
+        constant, a scalar or a single column."""
+        if value_content.constant is not None or value_content.column is not None:
+            return 1
+        value_content.check_validity()
+        data = self._raw_value(value_content)
+        return data.shape[1] if isinstance(data, pd.DataFrame) else 1
+
+    def calculate_value(
+        self, obj: ConversionValue, component_id: str
+    ) -> Union[float, str]:
+        self.file_path = Path(f"{self.param_id}_{component_id.replace(' / ','_')}.tsv")
+        self.output_file = self.output_folder / "input" / SERIES_FOLDER / self.file_path
+
+        data = self._raw_value(obj)
+        if not isinstance(data, pd.DataFrame):
+            return data
+        time_series: pd.DataFrame = data
 
         if getattr(obj, "column", None) is not None:
             time_series: pd.Series = time_series.iloc[:, obj.column]  # type: ignore

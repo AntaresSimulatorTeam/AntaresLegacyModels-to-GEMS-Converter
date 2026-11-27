@@ -537,7 +537,7 @@ class TestConverter:
                     ComponentParameterSchema(
                         id="cluster_min_gen_modulation",
                         time_dependent=True,
-                        scenario_dependent=True,
+                        scenario_dependent=False,
                         scenario_group=None,
                         value="cluster_min_gen_modulation_fr_thermal_gaz",
                     ),
@@ -1024,7 +1024,9 @@ class TestConverter:
         with path_load.open() as template:
             resource_content = parse_conversion_template(template)
 
-        result = converter.apply_conversion_template(resource_content)
+        result = converter.apply_conversion_template(
+            resource_content, converter.study.get_scenario_builder()
+        )
         load_components = result.components
         load_connections = result.connections
 

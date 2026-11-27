@@ -215,16 +215,16 @@ def test_read_year_ts_by_kind(fr_wind: Study):
 
     assert read_year_ts(sb, "wind", FR) == {0: 2}
     # Templates without a legacy SB attribute
-    assert read_year_ts(sb, "area", FR) == {}
-    assert read_year_ts(sb, "misc_gen", FR) == {}
-    assert read_year_ts(sb, "battery", FR) == {}
+    assert read_year_ts(sb, "area", FR) is None
+    assert read_year_ts(sb, "misc_gen", FR) is None
+    assert read_year_ts(sb, "battery", FR) is None
     assert read_year_ts(sb, "thermal", FR_GAZ) == {0: 3}
     generation = StudyObject(ObjectKind.RENEWABLE, area="fr", cluster="generation")
     assert read_year_ts(sb, "renewable", generation) == {0: 4}
     storage = StudyObject(ObjectKind.ST_STORAGE, area="fr", cluster="storage_1")
-    assert read_year_ts(sb, "st_storage", storage) == {}
+    assert read_year_ts(sb, "st_storage", storage) is None
     assert read_year_ts(sb, "link", AT_FR) == {0: 5}
-    assert read_year_ts(None, "wind", FR) == {}
+    assert read_year_ts(None, "wind", FR) is None
 
 
 def test_battery_exclusions():

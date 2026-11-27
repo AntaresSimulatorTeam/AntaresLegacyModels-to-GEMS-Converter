@@ -29,7 +29,7 @@ src/antares_gems_converter/
 
       templates.py - loads the YAML templates; `StudyObject` (a link, area or cluster, with its placeholder substitutions); `study_objects()` yields the objects a template is instantiated for, skipping those it excludes (`is_excluded()`) and the disabled clusters
       checks.py - checks the templates against the provided lib files (model ids, and parameter/property ids in both directions)
-      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
+      scenario_builder.py - reads the legacy scenario builder (`read_year_ts()` per `StudyObject`, from which the converter sets the components' scenario groups; raises a `ValueError` when only some MC years have an entry), clears the legacy entries of deleted objects, copies or writes modeler-scenariobuilder.dat
       deletion.py - hybrid mode: deletes (or blanks) the converted Antares objects from the study copy in-place
       optim_config.py - writes the default optim-config.yml unless one exists
 
@@ -115,7 +115,7 @@ The nested part is the template loop (see below).
 flowchart TD
     setup["<b>Setup</b><br/>copy the libs to model-libraries/<br/>copy the user modeler SB file, if given<br/>create data-series/"]
     load["<b>load_and_check_templates()</b><br/>YAML to ConversionTemplate, one per model<br/>rejected at load: not exactly one template parameter,<br/>parameter not named area or link,<br/>unknown cluster-type or link attribute,<br/>exclusion ill-formed or that can never match<br/>then checked against the lib files"]
-    sb["<b>get_legacy_sb()</b><br/>legacy scenario builder, read once"]
+    sb["<b>study.get_scenario_builder()</b><br/>legacy scenario builder, read once"]
 
     subgraph perTemplate["For each template: apply_conversion_template() gives a SystemFragment"]
         direction TB
@@ -123,10 +123,10 @@ flowchart TD
             direction TB
             objs["<b>study_objects()</b><br/>skips the template's own exclusions<br/>and the disabled clusters"]
             inst["<b>instantiate()</b><br/>all placeholders in one pass<br/>gives a TemplateInstance"]
-            ts["<b>read_year_ts()</b><br/>legacy SB entries of the object<br/>{year: ts index}"]
+            ts["<b>read_year_ts()</b><br/>legacy SB entries of the object<br/>{year: ts index}<br/>partially filled: ValueError"]
             subgraph conv["_convert_instance()"]
                 direction TB
-                comps["components + .tsv series<br/>matrix components with empty or<br/>all-zero series skipped"]
+                comps["components + .tsv series<br/>no SB entry: ValueError if several series,<br/>else parameters scenario-independent<br/>matrix components with empty or<br/>all-zero series skipped"]
                 full["<b>Full mode</b><br/>port connections, minus those<br/>touching a skipped component"]
                 hybrid["<b>Hybrid mode</b><br/>area connections, minus those of a<br/>skipped component<br/>+ legacy objects to delete"]
                 comps --> full
@@ -144,7 +144,7 @@ flowchart TD
     setup --> load --> sb --> perTemplate --> merge --> out
 ```
 
-`get_legacy_sb()`, the template loop and the merge run in `system_and_scenario_groups()`, which `process_all()` calls with the templates from `load_and_check_templates()`.
+Reading the legacy SB, the template loop and the merge run in `system_and_scenario_groups()`, which `process_all()` calls with the templates from `load_and_check_templates()`.
 
 ### Template loop
 
@@ -474,7 +474,9 @@ The steps live in the reusable `run-tests.yml`, also used by the weekly dependen
 
 12. **YAML artifacts are discovered by their root key.** The consistency tests (`tests/consistency/`) run on every YAML file under `src/antares_gems_converter/`, classified by its single root key (`library`, `catalog`, `taxonomy`, `view`, `template`) in `tests/consistency/yaml_artifacts.py`. A new library, catalog, taxonomy or view config is therefore checked without touching the tests, provided it is a `.yml` file stored under the directory of its kind (`libs/`, `catalogs/`, `taxonomies/`, `views_config/`, subdirectories allowed); `test_yaml_artifacts.py` fails on an unrecognised YAML file or a misplaced one. The flattened copy of a taxonomy `<name>.yml` is `<name>_flattened.yml`, with the same id; when it exists, the view builder is given it instead of the main one.
 
-13. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
+13. **No random draw of legacy time series.** A `None` legacy SB entry means Antares draws the series at random, which GEMS cannot reproduce. For a component with a `scenario-group`, the conversion fails with a `ValueError` when the legacy SB is partially filled, or empty while the object has several series; empty with a single series, its parameters are written scenario-independent.
+
+14. **Disabled clusters are skipped.** A thermal, renewable or short-term storage cluster with `enabled = False` contributes nothing in Antares, so the converter generates no component for it and logs a warning. In HYBRID mode it is not deleted either: it stays, still disabled, in the study. This is intentional — do not remove the check.
 
 ---
 
