@@ -483,6 +483,10 @@ class TestConverter:
                         id="overflow_cost",
                         value=2,
                     ),
+                    ComponentParameterSchema(
+                        id="is_initial_level_optimized",
+                        value=0,
+                    ),
                 ],
                 properties=[
                     ComponentPropertySchema(id="carrier", value="electricity"),

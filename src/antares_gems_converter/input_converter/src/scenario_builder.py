@@ -49,8 +49,8 @@ def read_year_ts(
     `template_name` is instantiated for."""
     if legacy_sb is None:
         return {}
-    # Links, cluster types (thermal/renewable) and area matrix types
-    # (wind/solar/load/hydro/ror) have their own SB attribute
+    # Links, cluster types (thermal/renewable/st_storage inflows) and area matrix
+    # types (wind/solar/load/hydro/ror) have their own SB attribute
     if study_object.kind == ObjectKind.LINK:
         attr = LINK_TYPE_TO_SCENARIO_BUILDER_ATTR.get(template_name)
     elif study_object.kind == ObjectKind.AREA:
@@ -61,11 +61,15 @@ def read_year_ts(
         return {}
 
     sb_matrices = getattr(legacy_sb, attr)
+    if sb_matrices is None:  # storage_inflows only exists for v9.3+ studies
+        return {}
     if study_object.kind == ObjectKind.LINK:
         # SB link ids are sorted alphabetically
         sb_matrix = sb_matrices.get_link(study_object.link)
     elif study_object.kind == ObjectKind.AREA:
         sb_matrix = sb_matrices.get_area(study_object.area)
+    elif study_object.kind == ObjectKind.ST_STORAGE:
+        sb_matrix = sb_matrices.get_storage(study_object.area, study_object.cluster)
     else:
         sb_matrix = sb_matrices.get_cluster(study_object.area, study_object.cluster)
     return {

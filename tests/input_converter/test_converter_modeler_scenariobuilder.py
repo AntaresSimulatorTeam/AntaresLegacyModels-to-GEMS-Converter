@@ -233,6 +233,63 @@ class TestConverterScenarioBuilder:
         ), f"Expected 'at_fr_ntc_group, 0 = 5' in generated SB file, got:\n{content}"
 
     # -------------------------------------------------------------------------
+    # Case 5b â€” short-term storage inflows SB: scenario group per storage
+    # -------------------------------------------------------------------------
+
+    def test_full_legacy_st_storage_inflows_sb(self, fr_wind: Study):
+        sb = fr_wind.get_scenario_builder()
+        sb.storage_inflows.get_storage("fr", "storage_1").set_new_scenario([2])
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["short-term-storage"]
+        )
+        system, _ = converter.system_and_scenario_groups(
+            converter.load_and_check_templates()
+        )
+        converter.process_all()
+
+        sts_components = [c for c in system.components if "storage_1" in c.id]
+        assert sts_components, "Expected the storage_1 component"
+        assert all(
+            c.scenario_group == "st_storage_fr_storage_1_group" for c in sts_components
+        )
+
+        sb_files = list(converter.output_folder.glob("**/modeler-scenariobuilder.dat"))
+        assert sb_files, "modeler-scenariobuilder.dat must be generated"
+        content = sb_files[0].read_text()
+        assert "st_storage_fr_storage_1_group, 0 = 2" in content, content
+
+    def test_st_storage_without_inflows_sb_has_no_scenario_group(self, fr_wind: Study):
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["short-term-storage"]
+        )
+        system, scenario_groups = converter.system_and_scenario_groups(
+            converter.load_and_check_templates()
+        )
+
+        sts_components = [c for c in system.components if "storage_1" in c.id]
+        assert sts_components, "Expected the storage_1 component"
+        assert all(c.scenario_group is None for c in sts_components)
+        assert not scenario_groups
+
+    def test_hybrid_st_storage_inflows_sb(self, fr_wind: Study):
+        sb = fr_wind.get_scenario_builder()
+        sb.storage_inflows.get_storage("fr", "storage_1").set_new_scenario([2])
+        fr_wind.set_scenario_builder(sb)
+
+        converter = self._init_converter_from_study(
+            fr_wind, model_list=["short-term-storage"], mode="hybrid"
+        )
+        converter.process_all()
+
+        assert "storage_1" not in converter.study.get_areas()["fr"].get_st_storages()
+        content = next(
+            converter.output_folder.glob("**/modeler-scenariobuilder.dat")
+        ).read_text()
+        assert "st_storage_fr_storage_1_group, 0 = 2" in content, content
+
+    # -------------------------------------------------------------------------
     # Case 6 — hydro inflows SB: entries produce a scenario group for hydro
     # -------------------------------------------------------------------------
 

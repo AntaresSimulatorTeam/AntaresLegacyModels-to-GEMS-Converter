@@ -23,6 +23,7 @@ template:
 
   components:
     - id: ${area}_short_term_storage_${st_storage}
+      scenario-group: st_storage_${area}_${st_storage}_group
       parameters:
         - id: reservoir_capacity
           time-dependent: false
@@ -203,6 +204,15 @@ template:
               type: hydro
               area: ${area}
               field: overflow_spilled_cost_difference
+        - id: is_initial_level_optimized
+          time-dependent: false
+          scenario-dependent: false
+          value:
+            object-properties:
+              type: st_storage
+              area: ${area}
+              cluster: ${st_storage}
+              field: initial_level_optim
       properties:
         - id: carrier
           value:
